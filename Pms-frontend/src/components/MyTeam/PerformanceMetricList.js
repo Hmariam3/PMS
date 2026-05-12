@@ -1,0 +1,883 @@
+import React, { useEffect, useState, useContext } from "react";
+import axios from "axios";
+import {
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  IconButton,
+  Tooltip,
+  Modal,
+  Fade,
+  Backdrop,
+  CircularProgress,
+  Stack,
+  Grid,
+  TextField,
+  Divider,
+} from "@mui/material";
+import {
+  Add as AddIcon,
+} from "@mui/icons-material";
+import { toast } from "react-toastify";
+import { AuthContext } from "../../AuthContext";
+
+const modalStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: { xs: "95%", md: 800 },
+  maxHeight: "90vh",
+  bgcolor: "background.paper",
+  boxShadow: 24,
+  p: 4,
+  borderRadius: 2,
+  overflowY: "auto",
+};
+
+const PerformanceMetricList = ({ member }) => {
+  const { user } = useContext(AuthContext);
+  console.log("user", user);
+  const [metrics, setMetrics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showEvalModal, setShowEvalModal] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [userinfo, setUserinfo] = useState({});
+  const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
+
+  const [evaluationForm, setEvaluationForm] = useState({
+    evaluation_id: null,
+    metric_id: "",
+    evaluator: "",
+    evaluation_value: "",
+    weight: "",
+    evaluation_date: new Date().toISOString().split("T")[0],
+  });
+
+
+
+  const fetchMetricsByTitle = async (title) => {
+    try {
+      setLoading(true);
+      const res = await axios.get(
+        `${baseUrl}/performances/bytitleName/${encodeURIComponent(title)}`
+      );
+      setMetrics(res.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch metrics for this title");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUserInfo = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(
+        `${baseUrl}/users/byEmail/${member.outlook_address}`
+      );
+
+      console.log("fetchUserInfo", member);
+
+      setUserinfo(res.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch user profile details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDataforsystemcalculate = async (type) => {
+    const requestData = {
+      user_id: userinfo.user_name,
+      position: userinfo.position,
+      process: userinfo.process || null,
+      subprocess: userinfo.subprocess || null,
+      team: userinfo.team || null,
+      cbsusername: userinfo.cbsusername || null,
+    };
+    try {
+      const targetRes = await axios.post(
+        `${baseUrl}/targets/TargetsSummary/`,
+        requestData
+      );
+
+      console.log("targetRes", targetRes.data);
+
+
+      const totalDeposit = Number(targetRes.data.total_deposit) || 0;
+      const totalFcyTarget = Number(targetRes.data.total_fcy) || 0;
+      const totalLoanTarget = Number(targetRes.data.total_loan) || 0;
+      const cash_collectionTarget = Number(targetRes.data.cash_collection) || 0;
+      const cash_deposited_crmTarget = Number(targetRes.data.cash_deposited_crm) || 0;
+
+      if (totalDeposit > 0) {
+        if (type === "deposit") {
+          const accountRes = await axios.post(
+            `${baseUrl}/accountmapping/getBalanceDifference/`,
+            requestData
+          );
+          let ifbBalance = 0;
+          const isDirectorOrSenior = requestData.position === "Director" || requestData.position === "Senior Director";
+          const isVPOrCHF = requestData.position === "VP" || requestData.position === "CHF";
+          const isCEO = requestData.position === "CEO";
+
+          if (
+            (isDirectorOrSenior && requestData.subprocess?.trim() === "Sharia Risk, Investment and Financing") ||
+            (isVPOrCHF && requestData.process?.trim() === "Interest Free Banking") ||
+            isCEO
+          ) {
+            try {
+              const ifbRes = await axios.post(`${baseUrl}/ifb/ifbBalanceDifference`, requestData);
+              ifbBalance = ifbRes.data?.total_difference || 0;
+            } catch (err) {
+              console.error("IFB Error:", err);
+            }
+          }
+          const accountBalance = Number(accountRes.data.total_difference) || 0;
+          return { actual: accountBalance + ifbBalance, target: totalDeposit };
+        }
+      }
+      if (totalFcyTarget > 0) {
+        if (type === "fcy") {
+          const fcyRes = await axios.post(`${baseUrl}/fcy/fcyBalanceDifference`, requestData);
+          return { actual: Number(fcyRes.data.total_difference) || 0, target: totalFcyTarget };
+        }
+      }
+      if (totalLoanTarget > 0) {
+        if (type === "loan") {
+          const loanRes = await axios.post(`${baseUrl}/loan/loanBalanceDifference`, requestData);
+          return { actual: Number(loanRes.data.total_difference) || 0, target: totalLoanTarget };
+        }
+      }
+      // if (cash_collectionTarget > 0) {
+      //   if (type === "Cash Collection") {
+      //     const collectionRes = await axios.post(`${baseUrl}/loan/loanBalanceDifference`, requestData);
+      //     return { actual: Number(loanRes.data.total_difference) || 0, target: cash_collectionTarget };
+      //   }
+      // }
+      if (cash_deposited_crmTarget > 0) {
+        if (type === "CRM Deposit") {
+          const CRMDepositRes = await axios.post(`${baseUrl}/nondeposit/getCRMCashDepositSummaryByUser/`, requestData);
+          return { actual: Number(CRMDepositRes.data.total_crm_cash) || 0, target: cash_deposited_crmTarget };
+        }
+      }
+
+
+
+      //nondeposit target
+      const userNonDepositTargetRes = await axios.post(`${baseUrl}/non-deposit-target/summary/`, requestData);
+      // actual from system
+      const newAccountTarget = userNonDepositTargetRes.data.total_new_account || 0;
+      const unauthorizeTransTarget = userNonDepositTargetRes.data.total_unauthorized || 0;
+      const active_cardTarget = userNonDepositTargetRes.data.active_card || 0;
+      const eeu_transactionTarget = userNonDepositTargetRes.data.eeu_transaction || 0;
+      const digital_transaction_volumeTarget = userNonDepositTargetRes.data.digital_transaction_volume || 0;
+      const transaction_audit_rateTarget = userNonDepositTargetRes.data.transaction_audit_rate || 0;
+
+      // actuall from evaluater or users
+      const coopay_ebirr_activationTarget = userNonDepositTargetRes.data.coopay_ebirr_activation || 0;
+      const merchant_recruitmentTarget = userNonDepositTargetRes.data.merchant_recruitment || 0;
+      const merchant_transaction_volumeTarget = userNonDepositTargetRes.data.merchant_transaction_volume || 0;
+      const agent_recruitmentTarget = userNonDepositTargetRes.data.agent_recruitment || 0;
+      const agent_transaction_volumeTarget = userNonDepositTargetRes.data.agent_transaction_volume || 0;
+      const michu_unique_recruitmentTarget = userNonDepositTargetRes.data.michu_unique_recruitment || 0;
+
+      const atm_crm_uptime_rateTarget = userNonDepositTargetRes.data.atm_crm_uptime_rate || 0;
+      const cash_balance_accuracy_rateTarget = userNonDepositTargetRes.data.cash_balance_accuracy_rate || 0;
+      const zero_customer_complaintsTarget = userNonDepositTargetRes.data.zero_customer_complaints || 0;
+      const avg_txn_per_csoTarget = userNonDepositTargetRes.data.avg_txn_per_cso || 0;
+      const compliance_rateTarget = userNonDepositTargetRes.data.compliance_rate || 0;
+      const reports_3days_rateTarget = userNonDepositTargetRes.data.reports_3days_rate || 0;
+      const audit_report_qualityTarget = userNonDepositTargetRes.data.audit_report_quality || 0;
+      const cash_surprise_checksTarget = userNonDepositTargetRes.data.cash_surprise_checks || 0;
+      const employee_perf_thresholdTarget = userNonDepositTargetRes.data.employee_perf_threshold || 0;
+
+      if (newAccountTarget > 0) {
+        if (type === "account") {
+          const newaccountRes = await axios.post(`${baseUrl}/nondeposit/new-accounts-summary/`, requestData);
+          return { actual: newaccountRes?.data?.total_accounts || 0, target: newAccountTarget };
+        }
+      }
+      if (unauthorizeTransTarget > 0) {
+        if (type === "transaction") {
+          const unutorizedTranRes = await axios.post(`${baseUrl}/nondeposit/non-txn-summary/`, requestData);
+          return { actual: unutorizedTranRes?.data?.total_unauthorized || 0, target: unauthorizeTransTarget };
+        }
+      }
+
+      if (active_cardTarget > 0) {
+        if (type === "card") {
+          const activecardRes = await axios.post(`${baseUrl}/nondeposit/activecard/`, requestData);
+          return { actual: activecardRes?.data?.total_active_card_users || 0, target: active_cardTarget };
+        }
+      }
+      if (eeu_transactionTarget > 0) {
+        if (type === "EEU") {
+          const eeuRes = await axios.post(`${baseUrl}/nondeposit/eeutransaction/`, requestData);
+          return { actual: eeuRes?.data?.total_txn_count || 0, target: eeu_transactionTarget };
+        }
+      }
+      if (transaction_audit_rateTarget > 0) {
+        if (type === "Transaction Audit") {
+          const audittransRes = await axios.post(`${baseUrl}/nondeposit/getAuditedTxnSummaryByUser/`, requestData);
+          return { actual: audittransRes?.data?.total_audited_txn_count || 0, target: transaction_audit_rateTarget };
+        }
+      }
+      if (digital_transaction_volumeTarget > 0) {
+        if (type === "Digital Transaction") {
+          const digtaltsRes = await axios.post(`${baseUrl}/nondeposit/getDigitalTxnPercentageSummaryByUser/`, requestData);
+          return { actual: digtaltsRes?.data?.digital_txn_percentage || 0, target: digital_transaction_volumeTarget };
+        }
+      }
+      // null actual from system 
+
+      if (type === "Merchant Recruitment") {
+
+        return { actual: 0, target: merchant_recruitmentTarget };
+      }
+
+      if (type === "Merchant Transaction Volume") {
+
+        return { actual: 0, target: merchant_transaction_volumeTarget };
+      }
+
+      if (type === "Agent Recruitment") {
+
+        return { actual: 0, target: agent_recruitmentTarget };
+      }
+
+      if (type === "Agent Transaction Volume") {
+
+        return { actual: 0, target: agent_transaction_volumeTarget };
+      }
+
+      if (type === "Michu Unique Recruitment") {
+
+        return { actual: 0, target: michu_unique_recruitmentTarget };
+      }
+
+      if (type === "Coopay Ebirr Activation") {
+
+        return { actual: 0, target: coopay_ebirr_activationTarget };
+      }
+
+      if (type === "ATM CRM Uptime Rate") {
+        return { actual: 0, target: atm_crm_uptime_rateTarget };
+      }
+      if (type === "Cash Book") {
+        return { actual: 0, target: cash_balance_accuracy_rateTarget };
+      }
+      if (type === "Customer Satisfaction") {
+        return { actual: 0, target: zero_customer_complaintsTarget };
+      }
+      if (type === "Avg Txn Per CSO") {
+        return { actual: 0, target: avg_txn_per_csoTarget };
+      }
+      if (type === "Branch Compliance") {
+        return { actual: 0, target: compliance_rateTarget };
+      }
+      if (type === "Audit Report") {
+        return { actual: 0, target: reports_3days_rateTarget };
+      }
+      if (type === "Audit Quality") {
+        return { actual: 0, target: audit_report_qualityTarget };
+      }
+      if (type === "Cash Surprise Cheque") {
+        return { actual: 0, target: cash_surprise_checksTarget };
+      }
+      if (type === "Employee Performance") {
+        return { actual: 0, target: employee_perf_thresholdTarget };
+      }
+
+      return { actual: 0, target: 0 };
+    } catch (err) {
+      console.error(err);
+      return { actual: 0, target: 0 };
+    }
+  };
+
+  const handleAddEvaluation = async (metric) => {
+    console.log("");
+    setSelectedMetric(metric);
+    let type = "";
+    const lowerCalcFor = metric.calculated_for?.toLowerCase() || "";
+    if (lowerCalcFor.includes("deposit")) type = "deposit";
+    else if (lowerCalcFor.includes("fcy")) type = "fcy";
+    else if (lowerCalcFor.includes("loan")) type = "loan";
+    else if (lowerCalcFor.includes("card")) type = "card";
+    else if (lowerCalcFor.includes("transaction")) type = "transaction";
+    else if (lowerCalcFor.includes("account")) type = "account";
+    else if (lowerCalcFor.includes("eeu")) type = "EEU";
+    else if (lowerCalcFor.includes("Transaction Audit")) type = "Transaction Audit";
+    else if (lowerCalcFor.includes("Digital Transaction")) type = "Digital Transaction";
+    else if (lowerCalcFor.includes("Cash Collection")) type = "Cash Collection";
+    else if (lowerCalcFor.includes("CRM")) type = "CRM";
+    else if (lowerCalcFor.includes("Merchant Recruitment")) type = "Merchant Recruitment";
+    else if (lowerCalcFor.includes("Merchant Transaction Volume")) type = "Merchant Transaction Volume";
+    else if (lowerCalcFor.includes("Agent Recruitment")) type = "Agent Recruitment";
+    else if (lowerCalcFor.includes("Agent Transaction Volume")) type = "Agent Transaction Volume";
+    else if (lowerCalcFor.includes("Michu Unique Recruitment")) type = "Michu Unique Recruitment";
+    else if (lowerCalcFor.includes("Coopay Ebirr Activation")) type = "Coopay Ebirr Activation";
+    else if (lowerCalcFor.includes("ATM CRM Uptime Rate")) type = "ATM CRM Uptime Rate";
+    else if (lowerCalcFor.includes("Customer")) type = "Customer";
+    else if (lowerCalcFor.includes("Product")) type = "Product";
+    else if (lowerCalcFor.includes("Gl")) type = "Gl";
+    else if (lowerCalcFor.includes("Customer Satisfaction")) type = "Customer Satisfaction";
+    else if (lowerCalcFor.includes("Cash Book")) type = "Cash Book";
+    else if (lowerCalcFor.includes("Cash Surprise Cheque")) type = "Cash Surprise Cheque";
+    else if (lowerCalcFor.includes("Audit Quality")) type = "Audit Quality";
+    else if (lowerCalcFor.includes("Branch Compliance")) type = "Branch Compliance";
+    else if (lowerCalcFor.includes("Compliance with the directives")) type = "Compliance with the directives";
+    else if (lowerCalcFor.includes("Cash Balance Accuracy Rate")) type = "Cash Balance Accuracy Rate";
+    else if (lowerCalcFor.includes("Zero Customer Complaints")) type = "Zero Customer Complaints";
+    else if (lowerCalcFor.includes("Avg Txn Per CSO")) type = "Avg Txn Per CSO";
+    else if (lowerCalcFor.includes("Compliance Rate")) type = "Compliance Rate";
+    else if (lowerCalcFor.includes("Reports 3 Days Rate")) type = "Reports 3 Days Rate";
+    else if (lowerCalcFor.includes("Employee Perf Threshold")) type = "Employee Perf Threshold";
+    let evaluationValue = 0;
+    let calculatedWeight = 0;
+    if (metric.input_by === "System") {
+      let actualachive = 0;
+      const { actual, target } = await fetchDataforsystemcalculate(type);
+      metric.target_fy = target;
+
+      evaluationValue = parseFloat(actual) || 0; // input value
+      const targetTo = parseFloat(target) || 1; // avoid division by 0
+      const divider = parseFloat(metric?.divider_or_multiplied) || 1;
+      const metricWeight = parseFloat(metric?.metric_weight) || 0;
+
+      // Calculate weight consider grter than 100
+      if (metric.calculated_with === ">100") {
+        const actualachive = (evaluationValue / targetTo) * 100;
+
+        if (actualachive >= 120) {
+          calculatedWeight = 5 * metricWeight;
+        } else if (actualachive >= 100 && actualachive < 120) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 75 && actualachive < 100) {
+          calculatedWeight = 3 * metricWeight;
+        } else if (actualachive >= 50 && actualachive < 75) {
+          calculatedWeight = 2 * metricWeight;
+        } else if (actualachive > 0 && actualachive < 50) {
+          calculatedWeight = 1 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      } else if (metric.calculated_with === "100") {
+        //  GL
+        if (metric.calculated_for === "Gl") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+        //  ATM
+        else if (metric.calculated_for === "ATM CRM Uptime Rate") {
+          actualachive = (evaluationValue / targetTo) * 100;
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 92 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 85 && actualachive < 92) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 80 && actualachive < 85) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+        // Transaction
+        else if (metric.calculated_for === "Transaction") {
+          actualachive = (evaluationValue / targetTo) * 100;
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+        // Customer Satisfaction
+        else if (metric.calculated_for === "Customer Satisfaction") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 99 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 98 && actualachive < 99) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 97 && actualachive < 88) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+        // Cash Book
+        else if (metric.calculated_for === "Cash Book") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 95 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 90 && actualachive < 95) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 85 && actualachive < 90) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+        // Cash Surprise Cheque
+        else if (metric.calculated_for === "Cash Surprise Cheque") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 83 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 67 && actualachive < 83) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 50 && actualachive < 67) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+        // Branch Compliance
+        else if (metric.calculated_for === "Branch Compliance") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 95 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 90 && actualachive < 95) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 85 && actualachive < 90) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+        // Audit Report
+        else if (metric.calculated_for === "Audit Report") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 67 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+        // Audit Quality
+        else if (metric.calculated_for === "Audit Quality") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 95 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 90 && actualachive < 95) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 85 && actualachive < 90) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+        // Transaction Audit
+        else if (metric.calculated_for === "Transaction Audit") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+      } else {
+        calculatedWeight = 0;
+      }
+    }
+
+
+    if (metric.input_by === "User") {
+
+      const { actual, target } = await fetchDataforsystemcalculate(type);
+
+      let actualachive = 0;
+      let targetTo = 0;
+      evaluationValue = 0; // input value
+
+      if (target === 0) {
+        targetTo = 1;
+      } else {
+        targetTo = parseFloat(target);
+        metric.target_fy = target;
+      }
+      const divider = parseFloat(metric?.divider_or_multiplied) || 1;
+      const metricWeight = parseFloat(metric?.metric_weight) || 0;
+      if (metric.calculated_with === "100") {
+        //  GL
+        if (metric.calculated_for === "Gl") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
+        //  ATM
+        else if (metric.calculated_for === "ATM CRM Uptime Rate") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 92 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 85 && actualachive < 92) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 80 && actualachive < 85) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
+        // Transaction
+        else if (metric.calculated_for === "Transaction") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
+        // Customer Satisfaction
+        else if (metric.calculated_for === "Customer Satisfaction") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 99 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 98 && actualachive < 99) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 97 && actualachive < 88) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
+        // Cash Book
+        else if (metric.calculated_for === "Cash Book") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 95 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 90 && actualachive < 95) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 85 && actualachive < 90) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
+        // Cash Surprise Cheque
+        else if (metric.calculated_for === "Cash Surprise Cheque") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 83 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 67 && actualachive < 83) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 50 && actualachive < 67) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
+        // Branch Compliance
+        else if (metric.calculated_for === "Branch Compliance") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 95 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 90 && actualachive < 95) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 85 && actualachive < 90) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
+        // Audit Report
+        else if (metric.calculated_for === "Audit Report") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 67 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
+        // Audit Quality
+        else if (metric.calculated_for === "Audit Quality") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 95 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 90 && actualachive < 95) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 85 && actualachive < 90) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
+        // Transaction Audit
+        else if (metric.calculated_for === "Transaction Audit") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+      } else if (metric.calculated_with === ">100") {
+        const actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive >= 120) {
+          calculatedWeight = 5 * metricWeight;
+        } else if (actualachive >= 100 && actualachive < 120) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 75 && actualachive < 100) {
+          calculatedWeight = 3 * metricWeight;
+        } else if (actualachive >= 50 && actualachive < 75) {
+          calculatedWeight = 2 * metricWeight;
+        } else if (actualachive > 0 && actualachive < 50) {
+          calculatedWeight = 1 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      } else {
+        calculatedWeight = 0;
+      }
+    }
+
+    setEvaluationForm({
+      evaluation_id: null,
+      input_by: metric.input_by,
+      metric_id: metric.metric_id,
+      evaluator: user.MailAdress,
+      evaluated: member.outlook_address, // new field
+      employee_id: member.employee_id, // new field
+      process: member.process_name, // new field
+      subprocess: member.sub_process_name, // new field
+      branch: member.branch_name, // new field
+      evaluation_value: evaluationValue?.toFixed(2) || "0",
+      weight: calculatedWeight.toFixed(2) / 100,
+      evaluation_date: new Date().toISOString().split("T")[0],
+      created_by: "", // optional, if you track creator
+      updated_by: "", // optional
+      outlook_address: member.outlook_address,
+    });
+    setShowEvalModal(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!evaluationForm.evaluation_value || isNaN(evaluationForm.evaluation_value)) {
+      toast.error("Valid evaluation value is required");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      if (evaluationForm.evaluation_id) {
+        await axios.put(`${baseUrl}/evaluations/${evaluationForm.evaluation_id}`, evaluationForm);
+        toast.success("Evaluation updated successfully");
+      } else {
+        await axios.post(`${baseUrl}/evaluations/createEvaluation/`, { ...evaluationForm, created_by: user.FullName });
+        toast.success("Evaluation saved successfully");
+      }
+      setShowEvalModal(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to save evaluation");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserInfo();
+    if (member.title) fetchMetricsByTitle(member.title);
+  }, [member.title]);
+
+  const handleEvaluationChange = (e) => {
+    const value = parseFloat(e.target.value) || 0;
+    const target = parseFloat(selectedMetric?.target_fy) || 1;
+    const metricWeight = parseFloat(selectedMetric?.metric_weight) || 0;
+    let calculatedWeight = (value / target) * (parseFloat(selectedMetric?.divider_or_multiplied) || 1) * metricWeight;
+    if (calculatedWeight > metricWeight) calculatedWeight = metricWeight;
+
+    setEvaluationForm((prev) => ({
+      ...prev,
+      evaluation_value: value,
+      weight: (calculatedWeight / 100).toFixed(4),
+    }));
+  };
+
+  return (
+    <Box>
+      <TableContainer component={Paper} elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 2 }}>
+        <Table size="small" hover>
+          <TableHead sx={{ backgroundColor: "#f8fafc" }}>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Metric Name</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Weight</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Target FY</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Input By</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Calculated For</TableCell>
+              <TableCell sx={{ fontWeight: 600 }} align="center">Action</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {metrics.map((m) => (
+              <TableRow key={m.metric_id} hover>
+                <TableCell>{m.metric_id}</TableCell>
+                <TableCell>
+                  <Typography variant="body2" fontWeight={500}>{m.metric_name}</Typography>
+                  <Typography variant="caption" color="textSecondary">{m.objective_name}</Typography>
+                </TableCell>
+                <TableCell>{m.metric_weight}%</TableCell>
+                <TableCell>{m.target_fy} {m.unit_of_measure}</TableCell>
+                <TableCell>{m.input_by}</TableCell>
+                <TableCell>{m.calculated_for}</TableCell>
+                <TableCell align="center">
+                  <Button
+                    variant="contained"
+                    size="small"
+                    color="info"
+                    startIcon={<AddIcon fontSize="small" />}
+                    onClick={() => handleAddEvaluation(m)}
+                  >
+                    Evaluate
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Evaluation Modal */}
+      <Modal
+        open={showEvalModal}
+        onClose={() => setShowEvalModal(false)}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{ timeout: 500 }}
+      >
+        <Fade in={showEvalModal}>
+          <Box sx={modalStyle}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+              Metric Evaluation
+            </Typography>
+            <Divider sx={{ mb: 3 }} />
+            <form onSubmit={handleSubmit}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TextField fullWidth label="Metric Name" value={selectedMetric?.metric_name || ""} disabled size="small" />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField fullWidth label="Metric Weight (%)" value={selectedMetric?.metric_weight || ""} disabled size="small" />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField fullWidth label="Target FY" value={selectedMetric?.target_fy || 0} disabled size="small" />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField fullWidth label="Evaluator" value={evaluationForm.evaluator} InputProps={{ readOnly: true }} size="small" variant="filled" />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Evaluation Value"
+                    type="number"
+                    value={evaluationForm.evaluation_value}
+                    onChange={handleEvaluationChange}
+                    disabled={selectedMetric?.input_by?.toLowerCase() === "system"}
+                    required
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Calculated Result Weight"
+                    value={evaluationForm.weight}
+                    disabled
+                    size="small"
+                    helperText="Auto-calculated based on input and weight"
+                  />
+                </Grid>
+              </Grid>
+              <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                <Button onClick={() => setShowEvalModal(false)}>Cancel</Button>
+                <Button type="submit" variant="contained" color="info">
+                  Submit Evaluation
+                </Button>
+              </Box>
+            </form>
+          </Box>
+        </Fade>
+      </Modal>
+
+      {loading && (
+        <Backdrop sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 2 }} open={loading}>
+          <CircularProgress color="inherit" />
+        </Backdrop>
+      )}
+    </Box>
+  );
+};
+
+export default PerformanceMetricList;

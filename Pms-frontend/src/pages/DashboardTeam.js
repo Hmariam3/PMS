@@ -1,0 +1,354 @@
+import React, { useState, useContext, useEffect, useMemo } from "react";
+import {
+  Box,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Chip,
+  useTheme,
+  Avatar,
+  LinearProgress,
+  Stack,
+  Divider,
+  Paper,
+  Breadcrumbs,
+  Link,
+} from "@mui/material";
+import {
+  Group as GroupIcon,
+  TrendingUp as TrendingUpIcon,
+  PriorityHigh as PriorityIcon,
+  Person as PersonIcon,
+} from "@mui/icons-material";
+import axios from "axios";
+import { AuthContext } from "../AuthContext";
+import { toast } from "react-toastify";
+
+const DashboardTeam = () => {
+  const { user } = useContext(AuthContext);
+  const theme = useTheme();
+
+  const [users, setUsers] = useState([]);
+  const [dashboardData, setDashboardData] = useState({});
+  const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
+
+  //   Fetch Users
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.post(`${baseUrl}/users/getUserByPostion/`, {
+        user_id: user.UserName,
+        position: user.position,
+        process: user.process || null,
+        subprocess: user.subprocess || null,
+        team: user.team || null,
+        cbsusername: user.cbsusername || null,
+      });
+
+      let filteredUsers = res.data;
+      if (user.position === "Individual") {
+        filteredUsers = res.data.filter((u) => u.user_name === user.UserName);
+      }
+      console.log("user team", res.data);
+      setUsers(filteredUsers);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchData = async (singleUser) => {
+    const requestData = {
+      user_id: singleUser.user_name,
+      user_name: singleUser.user_name,
+      position: singleUser.position,
+      process: singleUser.process || null,
+      subprocess: singleUser.subprocess || null,
+      team: singleUser.team || null,
+      cbsusername: singleUser.cbsusername || null,
+    };
+
+    try {
+      const priorRes = await axios.post(
+        `${baseUrl}/priorities/getPriorityByUser`,
+        requestData
+      );
+
+      const accountRes = await axios.post(
+        `${baseUrl}/accountmapping/getBalanceDifference`,
+        requestData
+      );
+
+      const targetRes = await axios.post(
+        `${baseUrl}/targets/TargetsSummary`,
+        requestData
+      );
+
+      const fcyRes = await axios.post(
+        `${baseUrl}/fcy/fcyBalanceDifference`,
+        requestData
+      );
+
+      const loanRes = await axios.post(
+        `${baseUrl}/loan/loanBalanceDifference`,
+        requestData
+      );
+
+      const userNonDepositTargetRes = await axios.post(
+        `${baseUrl}/non-deposit-target/summary/`,
+        requestData
+      );
+
+      const newaccountRes = await axios.post(
+        `${baseUrl}/nondeposit/new-accounts-summary/`,
+        requestData
+      );
+
+      const unutorizedTranRes = await axios.post(
+        `${baseUrl}/nondeposit/non-txn-summary/`,
+        requestData
+      );
+
+      const activecardRes = await axios.post(
+        `${baseUrl}/nondeposit/activecard/`,
+        requestData
+      );
+
+      const eeuRes = await axios.post(
+        `${baseUrl}/nondeposit/eeutransaction/`,
+        requestData
+      );
+
+      let ifbBalance = 0;
+      const isDirectorOrSenior = singleUser.position === "Director" || singleUser.position === "Senior Director";
+      const isVPOrCHF = singleUser.position === "VP" || singleUser.position === "CHF";
+      const isCEO = singleUser.position === "CEO";
+
+      if ((isDirectorOrSenior && singleUser.subprocess?.trim() === "Sharia Risk, Investment and Financing") || (isVPOrCHF && singleUser.process?.trim() === "Interest Free Banking") || isCEO) {
+        try {
+          const ifbRes = await axios.post(`${baseUrl}/ifb/ifbBalanceDifference`, requestData);
+          ifbBalance = ifbRes.data?.total_difference || 0;
+        } catch (err) {
+          console.error("IFB Error:", err);
+        }
+      }
+
+      const accountBalance = accountRes.data.total_difference || 0;
+      const totalDeposit = targetRes.data.total_deposit || 0;
+      const totalFcyTarget = targetRes.data.total_fcy || 0;
+      const totalLoanTarget = targetRes.data.total_loan || 0;
+      const totalBalance = accountBalance + ifbBalance;
+
+      const startDate = new Date("2026-04-01");
+      const today = new Date();
+      let daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+      daysPassed = Math.max(0, Math.min(daysPassed, 90));
+
+      const expectedDeposit = (daysPassed / 90) * totalDeposit;
+      const expectedFcy = (daysPassed / 90) * totalFcyTarget;
+      const expectedLoan = (daysPassed / 90) * totalLoanTarget;
+
+      const achievementDeposit = expectedDeposit > 0 ? (totalBalance / expectedDeposit) * 100 : 0;
+      const achievementFcy = expectedFcy > 0 ? ((fcyRes.data.total_difference || 0) / expectedFcy) * 100 : 0;
+      const achievementLoan = expectedLoan > 0 ? ((loanRes.data.total_difference || 0) / expectedLoan) * 100 : 0;
+
+      const newAccountTarget = userNonDepositTargetRes.data.total_new_account || 0;
+      const unauthorizeTransTarget = userNonDepositTargetRes.data.total_unauthorized || 0;
+      const activeCardTarget = userNonDepositTargetRes.data.active_card || 0;
+      const eeuTransactionTarget = userNonDepositTargetRes.data.eeu_transaction || 0;
+
+      const actualNewAccount = newaccountRes?.data?.total_accounts || 0;
+      const actualUnutorizedTran = unutorizedTranRes?.data?.total_unauthorized || 0;
+      const actualactiveCard = activecardRes?.data?.total_active_card_users || 0;
+      const actualeEEU = eeuRes?.data?.total_txn_count || 0;
+
+      const expectedNewAccount = (daysPassed / 90) * newAccountTarget;
+      const expectedUnutorized = (daysPassed / 90) * unauthorizeTransTarget;
+      const expectedActiveCard = (daysPassed / 90) * activeCardTarget;
+      const expectedEEU = (daysPassed / 90) * eeuTransactionTarget;
+
+      const achievementNewAccount = expectedNewAccount > 0 ? (actualNewAccount / expectedNewAccount) * 100 : 0;
+      const achievementUnauthorized = expectedUnutorized > 0 ? (actualUnutorizedTran / expectedUnutorized) * 100 : 0;
+      const achievementActiveCard = expectedActiveCard > 0 ? (actualactiveCard / expectedActiveCard) * 100 : 0;
+      const achievementEEU = expectedEEU > 0 ? (actualeEEU / expectedEEU) * 100 : 0;
+      console.log("priorities", priorRes.data);
+      setDashboardData((prev) => ({
+        ...prev,
+        [singleUser.user_name]: {
+          priorities: priorRes.data,
+          achievementDeposit,
+          achievementFcy,
+          achievementLoan,
+          achievementNewAccount,
+          achievementUnauthorized,
+          achievementActiveCard,
+          achievementEEU,
+        },
+      }));
+    } catch (err) {
+      console.error("API Error:", err);
+    }
+  };
+
+  const getColor = (value) => {
+    if (value >= 100) return "#10b981"; // Emerald
+    if (value >= 80) return "#f59e0b"; // Amber
+    return "#ef4444"; // Rose
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    if (users.length > 0) {
+      users.forEach((u) => fetchData(u));
+    }
+  }, [users]);
+
+  const teamSummary = useMemo(() => {
+    const dataValues = Object.values(dashboardData);
+    if (dataValues.length === 0) return null;
+
+    const avg = (key) => dataValues.reduce((acc, curr) => acc + (curr[key] || 0), 0) / dataValues.length;
+
+    return {
+      avgDeposit: avg("achievementDeposit"),
+      avgFcy: avg("achievementFcy"),
+      avgLoan: avg("achievementLoan"),
+      totalPriorities: dataValues.reduce((acc, curr) => acc + (curr.priorities?.length || 0), 0),
+    };
+  }, [dashboardData]);
+
+  return (
+    <Box>
+      {/* HEADER SECTION */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 800, color: "#1e293b", mb: 1 }}>
+          Team Dashboard
+        </Typography>
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
+          <Typography color="text.primary">Team Oversight</Typography>
+        </Breadcrumbs>
+      </Box>
+
+      {/* SUMMARY CARDS */}
+      {/* {teamSummary && (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {[
+            { label: "Total Team Members", value: users.length, icon: <GroupIcon />, color: "#3b82f6" },
+            { label: "Avg. Deposit Achievement", value: `${teamSummary.avgDeposit.toFixed(1)}%`, icon: <TrendingUpIcon />, color: "#10b981" },
+            { label: "Avg. FCY Achievement", value: `${teamSummary.avgFcy.toFixed(1)}%`, icon: <TrendingUpIcon />, color: "#f59e0b" },
+            { label: "Team Active Priorities", value: teamSummary.totalPriorities, icon: <PriorityIcon />, color: "#8b5cf6" },
+          ].map((stat, i) => (
+            <Grid item xs={StatCardGridWidth(i)} md={3} key={i}>
+              <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: 2 }}>
+                <Avatar sx={{ bgcolor: stat.color, width: 48, height: 48 }}>{stat.icon}</Avatar>
+                <Box>
+                  <Typography variant="caption" color="textSecondary" sx={{ fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
+                    {stat.label}
+                  </Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 700, color: "#1e293b" }}>{stat.value}</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      )} */}
+
+      {/* INDIVIDUAL CARDS */}
+      <Grid container spacing={3}>
+
+        {users
+          .map((u) => {
+            const data = dashboardData[u.user_name];
+            if (!data) return null;
+
+            return (
+              <Grid item xs={12} key={u.user_name}>
+                <Card elevation={0} sx={{ borderRadius: 4, border: "1px solid #e2e8f0", height: "100%", transition: "0.3s", "&:hover": { boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)" } }}>
+                  <CardContent sx={{ p: 4 }}>
+                    {/* User Header */}
+                    <Stack direction="row" alignItems="center" spacing={3} sx={{ mb: 4 }}>
+                      {/* <Avatar sx={{ width: 80, height: 80, bgcolor: "#f1f5f9", color: "#1e293b", fontWeight: 800, fontSize: "1.5rem" }}>
+                        {u.full_name?.split(" ").map(n => n[0]).join("")}
+                      </Avatar> */}
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="h5" sx={{ fontWeight: 800, color: "#1e293b" }}>{u.full_name}</Typography>
+                        <Stack direction="row" spacing={1.5} sx={{ mt: 1 }}>
+                          <Chip label={u.position} size="medium" color="primary" variant="filled" sx={{ fontWeight: 700, borderRadius: 2 }} />
+                          {/* <Chip label={u.branch} size="medium" variant="outlined" sx={{ fontWeight: 600, borderRadius: 2 }} /> */}
+                        </Stack>
+                      </Box>
+                    </Stack>
+
+                    <Divider sx={{ mb: 4 }} />
+
+                    {/* KPI Section */}
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 4, color: "#1e293b", textTransform: "uppercase", letterSpacing: "1.5px" }}>Key Performance Indicators</Typography>
+                    <Grid container spacing={3} sx={{ mb: 6 }}>
+                      {[
+                        { label: "Deposit", val: data.achievementDeposit },
+                        { label: "FCY", val: data.achievementFcy },
+                        { label: "Loan", val: data.achievementLoan },
+                        { label: "New Account", val: data.achievementNewAccount },
+                        { label: "Unauthorized Transaction", val: data.achievementUnauthorized },
+                        { label: "Active Card", val: data.achievementActiveCard },
+                        { label: "EEU Account", val: data.achievementEEU },
+                      ].map((kpi, idx) => (
+                        <Grid item xs={12} sm={4} md={3} key={idx}>
+                          <Box sx={{ p: 3, borderRadius: 4, bgcolor: "#f1f5f9", border: "1px solid #e2e8f0", transition: "0.2s", "&:hover": { bgcolor: "#eef2f6", transform: "translateY(-2px)" } }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#475569", mb: 1.5, textTransform: "capitalize" }}>
+                              {kpi.label}
+                            </Typography>
+                            <Typography variant="h4" sx={{ fontWeight: 900, color: getColor(kpi.val), mb: 2 }}>
+                              {kpi.val.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                            </Typography>
+                            <LinearProgress
+                              variant="determinate"
+                              value={Math.min(kpi.val, 100)}
+                              sx={{ height: 12, borderRadius: 6, bgcolor: "#cbd5e1", "& .MuiLinearProgress-bar": { bgcolor: getColor(kpi.val), borderRadius: 6 } }}
+                            />
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
+
+                    {/* Priorities Section */}
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 4, color: "#1e293b", textTransform: "uppercase", letterSpacing: "1.5px" }}>Weekly Priorities</Typography>
+                    <Grid container spacing={3}>
+                      {data.priorities.length > 0 ? (
+                        data.priorities.map((p, i) => (
+                          <Grid item xs={12} sm={6} md={4} key={i}>
+                            <Paper elevation={0} sx={{ p: 3, bgcolor: "#f8fafc", borderRadius: 4, border: "1px solid #e2e8f0", height: "100%", transition: "0.2s", "&:hover": { boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)" } }}>
+                              <Typography variant="h6" sx={{ fontWeight: 800, color: "#1b3fcd", mb: 2, borderLeft: "5px solid #1b3fcd", pl: 2 }}>
+                                {p.priority_name}
+                              </Typography>
+                              <Typography variant="body1" sx={{ color: "#334155", lineHeight: 1.8, fontWeight: 500 }}>
+                                {p.detail}
+                              </Typography>
+                            </Paper>
+                          </Grid>
+                        ))
+                      ) : (
+                        <Grid item xs={12}>
+                          <Paper elevation={0} sx={{ p: 6, textAlign: "center", bgcolor: "#f8fafc", borderRadius: 4, border: "1px dashed #cbd5e1" }}>
+                            <Typography variant="h6" color="textSecondary" fontStyle="italic">
+                              No active priorities listed for this week
+                            </Typography>
+                          </Paper>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+            );
+          })}
+      </Grid>
+    </Box>
+  );
+};
+
+const StatCardGridWidth = (i) => (i === 0 || i === 1 ? 12 : 6); // Simple helper for responsive widths on small screens
+
+export default DashboardTeam;

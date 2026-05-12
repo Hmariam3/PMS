@@ -1,0 +1,687 @@
+import pool from "../db.js";
+
+/* =========================================================
+   1. NEW ACCOUNTS SUMMARY
+========================================================= */
+export const getNewAccountsSummaryByUser = async (req, res) => {
+  const { cbsusername, user_name, position, subprocess, process } = req.body;
+
+  try {
+    let query = "";
+    let values = [];
+
+    if (position === "CRM" || position === "Individual") {
+      query = `
+        SELECT COALESCE(SUM("NO_OF_NEW_ACCTS"), 0) AS total_accounts
+        FROM public."DW_NEW_ACCOUNTS"
+        WHERE "INPUTTER" = $1
+      `;
+      values = [cbsusername];
+    } else if (position === "Manager") {
+      query = `
+        SELECT COALESCE(SUM("NO_OF_NEW_ACCTS"), 0) AS total_accounts
+        FROM public."DW_NEW_ACCOUNTS" a
+        JOIN public.users u 
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
+      `;
+      values = [user_name];
+    } else if (position === "Director" || position === "Senior Director") {
+      query = `
+        SELECT COALESCE(SUM("NO_OF_NEW_ACCTS"), 0) AS total_accounts
+        FROM public."DW_NEW_ACCOUNTS"
+        WHERE "SUBPROCESS" = $1
+      `;
+      values = [subprocess];
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT COALESCE(SUM("NO_OF_NEW_ACCTS"), 0) AS total_accounts
+        FROM public."DW_NEW_ACCOUNTS"
+        WHERE "PROCESS" = $1
+      `;
+      values = [process];
+    } else if (position === "CEO") {
+      query = `
+        SELECT COALESCE(SUM("NO_OF_NEW_ACCTS"), 0) AS total_accounts
+        FROM public."DW_NEW_ACCOUNTS"
+      `;
+    }
+
+    const result = await pool.query(query, values);
+
+    res.json({
+      total_accounts: result.rows[0]?.total_accounts || 0,
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+/* =========================================================
+   2. NAU TRANSACTIONS SUMMARY
+========================================================= */
+export const getNauTxnSummaryByUser = async (req, res) => {
+  const { cbsusername, user_name, position, subprocess, process } = req.body;
+  try {
+    let query = "";
+    let values = [];
+
+    // ===============================
+    // CRM / Individual (INPUTTER based)
+    // ===============================
+    if (position === "CRM" || position === "Individual") {
+      query = `
+        SELECT 
+          COALESCE(SUM(a."COUNT_NAU_TXN"), 0) AS total_unauthorized
+        FROM public."DW_NAU_TXN" a
+        JOIN public.users u 
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
+      `;
+      values = [user_name];
+
+      // ===============================
+      // Manager (Branch mapping via users table)
+      // ===============================
+    } else if (position === "Manager") {
+      query = `
+        SELECT 
+          COALESCE(SUM(a."COUNT_NAU_TXN"), 0) AS total_unauthorized
+        FROM public."DW_NAU_TXN" a
+        JOIN public.users u 
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
+      `;
+      values = [user_name];
+
+      // ===============================
+      // Director (Branch Name / Subprocess)
+      // ===============================
+    } else if (position === "Director" || position === "Senior Director") {
+      query = `
+        SELECT 
+          COALESCE(SUM("COUNT_NAU_TXN"), 0) AS total_unauthorized
+        FROM public."DW_NAU_TXN"
+        WHERE "SUBPROCESS" = $1
+      `;
+      values = [subprocess];
+
+      // ===============================
+      // VP / CHF (Branch Code / Process)
+      // ===============================
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT 
+          COALESCE(SUM("COUNT_NAU_TXN"), 0) AS total_unauthorized
+        FROM public."DW_NAU_TXN"
+        WHERE "PROCESS" = $1
+      `;
+      values = [process];
+
+      // ===============================
+      // CEO (No filter - full data)
+      // ===============================
+    } else if (position === "CEO") {
+      query = `
+        SELECT 
+          COALESCE(SUM("COUNT_NAU_TXN"), 0) AS total_unauthorized
+        FROM public."DW_NAU_TXN"
+      `;
+      values = [];
+
+      // ===============================
+      // INVALID POSITION SAFETY
+      // ===============================
+    } else {
+      return res.status(400).json({ error: "Invalid position" });
+    }
+
+    // ===============================
+    // EXECUTE QUERY
+    // ===============================
+    const result = await pool.query(query, values);
+
+    return res.json({
+      total_unauthorized: result.rows[0]?.total_unauthorized || 0,
+    });
+  } catch (err) {
+    console.error("NAU TXN ERROR:", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+};
+export const getEeuPaymentsSummaryByUser = async (req, res) => {
+  const { cbsusername, user_name, position, subprocess, process } = req.body;
+
+  try {
+    let query = "";
+    let values = [];
+
+    // =========================
+    // CRM / Individual
+    // =========================
+    if (position === "CRM" || position === "Individual") {
+      // query = `
+      //   SELECT 
+      //     COALESCE(SUM(p."TXN_COUNT"), 0) AS total_txn_count,
+      //     COALESCE(SUM(p."TXN_AMOUNT"), 0) AS total_txn_amount
+      //   FROM public."DW_EEU_PAYMENTS" p
+      //   WHERE p."BRANCH_CODE" = (
+      //     SELECT u."company_code"
+      //     FROM public.users u
+      //     WHERE u."cbsusername" = $1
+      //     LIMIT 1
+      //   )
+      // `;
+      // values = [cbsusername];
+      query = `
+    SELECT 
+      COALESCE(SUM(p."TXN_COUNT"), 0) AS total_txn_count,
+      COALESCE(SUM(p."TXN_AMOUNT"), 0) AS total_txn_amount
+    FROM public."DW_EEU_PAYMENTS" p
+    JOIN public.users u 
+      ON u.company_code = p."BRANCH_CODE"
+    WHERE u.user_name = $1
+  `;
+      values = [user_name];
+      // =========================
+      // Director
+      // =========================
+    } else if (position === "Manager") {
+      query = `
+    SELECT 
+      COALESCE(SUM(p."TXN_COUNT"), 0) AS total_txn_count,
+      COALESCE(SUM(p."TXN_AMOUNT"), 0) AS total_txn_amount
+    FROM public."DW_EEU_PAYMENTS" p
+    JOIN public.users u 
+      ON u.company_code = p."BRANCH_CODE"
+    WHERE u.user_name = $1
+  `;
+      values = [user_name];
+    } else if (position === "Director" || position === "Senior Director") {
+      query = `
+        SELECT 
+          p."BRANCH_NAME",
+          COALESCE(SUM(p."TXN_COUNT"), 0) AS total_txn_count,
+          COALESCE(SUM(p."TXN_AMOUNT"), 0) AS total_txn_amount
+        FROM public."DW_EEU_PAYMENTS" p
+        WHERE p."SUBPROCESS" = $1
+      `;
+      values = [subprocess];
+
+      // =========================
+      // VP / CHF
+      // =========================
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT 
+          p."BRANCH_NAME",
+          COALESCE(SUM(p."TXN_COUNT"), 0) AS total_txn_count,
+          COALESCE(SUM(p."TXN_AMOUNT"), 0) AS total_txn_amount
+        FROM public."DW_EEU_PAYMENTS" p
+        WHERE p."PROCESS" = $1
+      `;
+      values = [process];
+
+      // =========================
+      // CEO (all data)
+      // =========================
+    } else if (position === "CEO") {
+      query = `
+        SELECT 
+          p."BRANCH_NAME",
+          COALESCE(SUM(p."TXN_COUNT"), 0) AS total_txn_count,
+          COALESCE(SUM(p."TXN_AMOUNT"), 0) AS total_txn_amount
+        FROM public."DW_EEU_PAYMENTS" p
+      `;
+    }
+
+    const result = await pool.query(query, values);
+
+    res.json({
+      total_txn_count: result.rows[0].total_txn_count || 0,
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+export const getActiveCardUsersSummaryByUser = async (req, res) => {
+  const { cbsusername, position, user_name, subprocess, process } = req.body;
+
+  try {
+    let query = "";
+    let values = [];
+
+    // =========================
+    // CRM / Individual
+    // =========================
+    if (position === "CRM" || position === "Individual") {
+      // query = `
+      //   SELECT 
+      //     COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
+      //   FROM public."PMS_ACTIVE_CARD_USERS" a
+      //   WHERE a."CO_CODE" = (
+      //     SELECT u."company_code"
+      //     FROM public.users u
+      //     WHERE u."cbsusername" = $1
+      //     LIMIT 1
+      //   )
+      // `;
+      // values = [cbsusername];
+      query = `
+    SELECT 
+      COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
+    FROM public."PMS_ACTIVE_CARD_USERS" a
+    JOIN public.users u 
+      ON u.company_code = a."CO_CODE"
+    WHERE u.user_name = $1
+  `;
+      values = [user_name];
+    } else if (position === "Manager") {
+      query = `
+    SELECT 
+      COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
+    FROM public."PMS_ACTIVE_CARD_USERS" a
+    JOIN public.users u 
+      ON u.company_code = a."CO_CODE"
+    WHERE u.user_name = $1
+  `;
+      values = [user_name];
+    } else if (position === "Director" || position === "Senior Director") {
+      query = `
+        SELECT 
+          a."DISTRICT_NAME",
+          COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
+        FROM public."PMS_ACTIVE_CARD_USERS" a
+        WHERE a."SUBPROCESS" = $1
+      `;
+      values = [subprocess];
+
+      // =========================
+      // VP / CHF (Branch level)
+      // =========================
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT 
+          a."BRANCH_NAME",
+          COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
+        FROM public."PMS_ACTIVE_CARD_USERS" a
+        WHERE a."PROCESS" = $1
+      `;
+      values = [process];
+
+      // =========================
+      // CEO (All data)
+      // =========================
+    } else if (position === "CEO") {
+      query = `
+        SELECT 
+          a."BRANCH_NAME",
+          a."DISTRICT_NAME",
+          COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
+        FROM public."PMS_ACTIVE_CARD_USERS" a
+
+      `;
+    }
+
+    const result = await pool.query(query, values);
+
+    res.json({
+      total_active_card_users: result.rows[0].total_active_card_users || 0,
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+export const getDigitalTxnPercentageSummaryByUser = async (req, res) => {
+  const { cbsusername, position, user_name, subprocess, process } = req.body;
+
+  try {
+    let query = "";
+    let values = [];
+
+    // =========================
+    // CRM / Individual
+    // =========================
+    if (position === "CRM" || position === "Individual") {
+      query = `
+        SELECT 
+          COALESCE(SUM(a."DIGITAL_TXN_COUNT"), 0) AS total_digital_txn_count,
+          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count,
+          COALESCE(
+            ROUND(
+              (SUM(a."DIGITAL_TXN_COUNT")::numeric /
+              NULLIF(SUM(a."TOTAL_TXN_COUNT"), 0)) * 100,
+              2
+            ),
+            0
+          ) AS digital_txn_percentage
+        FROM public."DW_DIGITAL_TXN_PERCENTAGE" a
+        JOIN public.users u
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
+      `;
+      values = [user_name];
+
+      // =========================
+      // Manager
+      // =========================
+    } else if (position === "Manager") {
+      query = `
+        SELECT 
+          COALESCE(SUM(a."DIGITAL_TXN_COUNT"), 0) AS total_digital_txn_count,
+          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count,
+          COALESCE(
+            ROUND(
+              (SUM(a."DIGITAL_TXN_COUNT")::numeric /
+              NULLIF(SUM(a."TOTAL_TXN_COUNT"), 0)) * 100,
+              2
+            ),
+            0
+          ) AS digital_txn_percentage
+        FROM public."DW_DIGITAL_TXN_PERCENTAGE" a
+        JOIN public.users u
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
+      `;
+      values = [user_name];
+
+      // =========================
+      // Director
+      // =========================
+    } else if (position === "Director" || position === "Senior Director") {
+      query = `
+        SELECT 
+          a."SUBPROCESS",
+          COALESCE(SUM(a."DIGITAL_TXN_COUNT"), 0) AS total_digital_txn_count,
+          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count,
+          COALESCE(
+            ROUND(
+              (SUM(a."DIGITAL_TXN_COUNT")::numeric /
+              NULLIF(SUM(a."TOTAL_TXN_COUNT"), 0)) * 100,
+              2
+            ),
+            0
+          ) AS digital_txn_percentage
+        FROM public."DW_DIGITAL_TXN_PERCENTAGE" a
+        WHERE a."SUBPROCESS" = $1
+        GROUP BY a."SUBPROCESS"
+      `;
+      values = [subprocess];
+
+      // =========================
+      // VP / CHF
+      // =========================
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT 
+          a."BRANCH_NAME",
+          COALESCE(SUM(a."DIGITAL_TXN_COUNT"), 0) AS total_digital_txn_count,
+          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count,
+          COALESCE(
+            ROUND(
+              (SUM(a."DIGITAL_TXN_COUNT")::numeric /
+              NULLIF(SUM(a."TOTAL_TXN_COUNT"), 0)) * 100,
+              2
+            ),
+            0
+          ) AS digital_txn_percentage
+        FROM public."DW_DIGITAL_TXN_PERCENTAGE" a
+        WHERE a."PROCESS" = $1
+        GROUP BY a."BRANCH_NAME"
+      `;
+      values = [process];
+
+      // =========================
+      // CEO
+      // =========================
+    } else if (position === "CEO") {
+      query = `
+        SELECT 
+          a."PROCESS",
+          a."SUBPROCESS",
+          COALESCE(SUM(a."DIGITAL_TXN_COUNT"), 0) AS total_digital_txn_count,
+          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count,
+          COALESCE(
+            ROUND(
+              (SUM(a."DIGITAL_TXN_COUNT")::numeric /
+              NULLIF(SUM(a."TOTAL_TXN_COUNT"), 0)) * 100,
+              2
+            ),
+            0
+          ) AS digital_txn_percentage
+        FROM public."DW_DIGITAL_TXN_PERCENTAGE" a
+        GROUP BY a."PROCESS", a."SUBPROCESS"
+        ORDER BY a."PROCESS"
+      `;
+    }
+
+    const result = await pool.query(query, values);
+
+    res.json({
+      total_digital_txn_count:
+        result.rows[0]?.total_digital_txn_count || 0,
+
+      total_txn_count:
+        result.rows[0]?.total_txn_count || 0,
+
+      digital_txn_percentage:
+        result.rows[0]?.digital_txn_percentage || 0,
+
+      data: result.rows,
+    });
+  } catch (err) {
+    console.error(err.message);
+
+    res.status(500).json({
+      error: err.message,
+    });
+  }
+};
+
+export const getAuditedTxnSummaryByUser = async (req, res) => {
+  const { cbsusername, position, user_name, subprocess, process } = req.body;
+
+  try {
+    let query = "";
+    let values = [];
+
+    // =========================
+    // CRM / Individual
+    // =========================
+    if (position === "CRM" || position === "Individual") {
+      query = `
+        SELECT 
+          COALESCE(SUM(a."AUDITED_TXN_COUNT"), 0) AS total_audited_txn_count
+        FROM public."DW_AUDITED_TXN" a
+        JOIN public.users u
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
+      `;
+      values = [user_name];
+
+      // =========================
+      // Manager
+      // =========================
+    } else if (position === "Manager") {
+      query = `
+        SELECT 
+          COALESCE(SUM(a."AUDITED_TXN_COUNT"), 0) AS total_audited_txn_count
+        FROM public."DW_AUDITED_TXN" a
+        JOIN public.users u
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
+      `;
+      values = [user_name];
+
+      // =========================
+      // Director
+      // =========================
+    } else if (position === "Director") {
+      query = `
+        SELECT 
+          a."SUBPROCESS",
+          COALESCE(SUM(a."AUDITED_TXN_COUNT"), 0) AS total_audited_txn_count
+        FROM public."DW_AUDITED_TXN" a
+        WHERE a."PROCESS" = $1
+        GROUP BY a."SUBPROCESS"
+      `;
+      values = [subprocess];
+
+      // =========================
+      // VP / CHF
+      // =========================
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT 
+          a."BRANCH_NAME",
+          COALESCE(SUM(a."AUDITED_TXN_COUNT"), 0) AS total_audited_txn_count
+        FROM public."DW_AUDITED_TXN" a
+        WHERE a."PROCESS" = $1
+        GROUP BY a."BRANCH_NAME"
+      `;
+      values = [process];
+
+      // =========================
+      // CEO
+      // =========================
+    } else if (position === "CEO") {
+      query = `
+        SELECT 
+          a."PROCESS",
+          a."SUBPROCESS",
+          COALESCE(SUM(a."AUDITED_TXN_COUNT"), 0) AS total_audited_txn_count
+        FROM public."DW_AUDITED_TXN" a
+        GROUP BY a."PROCESS", a."SUBPROCESS"
+        ORDER BY a."PROCESS"
+      `;
+    }
+
+    const result = await pool.query(query, values);
+
+    res.json({
+      total_audited_txn_count:
+        result.rows[0]?.total_audited_txn_count || 0,
+
+      data: result.rows,
+    });
+  } catch (err) {
+    console.error(err.message);
+
+    res.status(500).json({
+      error: err.message,
+    });
+  }
+};
+
+export const getCRMCashDepositSummaryByUser = async (req, res) => {
+  const { cbsusername, position, user_name, subprocess, process } =
+    req.body;
+
+  try {
+    let query = "";
+    let values = [];
+
+    // =========================
+    // CRM / Individual
+    // =========================
+    if (position === "CRM" || position === "Individual") {
+      query = `
+        SELECT 
+          COALESCE(
+            SUM(a."CURRENT_CASH") - SUM(a."BEGINING_CASH"),
+            0
+          ) AS total_crm_cash
+        FROM public."DW_CRM_CASH_DEPOSIT" a
+        JOIN public.users u
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
+      `;
+      values = [user_name];
+
+      // =========================
+      // Manager
+      // =========================
+    } else if (position === "Manager") {
+      query = `
+        SELECT 
+          COALESCE(
+            SUM(a."CURRENT_CASH") - SUM(a."BEGINING_CASH"),
+            0
+          ) AS total_crm_cash
+        FROM public."DW_CRM_CASH_DEPOSIT" a
+        JOIN public.users u
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
+      `;
+      values = [user_name];
+
+      // =========================
+      // Director
+      // =========================
+    } else if (position === "Director" || position === "Senior Director") {
+      query = `
+        SELECT 
+          a."SUBPROCESS",
+          COALESCE(
+            SUM(a."CURRENT_CASH") - SUM(a."BEGINING_CASH"),
+            0
+          ) AS total_crm_cash
+        FROM public."DW_CRM_CASH_DEPOSIT" a
+        WHERE a."SUBPROCESS" = $1
+        GROUP BY a."SUBPROCESS"
+      `;
+      values = [subprocess];
+
+      // =========================
+      // VP / CHF
+      // =========================
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT 
+          a."BRANCH_NAME",
+          COALESCE(
+            SUM(a."CURRENT_CASH") - SUM(a."BEGINING_CASH"),
+            0
+          ) AS total_crm_cash
+        FROM public."DW_CRM_CASH_DEPOSIT" a
+        WHERE a."PROCESS" = $1
+        GROUP BY a."BRANCH_NAME"
+      `;
+      values = [process];
+
+      // =========================
+      // CEO
+      // =========================
+    } else if (position === "CEO") {
+      query = `
+        SELECT 
+          a."PROCESS",
+          a."SUBPROCESS",
+          COALESCE(
+            SUM(a."CURRENT_CASH") - SUM(a."BEGINING_CASH"),
+            0
+          ) AS total_crm_cash
+        FROM public."DW_CRM_CASH_DEPOSIT" a
+        GROUP BY a."PROCESS", a."SUBPROCESS"
+        ORDER BY a."PROCESS"
+      `;
+    }
+
+    const result = await pool.query(query, values);
+
+    res.json({
+      total_crm_cash:
+        result.rows[0]?.total_crm_cash || 0,
+
+      data: result.rows,
+    });
+  } catch (err) {
+    console.error(err.message);
+
+    res.status(500).json({
+      error: err.message,
+    });
+  }
+};
