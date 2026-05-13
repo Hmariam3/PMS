@@ -45,6 +45,10 @@ import IFBList from "./components/OnePageOKR/IFBList ";
 import BranchListGrade from "./components/Config/BranchListGrade";
 import BusinessAsUsualList from "./components/OnePageOKR/BusinessAsUsualList";
 import QuarterOKRList from "./components/OnePageOKR/QuarterOKRList";
+import LoanAccountMappingList from "./components/OnePageOKR/LoanAccountMappingList";
+import DistrictMappingList from "./components/OnePageOKR/DistrictMappingList";
+import FCYDepositList from "./components/OnePageOKR/FCYDepositList";
+import EngagementList from "./components/OnePageOKR/EngagementList";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./AuthContext";
@@ -307,6 +311,38 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AccountMappingList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/loanaccountmapping"
+              element={
+                <ProtectedRoute>
+                  <LoanAccountMappingList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/districtmapping"
+              element={
+                <ProtectedRoute>
+                  <DistrictMappingList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/fcy-deposit"
+              element={
+                <ProtectedRoute>
+                  <FCYDepositList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/engagement"
+              element={
+                <ProtectedRoute>
+                  <EngagementList />
                 </ProtectedRoute>
               }
             />

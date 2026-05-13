@@ -101,13 +101,14 @@ const getNavLinks = (user) => {
     {
       text: "One Page OKR",
       icon: <TrackChangesIcon />,
-      show: isHO || (isDistrict && isDirector),
+      show: isHO || (isDistrict && isDirector || isAdmin),
       children: [
         { text: "Objectives", path: "/onepageobjective", icon: <DashboardIcon />, show: isHO || (isDistrict && isDirector) },
         { text: "Key Result", path: "/keyresult", icon: <ListAltIcon />, show: isHO || (isDistrict && isDirector) },
         { text: "Priority List", path: "/prioritylist", icon: <ListAltIcon />, show: isHO || (isDistrict && isDirector) },
         { text: "Business As Usual", path: "/bau", icon: <ListAltIcon />, show: isHO || (isDistrict && isDirector) },
         { text: "Quarter OKR", path: "/quarter-okr", icon: <ScoreboardIcon />, show: isHO || (isDistrict && isDirector) },
+        { text: "Engagement", path: "/engagement", icon: <ListAltIcon />, show: isCRM || (isDistrict && isDirector) || isAdmin },
       ],
     },
     {
@@ -117,6 +118,9 @@ const getNavLinks = (user) => {
       children: [
         { text: "Account Mapping", path: "/accountmapping", icon: <DashboardIcon />, show: isBranch || isCRM || isAdmin },
         { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <ListAltIcon />, show: isBranch || isCRM || isAdmin },
+        { text: "FCY Deposit", path: "/fcy-deposit", icon: <ListAltIcon />, show: isBranch || isCRM || isAdmin },
+        { text: "Loan Account Mapping", path: "/loanaccountmapping", icon: <ListAltIcon />, show: isCRM || isAdmin },
+        { text: "District Mapping", path: "/districtmapping", icon: <ListAltIcon />, show: isCRM || isAdmin },
         { text: "Financial Target", path: "/target", icon: <ListAltIcon />, show: isBranch || isCRM || isAdmin },
         { text: "Non Financial Target", path: "/nondeposittarget", icon: <TrackChangesIcon />, show: isBranch || isCRM || isAdmin },
       ],

@@ -92,14 +92,14 @@ const MetricUpload = () => {
       </Box>
 
       <Grid container spacing={4}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={4}>
           <Paper elevation={3} sx={{ p: 4, borderRadius: 4, height: "100%" }}>
             <Stack spacing={3}>
               <Typography variant="h6" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
                 <DownloadIcon color="primary" /> Step 1: Download Template
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Download the Excel template which contains a reference list of existing Objectives and their IDs.
+                Download the Excel template containing the specific sheets for both Standard and Automated uploads.
               </Typography>
               <Button
                 variant="contained"
@@ -113,14 +113,49 @@ const MetricUpload = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={4}>
           <Paper elevation={3} sx={{ p: 4, borderRadius: 4, height: "100%" }}>
             <Stack spacing={3}>
               <Typography variant="h6" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
-                <AutoIcon color="secondary" /> Step 2: Automated Upload
+                <UploadIcon color="success" /> Step 2: Standard Upload
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Upload a file to automatically create/link Strategic Pillars, Objectives, and Metrics in one go.
+                Use the "Upload Metrics" sheet to add new metrics for existing Objectives (requires Objective ID).
+              </Typography>
+              <Box component="form" onSubmit={(e) => handleUpload(e, "upload")}>
+                <Stack direction="row" spacing={2}>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    startIcon={<UploadIcon />}
+                    fullWidth
+                    sx={{ py: 1.5, borderRadius: 2, textTransform: "none" }}
+                  >
+                    Select File
+                    <input type="file" name="file" accept=".xlsx,.xls" hidden required />
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="success"
+                    sx={{ py: 1.5, px: 4, borderRadius: 2, textTransform: "none", fontWeight: 700 }}
+                  >
+                    Upload Metrics
+                  </Button>
+                </Stack>
+              </Box>
+            </Stack>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Paper elevation={3} sx={{ p: 4, borderRadius: 4, height: "100%" }}>
+            <Stack spacing={3}>
+              <Typography variant="h6" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
+                <AutoIcon color="secondary" /> Step 3: Automated Upload
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Use the "Automated Upload Template" sheet to create Pillars, Objectives, and Metrics in one go.
               </Typography>
               <Box component="form" onSubmit={(e) => handleUpload(e, "automate")}>
                 <Stack direction="row" spacing={2}>

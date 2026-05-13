@@ -31,6 +31,10 @@ import feedbackRoutes from "./routes/feedbackRoutes.js";
 import NonDepositActualRoutes from "./routes/NonDepositActualRoutes.js";
 import quarterOKRRoutes from "./routes/quarterOKRRoutes.js";
 import metricUploadRoutes from "./routes/metricUploadRoutes.js";
+import loanAccountMappingRoutes from "./routes/loanAccountMappingRoutes.js";
+import districtMappingRoutes from "./routes/districtMappingRoutes.js";
+import fcyDepositRoutes from "./routes/fcyDepositRoutes.js";
+import engagementRoutes from "./routes/engagementRoutes.js";
 
 const app = express();
 // Enable CORS
@@ -56,6 +60,10 @@ app.use("/api/priorities", priorityRoutes);
 app.use("/api/targets", targetsRoutes);
 app.use("/api/non-deposit-target", nonDepositTargetRoutes);
 app.use("/api/accountmapping", accountMappingRoutes);
+app.use("/api/loanaccountmapping", loanAccountMappingRoutes);
+app.use("/api/districtmapping", districtMappingRoutes);
+app.use("/api/fcy-deposit", fcyDepositRoutes);
+app.use("/api/engagement", engagementRoutes);
 app.use("/api/bau", bauRoutes);
 
 app.use("/api/fcy", fcyRoutes);

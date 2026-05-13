@@ -45,11 +45,33 @@ const DashboardTeam = () => {
         cbsusername: user.cbsusername || null,
       });
 
-      let filteredUsers = res.data;
+      let filteredUsers = Array.isArray(res.data) ? res.data : [];
       if (user.position === "Individual") {
-        filteredUsers = res.data.filter((u) => u.user_name === user.UserName);
+        filteredUsers = filteredUsers.filter((u) => u.user_name === user.UserName);
       }
-      console.log("user team", res.data);
+
+      // Sort users by position
+      const positionOrder = {
+        "CEO": 1,
+        "CHF": 2,
+        "VP": 3,
+        "Senior Director": 4,
+        "Director": 5,
+        "Manager": 6,
+        "CRM": 7,
+        "Individual": 8,
+      };
+
+      filteredUsers.sort((a, b) => {
+        const orderA = positionOrder[a.position] || 99;
+        const orderB = positionOrder[b.position] || 99;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        return (a.full_name || "").localeCompare(b.full_name || "");
+      });
+
+      console.log("user team", filteredUsers);
       setUsers(filteredUsers);
     } catch (err) {
       console.error(err);
@@ -226,9 +248,9 @@ const DashboardTeam = () => {
         <Typography variant="h4" sx={{ fontWeight: 800, color: "#1e293b", mb: 1 }}>
           Team Dashboard
         </Typography>
-        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
+        {/* <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
           <Typography color="text.primary">Team Oversight</Typography>
-        </Breadcrumbs>
+        </Breadcrumbs> */}
       </Box>
 
       {/* SUMMARY CARDS */}
@@ -284,61 +306,170 @@ const DashboardTeam = () => {
                     <Divider sx={{ mb: 4 }} />
 
                     {/* KPI Section */}
-                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 4, color: "#1e293b", textTransform: "uppercase", letterSpacing: "1.5px" }}>Key Performance Indicators</Typography>
-                    <Grid container spacing={3} sx={{ mb: 6 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, color: "#1e293b", textTransform: "uppercase", letterSpacing: "1.5px" }}>Key Performance Indicators</Typography>
+                    <Stack
+                      direction="row"
+                      spacing={1.5}
+                      sx={{
+                        mb: 6,
+                        overflowX: "auto",
+                        pb: 2,
+                        "&::-webkit-scrollbar": { height: 6 },
+                        "&::-webkit-scrollbar-thumb": { bgcolor: "#cbd5e1", borderRadius: 3 }
+                      }}
+                    >
                       {[
                         { label: "Deposit", val: data.achievementDeposit },
                         { label: "FCY", val: data.achievementFcy },
                         { label: "Loan", val: data.achievementLoan },
                         { label: "New Account", val: data.achievementNewAccount },
-                        { label: "Unauthorized Transaction", val: data.achievementUnauthorized },
+                        { label: "Unauthorized", val: data.achievementUnauthorized },
                         { label: "Active Card", val: data.achievementActiveCard },
                         { label: "EEU Account", val: data.achievementEEU },
                       ].map((kpi, idx) => (
-                        <Grid item xs={12} sm={4} md={3} key={idx}>
-                          <Box sx={{ p: 3, borderRadius: 4, bgcolor: "#f1f5f9", border: "1px solid #e2e8f0", transition: "0.2s", "&:hover": { bgcolor: "#eef2f6", transform: "translateY(-2px)" } }}>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#475569", mb: 1.5, textTransform: "capitalize" }}>
-                              {kpi.label}
-                            </Typography>
-                            <Typography variant="h4" sx={{ fontWeight: 900, color: getColor(kpi.val), mb: 2 }}>
-                              {kpi.val.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                            </Typography>
-                            <LinearProgress
-                              variant="determinate"
-                              value={Math.min(kpi.val, 100)}
-                              sx={{ height: 12, borderRadius: 6, bgcolor: "#cbd5e1", "& .MuiLinearProgress-bar": { bgcolor: getColor(kpi.val), borderRadius: 6 } }}
-                            />
-                          </Box>
-                        </Grid>
+                        <Box
+                          key={idx}
+                          sx={{
+                            flex: "0 0 auto",
+                            width: "auto",
+                            minWidth: "110px",
+                            p: 1.5,
+                            borderRadius: 3,
+                            bgcolor: "#f1f5f9",
+                            border: "1px solid #e2e8f0",
+                            transition: "0.2s",
+                            "&:hover": { bgcolor: "#eef2f6", transform: "translateY(-2px)" }
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontWeight: 800,
+                              color: "#475569",
+                              mb: 0.5,
+                              textTransform: "uppercase",
+                              display: "block",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {kpi.label}
+                          </Typography>
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: 900,
+                              color: getColor(kpi.val),
+                              mb: 1,
+                              whiteSpace: "nowrap"
+                            }}
+                          >
+                            {kpi.val.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                          </Typography>
+                          <LinearProgress
+                            variant="determinate"
+                            value={Math.min(kpi.val, 100)}
+                            sx={{
+                              height: 6,
+                              borderRadius: 3,
+                              bgcolor: "#cbd5e1",
+                              "& .MuiLinearProgress-bar": { bgcolor: getColor(kpi.val), borderRadius: 3 }
+                            }}
+                          />
+                        </Box>
                       ))}
-                    </Grid>
+                    </Stack>
 
-                    {/* Priorities Section */}
-                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 4, color: "#1e293b", textTransform: "uppercase", letterSpacing: "1.5px" }}>Weekly Priorities</Typography>
-                    <Grid container spacing={3}>
-                      {data.priorities.length > 0 ? (
-                        data.priorities.map((p, i) => (
-                          <Grid item xs={12} sm={6} md={4} key={i}>
-                            <Paper elevation={0} sx={{ p: 3, bgcolor: "#f8fafc", borderRadius: 4, border: "1px solid #e2e8f0", height: "100%", transition: "0.2s", "&:hover": { boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)" } }}>
-                              <Typography variant="h6" sx={{ fontWeight: 800, color: "#1b3fcd", mb: 2, borderLeft: "5px solid #1b3fcd", pl: 2 }}>
-                                {p.priority_name}
-                              </Typography>
-                              <Typography variant="body1" sx={{ color: "#334155", lineHeight: 1.8, fontWeight: 500 }}>
-                                {p.detail}
-                              </Typography>
-                            </Paper>
+
+                    {(
+                      user.organization === "Ho" ||
+                      user.position === "Director" ||
+                      user.position === "Senior Director"
+                    ) && (
+                        <>
+                          {/* Priorities Section */}
+                          <Typography
+                            variant="h6"
+                            sx={{
+                              fontWeight: 800,
+                              mb: 4,
+                              color: "#1e293b",
+                              textTransform: "uppercase",
+                              letterSpacing: "1.5px",
+                            }}
+                          >
+                            Weekly Priorities
+                          </Typography>
+
+                          <Grid container spacing={3}>
+                            {data.priorities.length > 0 ? (
+                              data.priorities.map((p, i) => (
+                                <Grid item xs={12} sm={6} md={4} key={i}>
+                                  <Paper
+                                    elevation={0}
+                                    sx={{
+                                      p: 3,
+                                      bgcolor: "#f8fafc",
+                                      borderRadius: 4,
+                                      border: "1px solid #e2e8f0",
+                                      height: "100%",
+                                      transition: "0.2s",
+                                      "&:hover": {
+                                        boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                                      },
+                                    }}
+                                  >
+                                    <Typography
+                                      variant="h6"
+                                      sx={{
+                                        fontWeight: 800,
+                                        color: "#1b3fcd",
+                                        mb: 2,
+                                        borderLeft: "5px solid #1b3fcd",
+                                        pl: 2,
+                                      }}
+                                    >
+                                      {p.priority_name}
+                                    </Typography>
+
+                                    <Typography
+                                      variant="body1"
+                                      sx={{
+                                        color: "#334155",
+                                        lineHeight: 1.8,
+                                        fontWeight: 500,
+                                      }}
+                                    >
+                                      {p.detail}
+                                    </Typography>
+                                  </Paper>
+                                </Grid>
+                              ))
+                            ) : (
+                              <Grid item xs={12}>
+                                <Paper
+                                  elevation={0}
+                                  sx={{
+                                    p: 6,
+                                    textAlign: "center",
+                                    bgcolor: "#f8fafc",
+                                    borderRadius: 4,
+                                    border: "1px dashed #cbd5e1",
+                                  }}
+                                >
+                                  <Typography
+                                    variant="h6"
+                                    color="textSecondary"
+                                    fontStyle="italic"
+                                  >
+                                    No active priorities listed for this week
+                                  </Typography>
+                                </Paper>
+                              </Grid>
+                            )}
                           </Grid>
-                        ))
-                      ) : (
-                        <Grid item xs={12}>
-                          <Paper elevation={0} sx={{ p: 6, textAlign: "center", bgcolor: "#f8fafc", borderRadius: 4, border: "1px dashed #cbd5e1" }}>
-                            <Typography variant="h6" color="textSecondary" fontStyle="italic">
-                              No active priorities listed for this week
-                            </Typography>
-                          </Paper>
-                        </Grid>
+                        </>
                       )}
-                    </Grid>
+
                   </CardContent>
                 </Card>
               </Grid>

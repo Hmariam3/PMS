@@ -775,7 +775,7 @@ const PerformanceMetricList = ({ member }) => {
               <TableCell sx={{ fontWeight: 600 }}>Metric Name</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Weight</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Target FY</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Input By</TableCell>
+              {/* <TableCell sx={{ fontWeight: 600 }}>Input By</TableCell> */}
               <TableCell sx={{ fontWeight: 600 }}>Calculated For</TableCell>
               <TableCell sx={{ fontWeight: 600 }} align="center">Action</TableCell>
             </TableRow>
@@ -789,7 +789,7 @@ const PerformanceMetricList = ({ member }) => {
                   <Typography variant="caption" color="textSecondary">{m.objective_name}</Typography>
                 </TableCell>
                 <TableCell>{m.metric_weight}%</TableCell>
-                <TableCell>{m.target_fy} {m.unit_of_measure}</TableCell>
+                {/* <TableCell>{m.target_fy} {m.unit_of_measure}</TableCell> */}
                 <TableCell>{m.input_by}</TableCell>
                 <TableCell>{m.calculated_for}</TableCell>
                 <TableCell align="center">
