@@ -102,17 +102,21 @@ export const createObjective = async (req, res) => {
   const checkQuery = `
   SELECT * 
   FROM objectives
-  WHERE title_id = $1 AND objective_name = $2
+  WHERE title_id = $1
+    AND LOWER(TRIM(objective_name)) = LOWER(TRIM($2))
+    AND LOWER(TRIM(grade)) = LOWER(TRIM($3))
 `;
 
   const existing = await pool.query(checkQuery, [
     title_id,
     objective_name.trim(),
+    grade.trim(),
   ]);
 
   if (existing.rows.length > 0) {
     return res.status(409).json({
-      message: "Objective with this title_id and objective_name already exists",
+      message:
+        "Objective with this title_id, objective_name, and grade already exists",
     });
   }
   try {

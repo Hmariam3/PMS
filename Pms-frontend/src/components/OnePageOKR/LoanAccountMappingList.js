@@ -68,7 +68,7 @@ const LoanAccountMappingList = () => {
     account_holder: "",
     collected_balance: 0,
     outstanding_balance: 0,
-    status: "Active",
+    status: "",
     user_name: user?.UserName || "",
     process: user?.process || "",
     subprocess: user?.subprocess || "",
@@ -112,32 +112,37 @@ const LoanAccountMappingList = () => {
     }
     try {
       setLoading(true);
-      const res = await axios.post(`${baseUrl}/cbs/account-balance`, {
-        accountNumber: mapping.loan_account_number,
+      const res = await axios.post(`${baseUrl}/cbs/loan-detail`, {
+        loanaccountnumber: mapping.loan_account_number,
       });
 
       const data = res.data.data;
       setMapping((prev) => ({
         ...prev,
-        account_holder: data.name,
-        collected_balance: parseFloat(data.workingBalance.replace(/,/g, "")) || 0,
-        customer_id: data.customer_id,
+        account_holder: data.customerName,
+        collected_balance: parseFloat(String(data.outstandingBalance).replace(/,/g, "")) || 0,
+        outstanding_balance: parseFloat(String(data.outstandingBalance).replace(/,/g, "")) || 0,
+        status: data.status,
+        customer_id: data.customer,
         crm_name: user?.FullName || "",
+        // branch: data.branch || "",
       }));
 
       setIsDisabled(true);
-      
-      if (data.campany_code) {
+
+      if (data.companycode) {
         try {
-          const branchRes = await axios.get(`${baseUrl}/branches/getBranchByCode/${data.campany_code}`);
-          setMapping(prev => ({
+          const branchRes = await axios.get(`${baseUrl}/branches/getBranchByCode/${data.companycode}`);
+          setMapping((prev) => ({
             ...prev,
             district: branchRes.data.process_name || "",
-            branch: branchRes.data.branch_name || ""
+            branch: branchRes.data.branch_name || "",
           }));
-        } catch (e) { console.error(e); }
+        } catch (e) {
+          console.error(e);
+        }
       }
-      toast.success("Account validated");
+      toast.success("Loan account validated");
     } catch (error) {
       toast.error("Validation failed");
     } finally {
@@ -168,7 +173,7 @@ const LoanAccountMappingList = () => {
       account_holder: "",
       collected_balance: 0,
       outstanding_balance: 0,
-      status: "Active",
+      status: "",
       user_name: user?.UserName || "",
       process: user?.process || "",
       subprocess: user?.subprocess || "",
@@ -289,6 +294,7 @@ const LoanAccountMappingList = () => {
                 <TableCell>Collected</TableCell>
                 <TableCell>Outstanding</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>District</TableCell>
                 <TableCell>Branch</TableCell>
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
@@ -302,6 +308,7 @@ const LoanAccountMappingList = () => {
                   <TableCell>{m.collected_balance?.toLocaleString()}</TableCell>
                   <TableCell>{m.outstanding_balance?.toLocaleString()}</TableCell>
                   <TableCell>{m.status}</TableCell>
+                  <TableCell>{m.district}</TableCell>
                   <TableCell>{m.branch}</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
@@ -324,7 +331,7 @@ const LoanAccountMappingList = () => {
             <form onSubmit={handleSubmit}>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={8}>
-                  <TextField fullWidth label="Loan Account Number" value={mapping.loan_account_number} onChange={(e) => setMapping({...mapping, loan_account_number: e.target.value})} disabled={isDisabled} required size="small" />
+                  <TextField fullWidth label="Loan Account Number" value={mapping.loan_account_number} onChange={(e) => setMapping({ ...mapping, loan_account_number: e.target.value })} disabled={isDisabled} required size="small" />
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <Button variant="outlined" onClick={validateLoanAccount} disabled={loading || isDisabled} fullWidth>Validate</Button>
@@ -333,14 +340,21 @@ const LoanAccountMappingList = () => {
                   <TextField fullWidth label="Account Holder" value={mapping.account_holder} InputProps={{ readOnly: true }} size="small" />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth label="Collected Balance" type="number" value={mapping.collected_balance} onChange={(e) => setMapping({...mapping, collected_balance: e.target.value})} size="small" />
+                  <TextField fullWidth label="Collected Balance" type="number" value={mapping.collected_balance} InputProps={{ readOnly: true }} onChange={(e) => setMapping({ ...mapping, collected_balance: e.target.value })} size="small" />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth label="Outstanding Balance" type="number" value={mapping.outstanding_balance} onChange={(e) => setMapping({...mapping, outstanding_balance: e.target.value})} size="small" />
+                  <TextField fullWidth label="Outstanding Balance" type="number" value={mapping.outstanding_balance} InputProps={{ readOnly: true }} onChange={(e) => setMapping({ ...mapping, outstanding_balance: e.target.value })} size="small" />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth label="District" value={mapping.district} InputProps={{ readOnly: true }} size="small" />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField fullWidth label="Branch" value={mapping.branch} InputProps={{ readOnly: true }} size="small" />
                 </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth label="Status" value={mapping.status} InputProps={{ readOnly: true }} size="small" />
+                </Grid>
+
               </Grid>
               <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
                 <Button onClick={handleClose}>Cancel</Button>

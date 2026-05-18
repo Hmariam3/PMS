@@ -57,8 +57,52 @@ import { useMediaQuery, useTheme, Box } from "@mui/material";
 const drawerWidth = 240;
 
 function App() {
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, logout } = useContext(AuthContext);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const timeoutRef = React.useRef(null);
+  const TIMEOUT_DURATION = 10 * 60 * 1000; // 15 minutes
+
+  const resetTimeout = React.useCallback(() => {
+    const now = Date.now();
+    localStorage.setItem("lastActivity", now.toString());
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (isAuthenticated) {
+      timeoutRef.current = setTimeout(() => {
+        logout();
+        window.location.href = "/login";
+      }, TIMEOUT_DURATION);
+    }
+  }, [isAuthenticated, logout]);
+
+  React.useEffect(() => {
+    // Check for timeout on mount (persistence across tabs/reloads)
+    const checkTimeoutOnMount = () => {
+      const lastActivity = localStorage.getItem("lastActivity");
+      if (lastActivity && isAuthenticated) {
+        const now = Date.now();
+        if (now - parseInt(lastActivity, 10) > TIMEOUT_DURATION) {
+          logout();
+          window.location.href = "/login";
+        }
+      }
+    };
+
+    checkTimeoutOnMount();
+
+    const events = ["mousemove", "keydown", "scroll", "click"];
+    const handleActivity = () => resetTimeout();
+
+    events.forEach((event) => window.addEventListener(event, handleActivity));
+    resetTimeout();
+
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, handleActivity));
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [resetTimeout, isAuthenticated]);
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -70,7 +114,9 @@ function App() {
         <>
           <Navbar
             handleDrawerToggle={handleDrawerToggle}
-            drawerWidth={drawerWidth}
+            isCollapsed={isCollapsed}
+            setIsCollapsed={setIsCollapsed}
+            drawerWidth={isCollapsed ? 64 : drawerWidth}
           />
           <ToastContainer
             position="top-right"
@@ -87,7 +133,8 @@ function App() {
           <Sidebar
             mobileOpen={mobileOpen}
             handleDrawerToggle={handleDrawerToggle}
-            drawerWidth={drawerWidth}
+            isCollapsed={isCollapsed}
+            drawerWidth={isCollapsed ? 64 : drawerWidth}
           />
         </>
       )}
@@ -98,11 +145,11 @@ function App() {
           display: "flex",
           flexDirection: "column",
           paddingTop: isAuthenticated ? "64px" : 0,
-          marginLeft: isAuthenticated && !isMobile ? `${drawerWidth}px` : 0,
+          marginLeft: isAuthenticated && !isMobile ? `${isCollapsed ? 64 : drawerWidth}px` : 0,
           height: "100vh",
           overflowY: isAuthenticated ? "auto" : "hidden",
           backgroundColor: "#f8fafc",
-          transition: theme.transitions.create(["margin", "width"], {
+          transition: theme.transitions.create(["margin"], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),

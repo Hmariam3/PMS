@@ -1,6 +1,6 @@
 import pool from "../db.js";
 import XLSX from "xlsx";
-import { fetchAccountBalanceFromSoap } from "./accountSoapController.js";
+import { fetchAccountBalanceFromSoap, fetchLoanDetailFromSoap } from "./accountSoapController.js";
 
 // ✅ Get all loan account mappings
 export const getAllLoanAccountMappings = async (req, res) => {
@@ -363,8 +363,8 @@ export const importExcelLoanAccountMapping = async (req, res) => {
           continue;
         }
 
-        // 2. Fetch from SOAP (using same function for now, or adapt if there's a specific loan SOAP)
-        const soapData = await fetchAccountBalanceFromSoap(accountNumber);
+        // 2. Fetch from SOAP (using specialized loan SOAP)
+        const soapData = await fetchLoanDetailFromSoap(accountNumber);
 
         // 3. Fetch Branch Info
         let district = "";
@@ -375,7 +375,7 @@ export const importExcelLoanAccountMapping = async (req, res) => {
              FROM public.branches b
              JOIN public.sub_processess s ON b.subprocess_id = s.id
              WHERE b.branch_code = $1`,
-            [soapData.campany_code],
+            [soapData.branchCode],
           );
           if (branchRes.rows.length > 0) {
             branch = branchRes.rows[0].branch_name;
@@ -391,10 +391,10 @@ export const importExcelLoanAccountMapping = async (req, res) => {
            VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10, $11, $12, $13)`,
           [
             accountNumber,
-            soapData.name,
-            parseFloat(String(soapData.workingBalance).replace(/,/g, "")) || 0, // Mapping working balance to collected for now
-            0, // Default outstanding
-            'Active',
+            soapData.customerName,
+            parseFloat(String(soapData.amount).replace(/,/g, "")) || 0, // Mapping original loan amount
+            parseFloat(String(soapData.outstandingAmount).replace(/,/g, "")) || 0, // Accurate outstanding balance
+            soapData.status,
             user_name,
             process || null,
             subprocess || null,
@@ -406,7 +406,7 @@ export const importExcelLoanAccountMapping = async (req, res) => {
           ],
         );
 
-        results.success.push({ account: accountNumber, holder: soapData.name });
+        results.success.push({ account: accountNumber, holder: soapData.customerName });
 
       } catch (err) {
         results.errors.push({ account: accountNumber, error: err.message });

@@ -59,49 +59,58 @@ const Dashboard = () => {
 
     try {
       // Fetch core data in parallel
-      await Promise.all([
-        safeFetch(`${baseUrl}/onepagekr/getOkrByUser`, setKrs, "KR"),
-        safeFetch(`${baseUrl}/onepageobjectives/by-user`, setObjectives, "Objectives"),
-        safeFetch(`${baseUrl}/priorities/getPriorityByUser`, setPriorities, "Priorities"),
-        safeFetch(`${baseUrl}/bau/user`, setBauData, "BAU"),
-        safeFetch(`${baseUrl}/quarter-okr/user`, setQuarterOkrData, "Quarter OKR"),
-      ]);
-
-      // Account Balance Difference
-      const accountBalanceRes = await axios.post(
-        `${baseUrl}/accountmapping/getBalanceDifference/`,
-        requestData,
+      // KR
+      const krRes = await axios.post(
+        `${baseUrl}/onepagekr/getOkrByUser`,
+        requestData
       );
-      setAccountBalace(accountBalanceRes.data);
 
+      setKrs(krRes.data);
 
-      // User Target
+      // Objectives
+      const objectiveRes = await axios.post(
+        `${baseUrl}/onepageobjectives/by-user`,
+        requestData
+      );
+
+      setObjectives(objectiveRes.data);
+
+      // Priorities
+      const priorityRes = await axios.post(
+        `${baseUrl}/priorities/getPriorityByUser`,
+        requestData
+      );
+
+      setPriorities(priorityRes.data);
+
+      // BAU
+      const bauRes = await axios.post(
+        `${baseUrl}/bau/user`,
+        requestData
+      );
+
+      setBauData(bauRes.data);
+
+      // Quarter OKR
+      const quarterOkrRes = await axios.post(
+        `${baseUrl}/quarter-okr/user`,
+        requestData
+      );
+
+      setQuarterOkrData(quarterOkrRes.data);
+
+      // User Target from tareget tabel and api
       const userTargetRes = await axios.post(
         `${baseUrl}/targets/TargetsSummary/`,
         requestData,
       );
       setuserTarget(userTargetRes.data);
 
-      // for target set bay user iteself
-      const totalDepositTarget = userTargetRes.data.total_deposit;
-      const totalFcyTarget = userTargetRes.data.total_fcy;
-      const totalLoanTarget = userTargetRes.data.total_loan;
-
-      // Dates
-      const startDate = new Date("2026-04-01");
-      const today = new Date();
-      //  Days passed  until current date
-      let daysPassed =
-        Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
-      daysPassed = Math.max(0, Math.min(daysPassed, 90));
-
+      let accountBalaceActual = 0;
       // for deposit
       let achievementRate = 0;
       let totalAccountBalace = 0;
       //  acctual account balance  update daynamically
-      const accountBalaceActual = accountBalanceRes.data.total_difference;
-      // if ifb total deposit balace banck  leve
-      let ifbBalance = 0;
       const isDirectorOrSenior =
         requestData.position === "Director" ||
         requestData.position === "Senior Director";
@@ -110,7 +119,6 @@ const Dashboard = () => {
         requestData.position === "VP" || requestData.position === "CHF";
 
       const isCEO = requestData.position === "CEO";
-
       // ===============================
       // IFB RULE (matches backend)
       // ===============================
@@ -128,17 +136,36 @@ const Dashboard = () => {
             requestData,
           );
 
-          ifbBalance = ifbRes.data?.total_difference || 0;
+          accountBalaceActual = ifbRes.data?.total_difference || 0;
         } catch (err) {
           console.error("IFB Error:", err);
           const message = err?.response?.data?.message || err.message;
           toast.error(`${requestData.user_name}: ${message}`);
         }
       } else {
-        // IFB
-        ifbBalance = 0;
+        // Account Balance Difference
+        const accountBalanceRes = await axios.post(
+          `${baseUrl}/accountmapping/getBalanceDifference/`,
+          requestData,
+        );
+        accountBalaceActual = accountBalanceRes.data.total_difference;
       }
-      totalAccountBalace = accountBalaceActual + ifbBalance;
+      totalAccountBalace = accountBalaceActual;
+
+      // for target set bay user iteself
+      const totalDepositTarget = userTargetRes.data.total_deposit;
+      const totalFcyTarget = userTargetRes.data.total_fcy;
+      const totalLoanTarget = userTargetRes.data.total_loan;
+
+      // Dates
+      const startDate = new Date("2026-04-01");
+      const today = new Date();
+      //  Days passed  until current date
+      let daysPassed =
+        Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+      daysPassed = Math.max(0, Math.min(daysPassed, 90));
+
+
       // Expected Deposit (by today)
       const expectedDeposit = (daysPassed / 90) * totalDepositTarget;
 
@@ -149,27 +176,40 @@ const Dashboard = () => {
         expected > 0 ? (totalCurrentDepositBalace / expected) * 100 : 0;
       setAchievementRateDeposit(achievementRate);
 
-
-
-      // for fcy and laone
-      const [fcyRes, loanRes] = await Promise.all([
-        axios.post(`${baseUrl}/fcy/fcyBalanceDifference`, requestData),
-        axios.post(`${baseUrl}/loan/loanBalanceDifference`, requestData),
-      ]);
-      setuserFcy(fcyRes.data);
-      setuserLoan(loanRes.data);
-
+      // for FCY from account mapped  and maual deposit recored 
+      const fcyRes = await axios.post(
+        `${baseUrl}/fcy/fcyBalanceDifference`,
+        requestData
+      );
+      // for FCY mapped
+      const fcyResMapped = await axios.post(
+        `${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`,
+        requestData
+      );
+      // for Loan mapped  for ifb and for branch from  total loan collection 
+      let loanRes = 0;
+      if (user.process === "Interest Free Banking") {
+        loanRes = await axios.post(
+          `${baseUrl}/loan/loanBalanceDifferenceMapped`,
+          requestData
+        );
+      }
+      else {
+        loanRes = await axios.post(
+          `${baseUrl}/loan/loanBalanceDifference`,
+          requestData
+        );
+      }
       // for Fcy
       //  Expected FCY progress (by today)
+      let totalfcy =
+        Number(fcyRes.data.total_difference || 0) +
+        Number(fcyResMapped.data.total_difference || 0);
       const expectedFcy = (daysPassed / 90) * totalFcyTarget;
-      const actualFcy = fcyRes.data.total_difference;
+      const actualFcy = totalfcy;
       const achievementfcy =
         expectedFcy > 0 ? (actualFcy / expectedFcy) * 100 : 0;
       setAchievementRateFcy(achievementfcy);
-
-
-
-
       // for Loan
       const actualLoan = loanRes?.data?.total_difference || 0;
       const expectedLoan = (daysPassed / 90) * totalLoanTarget;
@@ -177,15 +217,12 @@ const Dashboard = () => {
         expectedLoan > 0 ? (actualLoan / expectedLoan) * 100 : 0;
       setAchievementRateLoan(achievementLoanRate);
 
-
-
       // User Non Deposit Target feach
       const userNonDepositTargetRes = await axios.post(
         `${baseUrl}/non-deposit-target/summary/`,
         requestData,
       );
       setuserNonDepositTarget(userNonDepositTargetRes.data);
-
       const newAccountTarget = userNonDepositTargetRes.data.total_new_account;
       const unauthorizeTransTarget =
         userNonDepositTargetRes.data.total_unauthorized;
@@ -251,8 +288,6 @@ const Dashboard = () => {
       const achievementEEU =
         expectedEEU > 0 ? (actualeEEU / expectedEEU) * 100 : 0;
       setachievementEeu(achievementEEU);
-
-
     } catch (err) {
       console.error(err);
 

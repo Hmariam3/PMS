@@ -11,13 +11,15 @@ import {
   useTheme,
   Menu,
   MenuItem,
+  Fade,
 } from "@mui/material";
 import axios from "axios";
 import MenuIcon from "@mui/icons-material/Menu";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../AuthContext";
-const Navbar = ({ handleDrawerToggle, drawerWidth }) => {
+const Navbar = ({ handleDrawerToggle, drawerWidth, isCollapsed, setIsCollapsed }) => {
   const { user, logout, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
   const theme = useTheme();
@@ -79,9 +81,14 @@ const Navbar = ({ handleDrawerToggle, drawerWidth }) => {
       position="fixed"
       elevation={2}
       sx={{
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+        zIndex: (theme) => theme.zIndex.drawer - 1,
         backgroundColor: "#00AEEF",
-        width: "100%",
+        width: isMobile ? "100%" : `calc(100% - ${drawerWidth}px)`,
+        ml: isMobile ? 0 : `${drawerWidth}px`,
+        transition: theme.transitions.create(["width", "margin"], {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.leavingScreen,
+        }),
       }}
     >
       <Toolbar
@@ -100,7 +107,7 @@ const Navbar = ({ handleDrawerToggle, drawerWidth }) => {
             minWidth: 0,
           }}
         >
-          {isMobile && (
+          {isMobile ? (
             <IconButton
               color="inherit"
               edge="start"
@@ -109,27 +116,41 @@ const Navbar = ({ handleDrawerToggle, drawerWidth }) => {
             >
               <MenuIcon />
             </IconButton>
+          ) : (
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              sx={{ mr: 1 }}
+            >
+              <MoreVertIcon />
+            </IconButton>
           )}
-          <Box
-            component="img"
-            src="/coplog.PNG"
-            alt="Logo"
-            sx={{ height: 50, width: { xs: 120, sm: 120 }, mr: 1 }}
-          />
-          <Typography
-            variant="h6"
-            noWrap
-            sx={{
-              flexShrink: 1,
-              fontSize: { xs: "1rem", sm: "2.25rem" },
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              fontWeight: "bold",
-              textOverflow: "ellipsis",
-            }}
-          >
-            PMS
-          </Typography>
+
+          {/* Show logo in Navbar only when Sidebar is collapsed OR on mobile */}
+          {(isCollapsed || isMobile) && (
+            <Fade in={isCollapsed || isMobile}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Box
+                  component="img"
+                  src="/coplog.PNG"
+                  alt="Logo"
+                  sx={{ height: 40, width: "auto", mr: 1 }}
+                />
+                <Typography
+                  variant="h6"
+                  noWrap
+                  sx={{
+                    fontSize: { xs: "1.2rem", sm: "1.5rem" },
+                    fontWeight: "bold",
+                    color: "white",
+                  }}
+                >
+                  PMS
+                </Typography>
+              </Box>
+            </Fade>
+          )}
         </Box>
 
         {/* Right: profile + logout */}

@@ -301,8 +301,12 @@ export const getTargetByUser = async (req, res) => {
 export const getTargetsSummaryByUser = async (req, res) => {
   const { user_id, position, team, subprocess, process } = req.body;
 
+
+
   if (!user_id || !position) {
-    return res.status(400).json({ error: "User ID and position are required" });
+    return res.status(400).json({
+      error: "User ID and position are required",
+    });
   }
 
   try {
@@ -325,29 +329,96 @@ export const getTargetsSummaryByUser = async (req, res) => {
           COALESCE(cash_collection, 0) +
           COALESCE(cash_deposited_crm, 0)
         ) AS grand_total
+
       FROM public.targets
     `;
 
+    // CRM / Individual
     if (position === "CRM" || position === "Individual") {
-      query = baseQuery + ` WHERE user_name = $1`;
+
+      query = baseQuery + `
+        WHERE user_name = $1
+        AND status = 'Approved'
+      `;
+
       values = [user_id];
-    } else if (position === "Manager") {
-      query = baseQuery + ` WHERE team = $1`;
+
+    }
+
+    // Manager
+    else if (position === "Manager") {
+
+      query = baseQuery + `
+        WHERE team = $1
+        AND status = 'Approved'
+      `;
+
       values = [team];
-    } else if (position === "Director" || position === "Senior Director") {
-      query = baseQuery + ` WHERE subprocess = $1`;
+
+    }
+
+    // Director / Senior Director
+    else if (
+      position === "Director" ||
+      position === "Senior Director"
+    ) {
+
+      query = baseQuery + `
+        WHERE subprocess = $1
+        AND status = 'Approved'
+      `;
+
       values = [subprocess];
-    } else if (position === "VP" || position === "CHF") {
-      query = baseQuery + ` WHERE process = $1`;
+    }
+
+    // VP / CHF
+    else if (position === "VP" || position === "CHF") {
+
+      query = baseQuery + `
+        WHERE process = $1
+        AND status = 'Approved'
+      `;
+
       values = [process];
-    } else if (position === "CEO") {
-      query = baseQuery;
-    } else {
-      return res.status(400).json({ error: "Invalid position" });
+
+    }
+
+    // CEO
+    else if (position === "CEO") {
+
+      query = baseQuery + `
+        WHERE status = 'Approved'
+      `;
+
+      values = [];
+
+    }
+
+    else {
+      return res.status(400).json({
+        error: "Invalid position",
+      });
     }
 
     const result = await pool.query(query, values);
-    const row = result.rows[0] || {};
+
+    const row = result.rows[0];
+
+    // if no approved records found
+    if (
+      !row ||
+      (
+        Number(row.total_deposit || 0) === 0 &&
+        Number(row.total_fcy || 0) === 0 &&
+        Number(row.total_loan || 0) === 0 &&
+        Number(row.total_cash_collection || 0) === 0 &&
+        Number(row.cash_deposited_crm || 0) === 0
+      )
+    ) {
+      return res.status(404).json({
+        message: "No approved targets found",
+      });
+    }
 
     res.status(200).json({
       total_deposit: row.total_deposit || 0,
@@ -359,8 +430,14 @@ export const getTargetsSummaryByUser = async (req, res) => {
 
       grand_total: row.grand_total || 0,
     });
+
   } catch (err) {
+
     console.error(err.message);
-    res.status(500).json({ error: "Server error" });
+
+    res.status(500).json({
+      error: "Server error",
+    });
+
   }
 };

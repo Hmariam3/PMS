@@ -37,36 +37,39 @@ export const fetchAccountBalanceFromSoap = async (accountNumber) => {
 
   const parsed = await xml2js.parseStringPromise(response.data, {
     explicitArray: false,
+    tagNameProcessors: [xml2js.processors.stripPrefix],
   });
 
-  const body = parsed["S:Envelope"]?.["S:Body"];
-  const status =
-    body?.["ns5:ACCOUNTBALANCEINFOResponse"]?.["Status"]?.[
-      "successIndicator"
-    ];
+  const body = parsed.Envelope?.Body;
+
+  if (!body) {
+    console.error("SOAP Body missing. Full Parsed Response:", JSON.stringify(parsed, null, 2));
+    console.error("Raw XML Response:", response.data);
+    throw new Error("Invalid SOAP response: Body not found");
+  }
+
+  const status = body.ACCOUNTBALANCEINFOResponse?.Status?.successIndicator;
 
   if (status !== "Success") {
     throw new Error(`SOAP request failed with status: ${status || "Unknown"}`);
   }
 
   const accountData =
-    body?.["ns5:ACCOUNTBALANCEINFOResponse"]?.["ACCTBALINFOType"]?.[
-      "ns2:gACCTBALINFODetailType"
-    ]?.["ns2:mACCTBALINFODetailType"];
+    body?.ACCOUNTBALANCEINFOResponse?.ACCTBALINFOType?.gACCTBALINFODetailType?.mACCTBALINFODetailType;
 
   if (!accountData) {
     throw new Error("No account data found");
   }
 
   return {
-    accountNo: accountData["ns2:AcctNo"],
-    name: accountData["ns2:Name"],
-    product: accountData["ns2:Product"],
-    currency: accountData["ns2:Ccy"],
-    workingBalance: accountData["ns2:WorkingBal"],
-    usableBalance: accountData["ns2:UseableBal"],
-    customer_id: accountData["ns2:CUSTOMERID"],
-    campany_code: accountData["ns2:COMPANYCODE"],
+    accountNo: accountData.AcctNo,
+    name: accountData.Name,
+    product: accountData.Product,
+    currency: accountData.Ccy,
+    workingBalance: accountData.WorkingBal,
+    usableBalance: accountData.UseableBal,
+    customer_id: accountData.CUSTOMERID,
+    campany_code: accountData.COMPANYCODE,
   };
 };
 
@@ -74,7 +77,7 @@ export const getAccountBalance = async (req, res) => {
   try {
     const { accountNumber } = req.body;
     const result = await fetchAccountBalanceFromSoap(accountNumber);
-
+    // console.log("result: ", result);
     res.status(200).json({
       message: "Success",
       data: result,
@@ -127,14 +130,20 @@ export const getUserInfo = async (req, res) => {
 
     const parsed = await xml2js.parseStringPromise(response.data, {
       explicitArray: false,
+      tagNameProcessors: [xml2js.processors.stripPrefix],
     });
 
     //   Extract BODY
-    const body = parsed["S:Envelope"]?.["S:Body"];
+    const body = parsed.Envelope?.Body;
+
+    if (!body) {
+      console.error("USERINFO SOAP Body missing. Full Parsed Response:", JSON.stringify(parsed, null, 2));
+      console.error("Raw XML Response:", response.data);
+      return res.status(500).json({ message: "Invalid SOAP response structure" });
+    }
 
     //  STEP 1: CHECK STATUS FIRST
-    const status =
-      body?.["ns5:USERINFOResponse"]?.["Status"]?.["successIndicator"];
+    const status = body.USERINFOResponse?.Status?.successIndicator;
 
     if (status !== "Success") {
       return res.status(400).json({
@@ -145,9 +154,7 @@ export const getUserInfo = async (req, res) => {
 
     // 🔥 STEP 2: Extract USER DATA ONLY IF SUCCESS
     const userData =
-      body?.["ns5:USERINFOResponse"]?.["USERINFOType"]?.[
-        "ns3:gUSERINFODetailType"
-      ]?.["ns3:mUSERINFODetailType"];
+      body?.USERINFOResponse?.USERINFOType?.gUSERINFODetailType?.mUSERINFODetailType;
 
     if (!userData) {
       return res.status(404).json({
@@ -157,11 +164,11 @@ export const getUserInfo = async (req, res) => {
 
     //   Clean response
     const result = {
-      id: userData["ns3:ID"],
-      username: userData["ns3:USERNAME"],
-      department: userData["ns3:DEPARTMENTCODE"],
-      company: userData["ns3:COMPANYCODE"],
-      application: userData["ns3:INITAPPLICATION"],
+      id: userData.ID,
+      username: userData.USERNAME,
+      department: userData.DEPARTMENTCODE,
+      company: userData.COMPANYCODE,
+      application: userData.INITAPPLICATION,
     };
 
     res.status(200).json({
@@ -174,6 +181,96 @@ export const getUserInfo = async (req, res) => {
     res.status(500).json({
       message: "USERINFO request failed",
       error: error.message,
+    });
+  }
+};
+
+export const fetchLoanDetailFromSoap = async (loanaccountnumber) => {
+  if (!loanaccountnumber) {
+    throw new Error("Arrangement ID is required");
+  }
+
+  const xmlRequest = `
+  <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tws="http://temenos.com/TWSTXNDETAIL">
+    <soapenv:Header/>
+    <soapenv:Body>
+      <tws:AALOANDETAIL>
+        <WebRequestCommon>
+          <company></company>
+          <password>${process.env.SOAP_PASSWORD}</password>
+          <userName>${process.env.SOAP_USERNAME}</userName>
+        </WebRequestCommon>
+        <AALOANDETAILType>
+          <enquiryInputCollection>
+            <columnName>ARRANGEMENT.ID</columnName>
+            <criteriaValue>${loanaccountnumber}</criteriaValue>
+            <operand>EQ</operand>
+          </enquiryInputCollection>
+        </AALOANDETAILType>
+      </tws:AALOANDETAIL>
+    </soapenv:Body>
+  </soapenv:Envelope>
+  `;
+
+  const response = await axios.post(process.env.SOAP_URL, xmlRequest, {
+    headers: {
+      "Content-Type": "text/xml;charset=UTF-8",
+    },
+    timeout: 10000,
+  });
+
+  const parsed = await xml2js.parseStringPromise(response.data, {
+    explicitArray: false,
+    tagNameProcessors: [xml2js.processors.stripPrefix],
+  });
+
+  const body = parsed.Envelope?.Body;
+
+  if (!body) {
+    throw new Error("Invalid SOAP response: Body not found");
+  }
+
+  const status =
+    body.AALOANDETAILResponse?.Status?.successIndicator;
+
+  if (status !== "Success") {
+    throw new Error(`SOAP failed: ${status || "Unknown"}`);
+  }
+
+  const loanData =
+    body.AALOANDETAILResponse?.AALOANDETAILType
+      ?.gAALOANDETAILDetailType
+      ?.mAALOANDETAILDetailType;
+
+  if (!loanData) {
+    throw new Error("No loan data found");
+  }
+
+  // ✅ FIXED FIELD MAPPING
+  return {
+    loanaccountnumber: loanData.ID,
+    linkedApplicationId: loanData.LINKEDAPPLID,
+    customerName: loanData.CUSTOMERNAME,
+    outstandingBalance: loanData.OUTSTANDINGBALANCE,
+    status: loanData.STATUS,
+    branch: loanData.COMPANYNAME,
+    companycode: loanData.COMPANYCODE,
+  };
+};
+
+export const getLoanDetail = async (req, res) => {
+  try {
+    const { loanaccountnumber } = req.body;
+    const result = await fetchLoanDetailFromSoap(loanaccountnumber);
+    res.status(200).json({
+      message: "Success",
+      data: result,
+    });
+    console.log("result: ", result);
+  } catch (error) {
+    console.error("SOAP LOAN ERROR:", error.message);
+    res.status(400).json({
+      message: error.message,
     });
   }
 };

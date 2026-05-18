@@ -143,11 +143,29 @@ export const createEmployee = async (req, res) => {
 export const updateEmployee = async (req, res) => {
   const { id } = req.params;
 
-  if (id && isNaN(id)) {
-    return res.status(400).json({ error: "Invalid employee ID format" });
+  if (!id) {
+    return res.status(400).json({ error: "Employee ID is required" });
   }
 
-  const updatedFields = req.body; // object containing any fields to update
+  // List of valid fields that can be updated (matching the table structure)
+  const allowedFields = [
+    "display_name", "gender", "dob", "supervisor", "manager_id",
+    "process_name", "sub_process_name", "branch_name", "title", "job_level",
+    "company_entry_date", "position_entry_date", "base_salary", "pay_grade",
+    "pay_scale_level", "location", "business_phone_number", "outlook_address",
+    "business_email_address", "branch_grade", "organization_unit"
+  ];
+
+  const updatedFields = {};
+  Object.keys(req.body).forEach(key => {
+    if (allowedFields.includes(key)) {
+      updatedFields[key] = toNull(req.body[key]);
+    }
+  });
+
+  if (Object.keys(updatedFields).length === 0) {
+    return res.status(400).json({ error: "No valid fields provided for update" });
+  }
 
   try {
     // Build dynamic SET clause
@@ -155,7 +173,7 @@ export const updateEmployee = async (req, res) => {
       .map((key, index) => `${key} = $${index + 1}`)
       .join(", ");
 
-    const values = Object.values(updatedFields).map(toNull);
+    const values = Object.values(updatedFields);
 
     const result = await pool.query(
       `UPDATE public.employees SET ${setClause} WHERE employee_id = $${values.length + 1} RETURNING *`,
@@ -165,10 +183,10 @@ export const updateEmployee = async (req, res) => {
     if (result.rows.length === 0)
       return res.status(404).json({ error: "Employee not found" });
 
-    res.json({ message: "Employee updated", employee: result.rows[0] });
+    res.json({ message: "Employee updated successfully", employee: result.rows[0] });
   } catch (err) {
     console.error("Error updating employee:", err.message);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error", details: err.message });
   }
 };
 

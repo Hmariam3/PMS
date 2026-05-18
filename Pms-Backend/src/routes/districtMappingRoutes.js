@@ -6,6 +6,8 @@ import {
   updateDistrictMapping,
   deleteDistrictMapping,
   getDistrictsFromSubprocesses,
+  getTargetsAndDepositByDistricts,
+  getMappedDistrictsByUser,
 } from "../controllers/districtMappingController.js";
 
 const router = express.Router();
@@ -16,5 +18,9 @@ router.post("/getDistrictMappingsByUser", getDistrictMappingsByUser);
 router.post("/", createDistrictMapping);
 router.put("/:id", updateDistrictMapping);
 router.delete("/:id", deleteDistrictMapping);
+
+router.post("/getMappedDistrictsByUser/:user_name", getMappedDistrictsByUser);
+router.post("/getTargetsAndDepositByDistricts", getTargetsAndDepositByDistricts);
+
 
 export default router;

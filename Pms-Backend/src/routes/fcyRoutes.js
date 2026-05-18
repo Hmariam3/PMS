@@ -1,12 +1,13 @@
 import express from "express";
 import {
-  getAllFcyCollections,
-  getFcyById,
-  createFcy,
-  updateFcy,
-  deleteFcy,
-  getFcyByUser,
-  getFcyBalanceDifferenceByUser
+   getAllFcyCollections,
+   getFcyById,
+   createFcy,
+   updateFcy,
+   deleteFcy,
+   getFcyByUser,
+   getFcyBalanceDifferenceByUser,
+   getFcyBalanceDifferenceByUserMapped,
 } from "../controllers/fcyController.js";
 
 const router = express.Router();
@@ -25,5 +26,6 @@ router.delete("/:id", deleteFcy);
    ROLE BASED ROUTE
 ========================= */
 router.post("/getFcyByUser", getFcyByUser);
+router.post("/fcyBalanceDifferenceByUserMapped", getFcyBalanceDifferenceByUserMapped);
 
 export default router;

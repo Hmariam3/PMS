@@ -228,7 +228,6 @@ export const getLoanBalanceDifferenceByUser = async (req, res) => {
     if (position === "CRM" || position === "Individual") {
       query = `
         SELECT 
-         SUM(COALESCE(d."LOAN_DUE_COLLECTION", 0)) -
           SUM(COALESCE(d."TOTAL_COLLECTION", 0))  AS total_difference
         FROM public."DW_LOAN_DUE_COLLECTION" d
         JOIN public.users u 
@@ -242,7 +241,7 @@ export const getLoanBalanceDifferenceByUser = async (req, res) => {
       query = `
         SELECT 
   
-          SUM(COALESCE(d."TOTAL_COLLECTION", 0))-SUM(COALESCE(d."LOAN_DUE_COLLECTION", 0))   AS total_difference
+          SUM(COALESCE(d."TOTAL_COLLECTION", 0)) AS total_difference
         FROM public."DW_LOAN_DUE_COLLECTION" d
         JOIN public.users u 
           ON u.company_code = d."CO_CODE"
@@ -252,7 +251,7 @@ export const getLoanBalanceDifferenceByUser = async (req, res) => {
     } else if (position === "Director" || position === "Senior Director") {
       query = `
         SELECT 
-        SUM(COALESCE(d."TOTAL_COLLECTION", 0))-SUM(COALESCE(d."LOAN_DUE_COLLECTION", 0))   AS total_difference
+        SUM(COALESCE(d."TOTAL_COLLECTION", 0)))   AS total_difference
         FROM public."DW_LOAN_DUE_COLLECTION" d
         JOIN public.users u 
           ON u.company_code = d."CO_CODE"
@@ -264,7 +263,7 @@ export const getLoanBalanceDifferenceByUser = async (req, res) => {
     } else if (position === "VP" || position === "CHF") {
       query = `
         SELECT 
-       SUM(COALESCE(d."TOTAL_COLLECTION", 0))-SUM(COALESCE(d."LOAN_DUE_COLLECTION", 0)) 
+       SUM(COALESCE(d."TOTAL_COLLECTION", 0)) 
          AS total_difference
         FROM public."DW_LOAN_DUE_COLLECTION" d
         JOIN public.users u 
@@ -277,7 +276,7 @@ export const getLoanBalanceDifferenceByUser = async (req, res) => {
     } else if (position === "CEO") {
       query = `
         SELECT 
-          SUM(COALESCE(d."TOTAL_COLLECTION", 0))-SUM(COALESCE(d."LOAN_DUE_COLLECTION", 0))   AS total_difference
+          SUM(COALESCE(d."TOTAL_COLLECTION", 0))   AS total_difference
         FROM public."DW_LOAN_DUE_COLLECTION"
       `;
       values = [];
@@ -293,5 +292,130 @@ export const getLoanBalanceDifferenceByUser = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: "Server error" });
+  }
+};
+export const getLoanBalanceDifferenceByUserMapped = async (req, res) => {
+  const { user_id, position, subprocess, process } = req.body;
+
+  if (!user_id || !position) {
+    return res.status(400).json({
+      error: "User ID and position are required",
+    });
+  }
+
+  try {
+    let query = "";
+    let values = [];
+
+    // CRM / Individual
+    if (position === "CRM" || position === "Individual") {
+
+      query = `
+        SELECT
+          COALESCE(
+            SUM(COALESCE(collected_balance, 0)),
+          0) AS total_difference
+
+        FROM public.loanaccountmapping
+
+        WHERE user_name = $1
+      `;
+
+      values = [user_id];
+
+    }
+
+    // Manager
+    else if (position === "Manager") {
+
+      query = `
+        SELECT
+          COALESCE(
+            SUM(COALESCE(collected_balance, 0)),
+          0) AS total_difference
+
+        FROM public.loanaccountmapping
+
+        WHERE user_name = $1
+      `;
+
+      values = [user_id];
+
+    }
+
+    // Director / Senior Director
+    else if (
+      position === "Director" ||
+      position === "Senior Director"
+    ) {
+
+      query = `
+        SELECT
+          COALESCE(
+            SUM(COALESCE(collected_balance, 0)),
+          0) AS total_difference
+
+        FROM public.loanaccountmapping
+
+        WHERE subprocess = $1
+      `;
+
+      values = [subprocess];
+
+    }
+
+    // VP / CHF
+    else if (position === "VP" || position === "CHF") {
+
+      query = `
+        SELECT
+          COALESCE(
+            SUM(COALESCE(collected_balance, 0)),
+          0) AS total_difference
+
+        FROM public.loanaccountmapping
+
+        WHERE process = $1
+      `;
+
+      values = [process];
+
+    }
+
+    // CEO
+    else if (position === "CEO") {
+
+      query = `
+        SELECT
+          COALESCE(
+            SUM(COALESCE(collected_balance, 0)),
+          0) AS total_difference
+
+        FROM public.loanaccountmapping
+      `;
+
+    }
+
+    else {
+      return res.status(400).json({
+        error: "Invalid position",
+      });
+    }
+
+    const result = await pool.query(query, values);
+
+    res.status(200).json({
+      total_difference:
+        result.rows[0]?.total_difference || 0,
+    });
+
+  } catch (err) {
+
+    console.error(err.message);
+
+    res.status(500).json({
+      error: "Server error",
+    });
+
   }
 };

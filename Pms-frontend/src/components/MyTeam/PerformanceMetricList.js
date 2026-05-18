@@ -112,7 +112,7 @@ const PerformanceMetricList = ({ member }) => {
         requestData
       );
 
-      console.log("targetRes", targetRes.data);
+
 
 
       const totalDeposit = Number(targetRes.data.total_deposit) || 0;
@@ -154,10 +154,25 @@ const PerformanceMetricList = ({ member }) => {
           return { actual: Number(fcyRes.data.total_difference) || 0, target: totalFcyTarget };
         }
       }
+
       if (totalLoanTarget > 0) {
         if (type === "loan") {
-          const loanRes = await axios.post(`${baseUrl}/loan/loanBalanceDifference`, requestData);
-          return { actual: Number(loanRes.data.total_difference) || 0, target: totalLoanTarget };
+
+          let loanRes = 0;
+          if (userinfo.process === "Interest Free Banking") {
+            loanRes = await axios.post(
+              `${baseUrl}/loan/loanBalanceDifferenceMapped`,
+              requestData
+            );
+            return { actual: Number(loanRes.data.total_difference) || 0, target: totalLoanTarget };
+          }
+          else {
+            loanRes = await axios.post(
+              `${baseUrl}/loan/loanBalanceDifference`,
+              requestData
+            );
+            return { actual: Number(loanRes.data.total_difference) || 0, target: totalLoanTarget };
+          }
         }
       }
       // if (cash_collectionTarget > 0) {
@@ -774,8 +789,8 @@ const PerformanceMetricList = ({ member }) => {
               <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Metric Name</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Weight</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Target FY</TableCell>
-              {/* <TableCell sx={{ fontWeight: 600 }}>Input By</TableCell> */}
+              {/* <TableCell sx={{ fontWeight: 600 }}>Target FY</TableCell> */}
+              <TableCell sx={{ fontWeight: 600 }}>Input By</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Calculated For</TableCell>
               <TableCell sx={{ fontWeight: 600 }} align="center">Action</TableCell>
             </TableRow>

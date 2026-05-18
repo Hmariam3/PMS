@@ -176,11 +176,150 @@ export const deleteDistrictMapping = async (req, res) => {
 export const getDistrictsFromSubprocesses = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT DISTINCT "DISTRICT_NAME" FROM public."DW_DEPOSIT_by_DISTRICT"'
+      `
+      SELECT DISTINCT process_name
+      FROM public.sub_processess
+      WHERE process_name ILIKE '%District'
+      `
     );
     res.status(200).json(result.rows);
+    // console.log("result.rows", result.rows);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: "Server error" });
   }
+};
+
+// Get all targets with district mapping
+// Get targets with district mappings by user
+// Get mapped districts for user
+export const getMappedDistrictsByUser = async (req, res) => {
+  try {
+    const { user_name } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT 
+          district_name,
+          user_name,
+          process,
+          subprocess,
+          team,
+          crm_name
+      FROM public.districtmapping
+      WHERE LOWER(user_name) = LOWER($1)
+      ORDER BY district_name
+      `,
+      [user_name]
+    );
+    res.status(200).json(result.rows);
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getTargetsAndDepositByDistricts = async (req, res) => {
+  try {
+    const { districts } = req.body;
+
+    const result = await getTargetTotals(districts);
+    // console.log('targetTotals', result);
+    res.status(200).json(result);
+
+  } catch (err) {
+    console.error(err.message);
+
+    res.status(500).json({
+      error: "Server error",
+    });
+  }
+};
+
+const getTargetTotals = async (districts) => {
+
+
+  const result = await pool.query(
+    `
+    SELECT
+        LOWER(subprocess) AS district_key,
+        subprocess AS district_name,
+
+        COALESCE(SUM(deposit_target), 0) AS total_deposit_target,
+        COALESCE(SUM(fcy_target), 0) AS total_fcy_target,
+        COALESCE(SUM(loan_collection), 0) AS total_loan_collection,
+        COALESCE(SUM(cash_collection), 0) AS total_cash_collection,
+        COALESCE(SUM(cash_deposited_crm), 0) AS total_cash_deposited_crm
+
+    FROM public.targets
+
+    WHERE LOWER(subprocess) = ANY(
+        SELECT LOWER(unnest($1::text[]))
+    )
+
+    GROUP BY subprocess
+    `,
+    [districts]
+  );
+
+  const targetTotals = result.rows;
+
+  // call deposit function here
+  const depositTotals = await getDepositTotals(districts);
+  // merge both results
+  const merged = targetTotals.map((target) => {
+
+    const deposit = depositTotals.find(
+      (d) => d.district_key === target.district_key
+    );
+
+    return {
+      district_name: target.district_name,
+
+      total_deposit_target: target.total_deposit_target,
+      total_fcy_target: target.total_fcy_target,
+      total_loan_collection: target.total_loan_collection,
+      total_cash_collection: target.total_cash_collection,
+      total_cash_deposited_crm: target.total_cash_deposited_crm,
+
+      total_beginning_balance:
+        deposit?.total_beginning_balance || 0,
+
+      total_current_balance:
+        deposit?.total_current_balance || 0,
+
+      balance_difference:
+        deposit?.balance_difference || 0,
+    };
+  });
+
+  return merged;
+};
+const getDepositTotals = async (districts) => {
+  const result = await pool.query(
+    `
+    SELECT
+        LOWER("SUBPROCESS") AS district_key,
+        "SUBPROCESS" AS district_name,
+
+        COALESCE(SUM("BEGINING_BALANCE"), 0) AS total_beginning_balance,
+        COALESCE(SUM("CURRENT_BALANCE"), 0) AS total_current_balance,
+
+        COALESCE(SUM("CURRENT_BALANCE"), 0)
+        - COALESCE(SUM("BEGINING_BALANCE"), 0)
+        AS balance_difference
+
+    FROM public."DW_DEPOSIT_by_DISTRICT"
+
+    WHERE LOWER("SUBPROCESS") = ANY(
+        SELECT LOWER(unnest($1::text[]))
+    )
+
+    GROUP BY "SUBPROCESS"
+    `,
+    [districts]
+  );
+
+  return result.rows;
 };

@@ -239,7 +239,7 @@ export const getFcyBalanceDifferenceByUser = async (req, res) => {
         return res.status(400).json({ error: "Team is required for Manager" });
       }
 
-    
+
       query = `
         SELECT 
           SUM(COALESCE(current_balance, 0)) - 
@@ -301,5 +301,112 @@ export const getFcyBalanceDifferenceByUser = async (req, res) => {
   } catch (err) {
     console.error("🔥 ERROR:", err.message);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getFcyBalanceDifferenceByUserMapped = async (req, res) => {
+  let { user_id, position, team, subprocess, process } = req.body;
+
+  if (!user_id || !position) {
+    return res.status(400).json({
+      error: "User ID and position are required",
+    });
+  }
+
+  position = position.trim();
+
+  try {
+    let query;
+    let values;
+
+    const baseQuery = `
+      SELECT 
+        COALESCE(SUM(COALESCE(amount, 0)), 0) AS total_difference
+      FROM public.fcydeposit
+    `;
+
+    // CRM / Individual
+    if (position === "CRM" || position === "Individual") {
+      query = baseQuery + `
+        WHERE user_name = $1
+        AND status = 'Approved'
+      `;
+      values = [user_id];
+    }
+
+    // Manager
+    else if (position === "Manager") {
+      if (!team) {
+        return res.status(400).json({
+          error: "Team is required for Manager",
+        });
+      }
+
+      query = baseQuery + `
+        WHERE team = $1
+        AND status = 'Approved'
+      `;
+      values = [team];
+    }
+
+    // Director / Senior Director
+    else if (
+      position === "Director" ||
+      position === "Senior Director"
+    ) {
+      if (!subprocess) {
+        return res.status(400).json({
+          error: "Subprocess is required",
+        });
+      }
+
+      query = baseQuery + `
+        WHERE subprocess = $1
+        AND status = 'Approved'
+      `;
+      values = [subprocess];
+    }
+
+    // VP / CHF
+    else if (position === "VP" || position === "CHF") {
+      if (!process) {
+        return res.status(400).json({
+          error: "Process is required",
+        });
+      }
+
+      query = baseQuery + `
+        WHERE process = $1
+        AND status = 'Approved'
+      `;
+      values = [process];
+    }
+
+    // CEO
+    else if (position === "CEO") {
+      query = baseQuery + `
+        WHERE status = 'Approved'
+      `;
+      values = [];
+    }
+
+    else {
+      return res.status(400).json({
+        error: "Invalid position",
+      });
+    }
+
+    const result = await pool.query(query, values);
+
+    return res.status(200).json({
+      total_difference: result.rows[0]?.total_difference || 0,
+    });
+
+  } catch (err) {
+    console.error("🔥 ERROR:", err.message);
+
+    return res.status(500).json({
+      error: "Server error",
+    });
   }
 };

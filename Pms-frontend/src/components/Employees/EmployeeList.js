@@ -26,6 +26,7 @@ import {
 
 import {
   Delete as DeleteIcon,
+  Edit as EditIcon,
   Visibility as VisibilityIcon,
   Add as AddIcon,
   CloudUpload as UploadIcon,
@@ -58,6 +59,7 @@ const EmployeeList = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [tableKey, setTableKey] = useState(0);
 
 
@@ -166,7 +168,9 @@ const EmployeeList = () => {
   }, [employees]);
 
   const handleFormChange = (e) => {
-    setEmployeeForm({ ...employeeForm, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setEmployeeForm({ ...employeeForm, [name]: value });
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
   };
 
   const validate = () => {
@@ -192,18 +196,29 @@ const EmployeeList = () => {
     if (!validate()) return;
 
     try {
-      await axios.post(`${baseUrl}/employees/createEmployee`, employeeForm, {
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": process.env.REACT_APP_API_KEY,
-        },
-      });
-      toast.success("Employee added successfully");
+      if (isEditing) {
+        await axios.put(`${baseUrl}/employees/${employeeForm.employee_id}`, employeeForm, {
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.REACT_APP_API_KEY,
+          },
+        });
+        toast.success("Employee updated successfully");
+      } else {
+        await axios.post(`${baseUrl}/employees/createEmployee`, employeeForm, {
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.REACT_APP_API_KEY,
+          },
+        });
+        toast.success("Employee added successfully");
+      }
       setShowAddModal(false);
+      setIsEditing(false);
       fetchEmployees();
     } catch (err) {
       console.error("Submission Error:", err.response?.data || err.message);
-      const errorMsg = err.response?.data?.message || err.response?.data?.error || "Failed to add employee";
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || `Failed to ${isEditing ? "update" : "add"} employee`;
       toast.error(errorMsg);
     }
   };
@@ -272,6 +287,65 @@ const EmployeeList = () => {
     setShowModal(true);
   };
 
+  const handleEdit = (emp) => {
+    setEmployeeForm({
+      employee_id: emp.employee_id || "",
+      display_name: emp.display_name || "",
+      gender: emp.gender || "",
+      dob: emp.dob ? emp.dob.split("T")[0] : "",
+      supervisor: emp.supervisor || "",
+      manager_id: emp.manager_id || "",
+      process_name: emp.process_name || "",
+      sub_process_name: emp.sub_process_name || "",
+      branch_name: emp.branch_name || "",
+      title: emp.title || "",
+      job_level: emp.job_level || "",
+      company_entry_date: emp.company_entry_date ? emp.company_entry_date.split("T")[0] : "",
+      position_entry_date: emp.position_entry_date ? emp.position_entry_date.split("T")[0] : "",
+      base_salary: emp.base_salary || "",
+      pay_grade: emp.pay_grade || "",
+      pay_scale_level: emp.pay_scale_level || "",
+      location: emp.location || "",
+      business_phone_number: emp.business_phone_number || "",
+      outlook_address: emp.outlook_address || "",
+      business_email_address: emp.business_email_address || "",
+      branch_grade: emp.branch_grade || "",
+      organization_unit: emp.organization_unit || "",
+    });
+    setIsEditing(true);
+    setShowAddModal(true);
+  };
+
+  const handleOpenAddModal = () => {
+    setEmployeeForm({
+      employee_id: "",
+      display_name: "",
+      gender: "",
+      dob: "",
+      supervisor: "",
+      manager_id: "",
+      process_name: "",
+      sub_process_name: "",
+      branch_name: "",
+      title: "",
+      job_level: "",
+      company_entry_date: "",
+      position_entry_date: "",
+      base_salary: "",
+      pay_grade: "",
+      pay_scale_level: "",
+      location: "",
+      business_phone_number: "",
+      outlook_address: "",
+      business_email_address: "",
+      branch_grade: "",
+      organization_unit: "",
+    });
+    setErrors({});
+    setIsEditing(false);
+    setShowAddModal(true);
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Stack
@@ -318,7 +392,7 @@ const EmployeeList = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setShowAddModal(true)}
+            onClick={handleOpenAddModal}
             color="info"
             sx={{ textTransform: "none" }}
           >
@@ -330,9 +404,9 @@ const EmployeeList = () => {
 
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
         <TableContainer key={tableKey} sx={{ maxHeight: "calc(100vh - 250px)", p: 2 }}>
-          <table 
-            ref={tableRef} 
-            className="table table-striped table-hover display" 
+          <table
+            ref={tableRef}
+            className="table table-striped table-hover display"
             style={{ width: "100%", borderCollapse: "collapse" }}
           >
 
@@ -364,6 +438,15 @@ const EmployeeList = () => {
                           onClick={() => handleShowDetails(e)}
                         >
                           <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Edit">
+                        <IconButton
+                          color="primary"
+                          size="small"
+                          onClick={() => handleEdit(e)}
+                        >
+                          <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
@@ -432,18 +515,18 @@ const EmployeeList = () => {
         <Fade in={showAddModal}>
           <Box sx={modalStyle}>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-              Add New Employee
+              {isEditing ? "Edit Employee" : "Add New Employee"}
             </Typography>
             <Divider sx={{ mb: 3 }} />
             <form onSubmit={handleSubmit}>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth label="Employee ID" name="employee_id" type="number" value={employeeForm.employee_id} onChange={handleFormChange} error={!!errors.employee_id} helperText={errors.employee_id} required />
+                  <TextField fullWidth label="Employee ID" name="employee_id" type="number" value={employeeForm.employee_id} onChange={handleFormChange} error={!!errors.employee_id} helperText={errors.employee_id} required disabled={isEditing} />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField fullWidth label="Display Name" name="display_name" value={employeeForm.display_name} onChange={handleFormChange} error={!!errors.display_name} helperText={errors.display_name} required />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid item xs={12} sm={6} sx={{ width: "300px" }}>
                   <FormControl fullWidth required error={!!errors.gender}>
                     <InputLabel>Gender</InputLabel>
                     <Select name="gender" value={employeeForm.gender} onChange={handleFormChange} label="Gender">
@@ -462,7 +545,7 @@ const EmployeeList = () => {
                   <TextField fullWidth label="Manager ID" name="manager_id" value={employeeForm.manager_id} onChange={handleFormChange} />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required sx={{ width: "300px" }}>
                     <InputLabel>Process Name</InputLabel>
                     <Select name="process_name" value={employeeForm.process_name} onChange={handleFormChange} label="Process Name">
                       {processes.map((p) => <MenuItem key={p.id} value={p.process_name}>{p.process_name}</MenuItem>)}
@@ -470,7 +553,7 @@ const EmployeeList = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required sx={{ width: "300px" }}>
                     <InputLabel>Sub Process Name</InputLabel>
                     <Select name="sub_process_name" value={employeeForm.sub_process_name} onChange={handleFormChange} label="Sub Process Name">
                       {subProcesses.map((sp) => <MenuItem key={sp.id} value={sp.sub_process_name}>{sp.sub_process_name}</MenuItem>)}
@@ -478,7 +561,7 @@ const EmployeeList = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required sx={{ width: "300px" }}>
                     <InputLabel>Branch Name</InputLabel>
                     <Select name="branch_name" value={employeeForm.branch_name} onChange={handleFormChange} label="Branch Name">
                       {branches.map((b) => <MenuItem key={b.id} value={b.branch_name}>{b.branch_name}</MenuItem>)}
@@ -486,7 +569,7 @@ const EmployeeList = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required sx={{ width: "300px" }}>
                     <InputLabel>Title</InputLabel>
                     <Select name="title" value={employeeForm.title} onChange={handleFormChange} label="Title">
                       {titles.map((t) => <MenuItem key={t.id} value={t.title_name}>{t.title_name}</MenuItem>)}
@@ -494,7 +577,7 @@ const EmployeeList = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required sx={{ width: "300px" }}>
                     <InputLabel>Job Level</InputLabel>
                     <Select name="job_level" value={employeeForm.job_level} onChange={handleFormChange} label="Job Level">
                       {jobLevels.map((jl) => <MenuItem key={jl.id} value={jl.job_level}>{jl.job_level}</MenuItem>)}
@@ -505,7 +588,7 @@ const EmployeeList = () => {
                   <TextField fullWidth label="Base Salary" name="base_salary" type="number" value={employeeForm.base_salary} onChange={handleFormChange} />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required sx={{ width: "300px" }}>
                     <InputLabel>Pay Grade</InputLabel>
                     <Select name="pay_grade" value={employeeForm.pay_grade} onChange={handleFormChange} label="Pay Grade">
                       {payGrades.map((pg) => <MenuItem key={pg.id} value={pg.pay_grade}>{pg.pay_grade}</MenuItem>)}
@@ -513,7 +596,7 @@ const EmployeeList = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required sx={{ width: "300px" }}>
                     <InputLabel>Pay Scale Level</InputLabel>
                     <Select name="pay_scale_level" value={employeeForm.pay_scale_level} onChange={handleFormChange} label="Pay Scale Level">
                       {payGrades.map((pg) => <MenuItem key={pg.id} value={pg.pay_scale_level}>{pg.pay_scale_level}</MenuItem>)}
@@ -535,11 +618,22 @@ const EmployeeList = () => {
                 <Grid item xs={12} sm={6}>
                   <TextField fullWidth label="Business Email" name="business_email_address" type="email" value={employeeForm.business_email_address} onChange={handleFormChange} error={!!errors.business_email_address} helperText={errors.business_email_address} required />
                 </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth label="Company Entry Date" name="company_entry_date" type="date" InputLabelProps={{ shrink: true }} value={employeeForm.company_entry_date} onChange={handleFormChange} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth label="Position Entry Date" name="position_entry_date" type="date" InputLabelProps={{ shrink: true }} value={employeeForm.position_entry_date} onChange={handleFormChange} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth label="Business Phone Number" name="business_phone_number" value={employeeForm.business_phone_number} onChange={handleFormChange} />
+                </Grid>
 
               </Grid>
               <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
                 <Button onClick={() => setShowAddModal(false)}>Cancel</Button>
-                <Button type="submit" variant="contained" Color="info">Save Employee</Button>
+                <Button type="submit" variant="contained" color="info">
+                  {isEditing ? "Update Employee" : "Save Employee"}
+                </Button>
               </Box>
             </form>
           </Box>

@@ -8,6 +8,10 @@ import {
   Drawer,
   Collapse,
   useTheme,
+  Box,
+  Typography,
+  Tooltip,
+  Divider,
 } from "@mui/material";
 
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -38,6 +42,18 @@ import AutoGraphIcon from "@mui/icons-material/AutoGraph";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import ThumbsUpDownIcon from "@mui/icons-material/ThumbsUpDown";
 import ScoreboardIcon from "@mui/icons-material/Scoreboard";
+import LinkIcon from "@mui/icons-material/Link";
+import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
+import SavingsIcon from "@mui/icons-material/Savings";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import MapIcon from "@mui/icons-material/Map";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
+import GpsFixedIcon from "@mui/icons-material/GpsFixed";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import FlagIcon from "@mui/icons-material/Flag";
+import PieChartIcon from "@mui/icons-material/PieChart";
+import ChecklistIcon from "@mui/icons-material/Checklist";
+import PsychologyIcon from "@mui/icons-material/Psychology";
 
 import { AuthContext } from "../AuthContext";
 
@@ -100,28 +116,28 @@ const getNavLinks = (user) => {
     },
     {
       text: "One Page OKR",
-      icon: <TrackChangesIcon />,
+      icon: <EmojiEventsIcon />,
       show: isHO || (isDistrict && isDirector || isAdmin),
       children: [
-        { text: "Objectives", path: "/onepageobjective", icon: <DashboardIcon />, show: isHO || (isDistrict && isDirector) },
-        { text: "Key Result", path: "/keyresult", icon: <ListAltIcon />, show: isHO || (isDistrict && isDirector) },
+        { text: "Objectives", path: "/onepageobjective", icon: <FlagIcon />, show: isHO || (isDistrict && isDirector) },
+        { text: "Key Result", path: "/keyresult", icon: <ChecklistIcon />, show: isHO || (isDistrict && isDirector) },
         { text: "Priority List", path: "/prioritylist", icon: <ListAltIcon />, show: isHO || (isDistrict && isDirector) },
-        { text: "Business As Usual", path: "/bau", icon: <ListAltIcon />, show: isHO || (isDistrict && isDirector) },
-        { text: "Quarter OKR", path: "/quarter-okr", icon: <ScoreboardIcon />, show: isHO || (isDistrict && isDirector) },
-        { text: "Engagement", path: "/engagement", icon: <ListAltIcon />, show: isCRM || (isDistrict && isDirector) || isAdmin },
+        { text: "Business As Usual", path: "/bau", icon: <WorkIcon />, show: isHO || (isDistrict && isDirector) },
+        { text: "Quarter OKR", path: "/quarter-okr", icon: <PieChartIcon />, show: isHO || (isDistrict && isDirector) },
+        { text: "Engagement", path: "/engagement", icon: <PsychologyIcon />, show: isCRM || (isDistrict && isDirector) || isAdmin },
       ],
     },
     {
       text: "Set Target",
-      icon: <TrackChangesIcon />,
+      icon: <GpsFixedIcon />,
       show: isBranch || isCRM || isAdmin,
       children: [
-        { text: "Account Mapping", path: "/accountmapping", icon: <DashboardIcon />, show: isBranch || isCRM || isAdmin },
-        { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <ListAltIcon />, show: isBranch || isCRM || isAdmin },
-        { text: "FCY Deposit", path: "/fcy-deposit", icon: <ListAltIcon />, show: isBranch || isCRM || isAdmin },
-        { text: "Loan Account Mapping", path: "/loanaccountmapping", icon: <ListAltIcon />, show: isCRM || isAdmin },
-        { text: "District Mapping", path: "/districtmapping", icon: <ListAltIcon />, show: isCRM || isAdmin },
-        { text: "Financial Target", path: "/target", icon: <ListAltIcon />, show: isBranch || isCRM || isAdmin },
+        { text: "Local Account Mapping", path: "/accountmapping", icon: <LinkIcon />, show: isBranch || isCRM || isAdmin },
+        { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <CurrencyExchangeIcon />, show: isBranch || isCRM || isAdmin },
+        { text: "FCY Deposit", path: "/fcy-deposit", icon: <SavingsIcon />, show: isBranch || isCRM || isAdmin },
+        { text: "Loan Account Mapping", path: "/loanaccountmapping", icon: <AccountBalanceWalletIcon />, show: isCRM || isAdmin },
+        { text: "District Mapping", path: "/districtmapping", icon: <MapIcon />, show: isCRM || isAdmin },
+        { text: "Financial Target", path: "/target", icon: <AccountBalanceIcon />, show: isBranch || isCRM || isAdmin },
         { text: "Non Financial Target", path: "/nondeposittarget", icon: <TrackChangesIcon />, show: isBranch || isCRM || isAdmin },
       ],
     },
@@ -131,9 +147,9 @@ const getNavLinks = (user) => {
       show: true,
       children: [
         { text: "Strategic Pillars", path: "/pillars", icon: <AccountTreeIcon />, show: isAdmin },
-        { text: "Objectives", path: "/objective", icon: <DashboardIcon />, show: isAdmin },
-        { text: "Performance Metrics", path: "/performancemetrics", icon: <AutoGraphIcon />, show: isAdmin },
-        { text: "My Team", path: "/myteam", icon: <GroupWorkIcon />, show: !isIndividual },
+        { text: "Objectives", path: "/objective", icon: <FlagIcon />, show: isAdmin },
+        { text: "Performance Metrics", path: "/performancemetrics", icon: <BarChartIcon />, show: isAdmin },
+        { text: "My Team", path: "/myteam", icon: <PeopleIcon />, show: !isIndividual },
         { text: "Team Feedback", path: "/feedback", icon: <ThumbsUpDownIcon />, show: !isIndividual },
         { text: "Evaluation", path: "/evaluation", icon: <AssignmentTurnedInIcon />, show: isAdmin },
         { text: "Team Score", path: "/score", icon: <ScoreboardIcon />, show: !isIndividual },
@@ -145,7 +161,7 @@ const getNavLinks = (user) => {
   ];
 };
 
-const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth }) => {
+const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed }) => {
   const theme = useTheme();
   const location = useLocation();
   const { user } = useContext(AuthContext);
@@ -169,81 +185,127 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth }) => {
   };
 
   const drawerContent = (
-    <List>
-      {filteredNavLinks.map((link) => (
-        <React.Fragment key={link.text}>
-          {/* Main Menu */}
-          <ListItemButton
-            component={link.path ? Link : "div"}
-            to={link.path || "#"}
-            onClick={() =>
-              link.children ? handleMenuClick(link.text) : handleDrawerToggle()
-            }
-            selected={location.pathname === link.path}
-            sx={{
-              mb: 0.5,
-              mx: 1,
-              borderRadius: 1,
-              "&.Mui-selected": {
-                backgroundColor: theme.palette.info.main,
-                color: theme.palette.common.white,
-                "&:hover": {
-                  backgroundColor: theme.palette.info.dark,
-                },
-                "& .MuiListItemIcon-root": {
-                  color: theme.palette.common.white,
-                },
-              },
-              "&:hover": {
-                backgroundColor: theme.palette.action.hover,
-              },
-            }}
+    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      {/* Sidebar Header with Logo (Hidden when collapsed) */}
+      {!isCollapsed && (
+        <Box
+          sx={{
+            p: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            backgroundColor: "#f8fafc",
+            borderBottom: "1px solid #e2e8f0",
+          }}
+        >
+          <Box
+            component="img"
+            src="/cooplogo.gif"
+            alt="Logo"
+            sx={{ height: 34, width: "auto" }}
+          />
+          <Typography
+            variant="h1"
+            sx={{ fontWeight: "bold", color: "#00AEEF", fontSize: "2rem" }}
           >
-            <ListItemIcon sx={{ minWidth: 40 }}>{link.icon}</ListItemIcon>
-            <ListItemText primary={link.text} primaryTypographyProps={{ fontWeight: 500 }} />
+            PMS
+          </Typography>
+        </Box>
+      )}
 
-            {link.children &&
-              (openMenu === link.text ? <ExpandLess /> : <ExpandMore />)}
-          </ListItemButton>
+      <List sx={{ flexGrow: 1, pt: isCollapsed ? 1 : 0, overflowY: "auto" }}>
+        {filteredNavLinks.map((link) => (
+          <React.Fragment key={link.text}>
+            {/* Main Menu */}
+            <Tooltip title={isCollapsed ? link.text : ""} placement="right">
+              <ListItemButton
+                component={link.path ? Link : "div"}
+                to={link.path || "#"}
+                onClick={() =>
+                  link.children ? handleMenuClick(link.text) : handleDrawerToggle()
+                }
+                selected={location.pathname === link.path}
+                sx={{
+                  mb: 0.5,
+                  mx: isCollapsed ? 0.5 : 1,
+                  borderRadius: 1,
+                  justifyContent: isCollapsed ? "center" : "flex-start",
+                  "&.Mui-selected": {
+                    backgroundColor: theme.palette.info.main,
+                    color: theme.palette.common.white,
+                    "&:hover": {
+                      backgroundColor: theme.palette.info.dark,
+                    },
+                    "& .MuiListItemIcon-root": {
+                      color: theme.palette.common.white,
+                    },
+                  },
+                  "&:hover": {
+                    backgroundColor: theme.palette.action.hover,
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: isCollapsed ? 0 : 40,
+                    mr: isCollapsed ? 0 : 0,
+                    justifyContent: "center",
+                  }}
+                >
+                  {link.icon}
+                </ListItemIcon>
+                {!isCollapsed && (
+                  <ListItemText
+                    primary={link.text}
+                    primaryTypographyProps={{ fontWeight: 500 }}
+                  />
+                )}
 
-          {/* Sub Menu */}
-          {link.children && (
-            <Collapse in={openMenu === link.text} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding>
-                {link.children.map((sub) => (
-                  <ListItemButton
-                    key={sub.text}
-                    component={Link}
-                    to={sub.path}
-                    sx={{
-                      pl: 4,
-                      mb: 0.5,
-                      mx: 1,
-                      borderRadius: 1,
-                      "&.Mui-selected": {
-                        backgroundColor: theme.palette.action.selected,
-                        "& .MuiListItemIcon-root": {
-                          color: theme.palette.primary.main,
+                {!isCollapsed && link.children && (
+                  openMenu === link.text ? <ExpandLess /> : <ExpandMore />
+                )}
+              </ListItemButton>
+            </Tooltip>
+
+            {/* Sub Menu */}
+            {link.children && !isCollapsed && (
+              <Collapse in={openMenu === link.text} timeout="auto" unmountOnExit>
+                <List component="div" disablePadding>
+                  {link.children.map((sub) => (
+                    <ListItemButton
+                      key={sub.text}
+                      component={Link}
+                      to={sub.path}
+                      sx={{
+                        pl: 4,
+                        mb: 0.5,
+                        mx: 1,
+                        borderRadius: 1,
+                        "&.Mui-selected": {
+                          backgroundColor: theme.palette.action.selected,
+                          "& .MuiListItemIcon-root": {
+                            color: theme.palette.primary.main,
+                          },
+                          "& .MuiListItemText-primary": {
+                            color: theme.palette.primary.main,
+                            fontWeight: 500,
+                          },
                         },
-                        "& .MuiListItemText-primary": {
-                          color: theme.palette.primary.main,
-                          fontWeight: 500,
-                        },
-                      },
-                    }}
-                    onClick={handleDrawerToggle}
-                    selected={location.pathname === sub.path}
-                  >
-                    <ListItemIcon sx={{ minWidth: 40 }}>{sub.icon}</ListItemIcon>
-                    <ListItemText primary={sub.text} primaryTypographyProps={{ fontSize: "0.9rem" }} />
-                  </ListItemButton>
-                ))}
-              </List>
-            </Collapse>
-          )}
-        </React.Fragment>
-      ))}
-    </List>
+                      }}
+                      onClick={handleDrawerToggle}
+                      selected={location.pathname === sub.path}
+                    >
+                      <ListItemIcon sx={{ minWidth: 40 }}>{sub.icon}</ListItemIcon>
+                      <ListItemText primary={sub.text} primaryTypographyProps={{ fontSize: "0.9rem" }} />
+                    </ListItemButton>
+                  ))}
+                </List>
+              </Collapse>
+            )}
+          </React.Fragment>
+        ))}
+      </List>
+    </Box>
   );
 
   return (
@@ -256,10 +318,14 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth }) => {
           "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
-            top: 64,
-            height: "calc(100% - 64px)",
-            overflowY: "auto",
+            top: 0,
+            height: "100%",
+            overflow: "hidden", // Disable scroll on the drawer paper itself
             borderRight: "1px solid #e2e8f0",
+            transition: theme.transitions.create("width", {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
           },
         }}
         open
@@ -279,7 +345,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth }) => {
             width: drawerWidth,
             top: 0,
             height: "100%",
-            overflowY: "auto",
+            overflow: "hidden",
           },
         }}
       >

@@ -200,7 +200,6 @@ export const getEeuPaymentsSummaryByUser = async (req, res) => {
     } else if (position === "Director" || position === "Senior Director") {
       query = `
         SELECT 
-          p."BRANCH_NAME",
           COALESCE(SUM(p."TXN_COUNT"), 0) AS total_txn_count,
           COALESCE(SUM(p."TXN_AMOUNT"), 0) AS total_txn_amount
         FROM public."DW_EEU_PAYMENTS" p
@@ -214,7 +213,6 @@ export const getEeuPaymentsSummaryByUser = async (req, res) => {
     } else if (position === "VP" || position === "CHF") {
       query = `
         SELECT 
-          p."BRANCH_NAME",
           COALESCE(SUM(p."TXN_COUNT"), 0) AS total_txn_count,
           COALESCE(SUM(p."TXN_AMOUNT"), 0) AS total_txn_amount
         FROM public."DW_EEU_PAYMENTS" p
@@ -228,7 +226,6 @@ export const getEeuPaymentsSummaryByUser = async (req, res) => {
     } else if (position === "CEO") {
       query = `
         SELECT 
-          p."BRANCH_NAME",
           COALESCE(SUM(p."TXN_COUNT"), 0) AS total_txn_count,
           COALESCE(SUM(p."TXN_AMOUNT"), 0) AS total_txn_amount
         FROM public."DW_EEU_PAYMENTS" p
@@ -290,7 +287,6 @@ export const getActiveCardUsersSummaryByUser = async (req, res) => {
     } else if (position === "Director" || position === "Senior Director") {
       query = `
         SELECT 
-          a."DISTRICT_NAME",
           COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
         FROM public."PMS_ACTIVE_CARD_USERS" a
         WHERE a."SUBPROCESS" = $1
@@ -303,7 +299,6 @@ export const getActiveCardUsersSummaryByUser = async (req, res) => {
     } else if (position === "VP" || position === "CHF") {
       query = `
         SELECT 
-          a."BRANCH_NAME",
           COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
         FROM public."PMS_ACTIVE_CARD_USERS" a
         WHERE a."PROCESS" = $1
@@ -316,8 +311,7 @@ export const getActiveCardUsersSummaryByUser = async (req, res) => {
     } else if (position === "CEO") {
       query = `
         SELECT 
-          a."BRANCH_NAME",
-          a."DISTRICT_NAME",
+    
           COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
         FROM public."PMS_ACTIVE_CARD_USERS" a
 

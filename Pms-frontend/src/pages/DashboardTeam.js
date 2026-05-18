@@ -95,52 +95,24 @@ const DashboardTeam = () => {
         requestData
       );
 
-      const accountRes = await axios.post(
-        `${baseUrl}/accountmapping/getBalanceDifference`,
-        requestData
-      );
-
+      // tearget set
+      // for finatial product
       const targetRes = await axios.post(
         `${baseUrl}/targets/TargetsSummary`,
         requestData
       );
 
-      const fcyRes = await axios.post(
-        `${baseUrl}/fcy/fcyBalanceDifference`,
-        requestData
-      );
 
-      const loanRes = await axios.post(
-        `${baseUrl}/loan/loanBalanceDifference`,
-        requestData
-      );
-
+      // for non financial product
       const userNonDepositTargetRes = await axios.post(
         `${baseUrl}/non-deposit-target/summary/`,
         requestData
       );
 
-      const newaccountRes = await axios.post(
-        `${baseUrl}/nondeposit/new-accounts-summary/`,
-        requestData
-      );
-
-      const unutorizedTranRes = await axios.post(
-        `${baseUrl}/nondeposit/non-txn-summary/`,
-        requestData
-      );
-
-      const activecardRes = await axios.post(
-        `${baseUrl}/nondeposit/activecard/`,
-        requestData
-      );
-
-      const eeuRes = await axios.post(
-        `${baseUrl}/nondeposit/eeutransaction/`,
-        requestData
-      );
-
+      // actual balance  from system and maapped and fcy and loan 
+      // for finatial product
       let ifbBalance = 0;
+      let accountBalance = 0;
       const isDirectorOrSenior = singleUser.position === "Director" || singleUser.position === "Senior Director";
       const isVPOrCHF = singleUser.position === "VP" || singleUser.position === "CHF";
       const isCEO = singleUser.position === "CEO";
@@ -149,50 +121,146 @@ const DashboardTeam = () => {
         try {
           const ifbRes = await axios.post(`${baseUrl}/ifb/ifbBalanceDifference`, requestData);
           ifbBalance = ifbRes.data?.total_difference || 0;
+          accountBalance = ifbBalance;
+
         } catch (err) {
           console.error("IFB Error:", err);
         }
       }
+      else {
+        const accountRes = await axios.post(
+          `${baseUrl}/accountmapping/getBalanceDifference`,
+          requestData
+        );
+        accountBalance = accountRes.data.total_difference || 0;
 
-      const accountBalance = accountRes.data.total_difference || 0;
+
+      }
+
+      const fcyRes = await axios.post(
+        `${baseUrl}/fcy/fcyBalanceDifference`,
+        requestData
+      );
+      let fcyResMapped = await axios.post(
+        `${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`,
+        requestData
+      );
+
+      let loanRes = 0;
+      if (singleUser.process === "Interest Free Banking") {
+        loanRes = await axios.post(
+          `${baseUrl}/loan/loanBalanceDifferenceMapped`,
+          requestData
+        );
+      }
+      else {
+        loanRes = await axios.post(
+          `${baseUrl}/loan/loanBalanceDifference`,
+          requestData
+        );
+      }
+
+      console.log("loan", loanRes.data)
+
+      // for non financial product
+      const newaccountRes = await axios.post(
+        `${baseUrl}/nondeposit/new-accounts-summary/`,
+        requestData
+      );
+      const unutorizedTranRes = await axios.post(
+        `${baseUrl}/nondeposit/non-txn-summary/`,
+        requestData
+      );
+      const activecardRes = await axios.post(
+        `${baseUrl}/nondeposit/activecard/`,
+        requestData
+      );
+      const eeuRes = await axios.post(
+        `${baseUrl}/nondeposit/eeutransaction/`,
+        requestData
+      );
+
+      // calculated for finatial and non finatial product target and balance
+      // get targets  and set
       const totalDeposit = targetRes.data.total_deposit || 0;
       const totalFcyTarget = targetRes.data.total_fcy || 0;
       const totalLoanTarget = targetRes.data.total_loan || 0;
-      const totalBalance = accountBalance + ifbBalance;
-
+      const totalBalance = accountBalance;
       const startDate = new Date("2026-04-01");
       const today = new Date();
       let daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
       daysPassed = Math.max(0, Math.min(daysPassed, 90));
-
+      // calculate daily  expected 
       const expectedDeposit = (daysPassed / 90) * totalDeposit;
       const expectedFcy = (daysPassed / 90) * totalFcyTarget;
       const expectedLoan = (daysPassed / 90) * totalLoanTarget;
 
+      let totalfcy =
+        Number(fcyRes.data.total_difference || 0) +
+        Number(fcyResMapped.data.total_difference || 0);
+
+      // calculate current achivement rate
       const achievementDeposit = expectedDeposit > 0 ? (totalBalance / expectedDeposit) * 100 : 0;
-      const achievementFcy = expectedFcy > 0 ? ((fcyRes.data.total_difference || 0) / expectedFcy) * 100 : 0;
+      const achievementFcy = expectedFcy > 0 ? ((totalfcy || 0) / expectedFcy) * 100 : 0;
       const achievementLoan = expectedLoan > 0 ? ((loanRes.data.total_difference || 0) / expectedLoan) * 100 : 0;
 
+      // get non financial targets
       const newAccountTarget = userNonDepositTargetRes.data.total_new_account || 0;
       const unauthorizeTransTarget = userNonDepositTargetRes.data.total_unauthorized || 0;
       const activeCardTarget = userNonDepositTargetRes.data.active_card || 0;
       const eeuTransactionTarget = userNonDepositTargetRes.data.eeu_transaction || 0;
 
+      // get actual non financial product
       const actualNewAccount = newaccountRes?.data?.total_accounts || 0;
       const actualUnutorizedTran = unutorizedTranRes?.data?.total_unauthorized || 0;
       const actualactiveCard = activecardRes?.data?.total_active_card_users || 0;
       const actualeEEU = eeuRes?.data?.total_txn_count || 0;
 
+      // calculate daily expected for non financial product
       const expectedNewAccount = (daysPassed / 90) * newAccountTarget;
       const expectedUnutorized = (daysPassed / 90) * unauthorizeTransTarget;
       const expectedActiveCard = (daysPassed / 90) * activeCardTarget;
       const expectedEEU = (daysPassed / 90) * eeuTransactionTarget;
 
+      // calculate current achivement rate for non financial product
       const achievementNewAccount = expectedNewAccount > 0 ? (actualNewAccount / expectedNewAccount) * 100 : 0;
       const achievementUnauthorized = expectedUnutorized > 0 ? (actualUnutorizedTran / expectedUnutorized) * 100 : 0;
       const achievementActiveCard = expectedActiveCard > 0 ? (actualactiveCard / expectedActiveCard) * 100 : 0;
       const achievementEEU = expectedEEU > 0 ? (actualeEEU / expectedEEU) * 100 : 0;
-      console.log("priorities", priorRes.data);
+
+
+      // for ifb departement crm 
+      // mapped districts
+      const mappedDistricts = await axios.post(
+        `${baseUrl}/districtmapping/getMappedDistrictsByUser/${singleUser.user_name}`
+      );
+      const districtsObject = {
+        districts: mappedDistricts.data.map((item) => item.district_name)
+      };
+
+      //get district total target and deposit   
+      const districtRes = await axios.post(
+        `${baseUrl}/districtmapping/getTargetsAndDepositByDistricts`,
+        districtsObject
+      );
+      const districtAchievement = districtRes.data.map((item) => {
+        const districtDepositTarget = Number(item.total_deposit_target);
+        const balanceDiff = Number(item.balance_difference);
+
+        const expecteddistrictDeposit = (daysPassed / 90) * districtDepositTarget;
+
+        const achievementdistrictDeposit =
+          expecteddistrictDeposit > 0
+            ? (balanceDiff / expecteddistrictDeposit) * 100
+            : 0;
+
+        return {
+          district: item.district_name,
+          achievementdistrictDeposit,
+          balanceDifference: balanceDiff,
+        };
+      });
+
       setDashboardData((prev) => ({
         ...prev,
         [singleUser.user_name]: {
@@ -204,10 +272,19 @@ const DashboardTeam = () => {
           achievementUnauthorized,
           achievementActiveCard,
           achievementEEU,
+          districtAchievement,
         },
       }));
     } catch (err) {
-      console.error("API Error:", err);
+      console.log("Full Error:", err);
+
+      const message =
+        err.response?.data?.message ||   // backend message
+        err.response?.data?.error ||     // fallback error
+        err.message ||                   // axios error
+        "Something went wrong";
+
+      toast.error(message);
     }
   };
 
@@ -307,6 +384,30 @@ const DashboardTeam = () => {
 
                     {/* KPI Section */}
                     <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, color: "#1e293b", textTransform: "uppercase", letterSpacing: "1.5px" }}>Key Performance Indicators</Typography>
+
+                    {/* {data.districtAchievement?.map((item, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          border: "1px solid #ddd",
+                          padding: "10px",
+                          marginBottom: "10px",
+                          borderRadius: "8px",
+                        }}
+                      >
+                        <h3>{item.district}</h3>
+
+                        <p>
+                          <b>Achievement:</b>{" "}
+                          {Number(item.achievementdistrictDeposit || 0).toFixed(2)} %
+                        </p>
+
+                        <p>
+                          <b>Balance Difference:</b>{" "}
+                          {Number(item.balanceDifference || 0).toLocaleString()}
+                        </p>
+                      </div>
+                    ))} */}
                     <Stack
                       direction="row"
                       spacing={1.5}
@@ -326,6 +427,10 @@ const DashboardTeam = () => {
                         { label: "Unauthorized", val: data.achievementUnauthorized },
                         { label: "Active Card", val: data.achievementActiveCard },
                         { label: "EEU Account", val: data.achievementEEU },
+                        ...(data.districtAchievement || []).map((item) => ({
+                          label: item.district,
+                          val: item.achievementdistrictDeposit,
+                        })),
                       ].map((kpi, idx) => (
                         <Box
                           key={idx}
