@@ -5,11 +5,13 @@ import {
   getUserByuserName,
   getAllUsers,
   getUserByEmail,
-  getUserByPostion
+  getUserByPostion,
+  searchUsers
 } from "../controllers/userController.js";
 import { apiKeyMiddleware } from "../middleware/apiKeyMiddleware.js";
 const router = express.Router();
 router.get("/", getAllUsers);
+router.get("/search", searchUsers);
 router.post("/createUser/", createUser);
 router.post("/getUserByPostion/", getUserByPostion);
 router.post("/login/", loginUser);

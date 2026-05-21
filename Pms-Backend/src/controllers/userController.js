@@ -470,3 +470,25 @@ export const getAllActiveUsers = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+// ================= SEARCH USERS =================
+export const searchUsers = async (req, res) => {
+  const { q } = req.query;
+  if (!q || q.length < 3) {
+    return res.status(400).json({ error: "Search query must be at least 3 characters" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT user_name, full_name, process, subprocess, team FROM public.users 
+       WHERE user_name ILIKE $1 OR full_name ILIKE $1 
+       LIMIT 50`,
+      [`%${q}%`]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};

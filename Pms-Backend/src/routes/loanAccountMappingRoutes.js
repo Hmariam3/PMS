@@ -8,6 +8,8 @@ import {
   getLoanBalanceDifferenceByUser,
   getLoanAccountMappingsByUser,
   importExcelLoanAccountMapping,
+  getLoanOutstandingBalanceByUser,
+  getSpecialMentionLoanSumBalanceByUser
 } from "../controllers/loanAccountMappingController.js";
 import { upload } from "../middleware/upload.js";
 
@@ -21,6 +23,9 @@ router.post("/getLoanAccountMappingsByUser/", getLoanAccountMappingsByUser);
 router.put("/:id", updateLoanAccountMapping);
 router.delete("/:id", deleteLoanAccountMapping);
 
+// Special Mention Outstanding Balance for Loans
+router.post("/getSpecialMentionLoanSumBalanceByUser/", getSpecialMentionLoanSumBalanceByUser);
+router.post("/getLoanOutstandingBalanceByUser/", getLoanOutstandingBalanceByUser);
 // Bulk Excel import
 router.post("/import-excel", upload.single("file"), importExcelLoanAccountMapping);
 

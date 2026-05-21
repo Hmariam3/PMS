@@ -15,6 +15,8 @@ const Dashboard = () => {
   const [userTarget, setuserTarget] = useState([]);
   const [usernondepositTarget, setuserNonDepositTarget] = useState([]);
   const [achievementRateDeposit, setAchievementRateDeposit] = useState(0);
+  const [achievmentSpecialMentionLoan, setAchievmentSpecialMentionLoan] = useState(0);
+
 
   const [userFcy, setuserFcy] = useState([]);
   const [userLoan, setuserLoan] = useState([]);
@@ -26,7 +28,7 @@ const Dashboard = () => {
 
   const [achievementActivecard, setachievementActivecard] = useState(0);
   const [achievementEeu, setachievementEeu] = useState(0);
-
+  const [achievementdistrictDeposit, setachievementdistrictDeposit] = useState(0);
   const [bauData, setBauData] = useState([]);
   const [quarterOkrData, setQuarterOkrData] = useState([]);
 
@@ -186,6 +188,7 @@ const Dashboard = () => {
         `${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`,
         requestData
       );
+
       // for Loan mapped  for ifb and for branch from  total loan collection 
       let loanRes = 0;
       if (user.process === "Interest Free Banking") {
@@ -200,6 +203,21 @@ const Dashboard = () => {
           requestData
         );
       }
+
+      // for Loan Special Mention
+      const specialMentionLoanRes = await axios.post(
+        `${baseUrl}/loanaccountmapping/getSpecialMentionLoanSumBalanceByUser`,
+        requestData
+      );
+      console.log("specialMentionLoanRes", specialMentionLoanRes);
+      // for Loan Outstanding Balance
+      const loanOutstandingBalanceRes = await axios.post(
+        `${baseUrl}/loanaccountmapping/getLoanOutstandingBalanceByUser`,
+        requestData
+      );
+      console.log("loanOutstandingBalanceRes", loanOutstandingBalanceRes);
+
+
       // for Fcy
       //  Expected FCY progress (by today)
       let totalfcy =
@@ -216,6 +234,20 @@ const Dashboard = () => {
       const achievementLoanRate =
         expectedLoan > 0 ? (actualLoan / expectedLoan) * 100 : 0;
       setAchievementRateLoan(achievementLoanRate);
+
+
+      // for special mention
+      const actualSpecialmappingLoan = specialMentionLoanRes?.data?.total_balance || 0;
+      const actualOutStandingLoan = loanOutstandingBalanceRes?.data?.total_balance || 0;
+
+
+
+      const achievementspecialMentionLoanRate =
+        actualOutStandingLoan > 0 ? (actualSpecialmappingLoan / actualOutStandingLoan) * 100 : 0;
+
+
+      setAchievmentSpecialMentionLoan(achievementspecialMentionLoanRate);
+
 
       // User Non Deposit Target feach
       const userNonDepositTargetRes = await axios.post(
@@ -288,6 +320,43 @@ const Dashboard = () => {
       const achievementEEU =
         expectedEEU > 0 ? (actualeEEU / expectedEEU) * 100 : 0;
       setachievementEeu(achievementEEU);
+
+      // district mapped average
+      // mapped districts
+      const mappedDistricts = await axios.post(
+        `${baseUrl}/districtmapping/getMappedDistrictsByUser/${user.UserName}`
+      );
+
+      const districtsObject = {
+        districts: mappedDistricts.data.map((item) => item.district_name)
+      };
+
+      //get district total target and deposit   
+      const districtRes = await axios.post(
+        `${baseUrl}/districtmapping/getTargetsAndDepositByDistricts`,
+        districtsObject
+      );
+      const totals = districtRes.data.reduce(
+        (sum, item) => ({
+          totalDistrictDepositTarget:
+            sum.totalDistrictDepositTarget + item.districtDepositTarget,
+
+          totalBalanceDiff:
+            sum.totalBalanceDiff + item.balanceDifference,
+        }),
+        {
+          totalDistrictDepositTarget: 0,
+          totalBalanceDiff: 0,
+        }
+      );
+
+      const expecteddistrictDeposit = (daysPassed / 90) * totals.totalDistrictDepositTarget;
+      const achievementdistrictDeposit =
+        expecteddistrictDeposit > 0
+          ? (totals.totalBalanceDiff / expecteddistrictDeposit) * 100
+          : 0;
+
+      setachievementdistrictDeposit(achievementdistrictDeposit);
     } catch (err) {
       console.error(err);
 
@@ -417,177 +486,313 @@ const Dashboard = () => {
         </div>
 
         {/* RIGHT - KPI */}
-        <div
-          style={{
-            width: "35%",
-            backgroundColor: "#c7dce5",
-            border: "2px solid black",
-            padding: "10px",
-          }}
-        >
-          <h4>Health Metrics / KPI</h4>
+        {/* {console.log("user", user)} */}
+        {user.organization === "Branch" ? (
+          <div
+            style={{
+              width: "35%",
+              backgroundColor: "#c7dce5",
+              border: "2px solid black",
+              padding: "10px",
+            }}
+          >
+            <h4>Health Metrics / KPI</h4>
 
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ border: "1px solid black" }}>S/N</th>
-                <th style={{ border: "1px solid black" }}>Metric</th>
-                <th
-                  style={{
-                    border: "1px solid black",
-                  }}
-                >
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ border: "1px solid black" }}>H1</td>
-                <td style={{ border: "1px solid black" }}>
-                  <strong>Target Achievement Rate - Deposit</strong>{" "}
-                </td>
-                <td
-                  style={{
-                    border: "1px solid black",
-                    backgroundColor: getAchievementColor(
-                      achievementRateDeposit.toFixed(2),
-                    ),
-                    color: "white",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                  }}
-                >
-                  {Number(achievementRateDeposit).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                </td>
-              </tr>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ border: "1px solid black" }}>S/N</th>
+                  <th style={{ border: "1px solid black" }}>Metric</th>
+                  <th
+                    style={{
+                      border: "1px solid black",
+                    }}
+                  >
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H1</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>Target Achievement Rate - Deposit</strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievementRateDeposit.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievementRateDeposit).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+                </tr>
 
-              <tr>
-                <td style={{ border: "1px solid black" }}>H2</td>
-                <td style={{ border: "1px solid black" }}>
-                  <strong>Target Achievement Rate - FCY</strong>{" "}
-                </td>
-                <td
-                  style={{
-                    border: "1px solid black",
-                    backgroundColor: getAchievementColor(
-                      achievementRateFcy.toFixed(2),
-                    ),
-                    color: "white",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                  }}
-                >
-                  {Number(achievementRateFcy).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                </td>
-              </tr>
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H2</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>Target Achievement Rate - FCY</strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievementRateFcy.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievementRateFcy).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+                </tr>
 
-              <tr>
-                <td style={{ border: "1px solid black" }}>H3</td>
-                <td style={{ border: "1px solid black" }}>
-                  <strong>
-                    Loan Collection Performance against the plan
-                  </strong>{" "}
-                </td>
-                <td
-                  style={{
-                    border: "1px solid black",
-                    backgroundColor: getAchievementColor(
-                      achievementRateLoan.toFixed(2),
-                    ),
-                    color: "white",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                  }}
-                >
-                  {Number(achievementRateLoan).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                </td>
-              </tr>
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H3</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>
+                      Loan Collection Performance against the plan
+                    </strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievementRateLoan.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievementRateLoan).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+                </tr>
 
-              <tr>
-                <td style={{ border: "1px solid black" }}>H4</td>
-                <td style={{ border: "1px solid black" }}>
-                  <strong>New Account against the plan </strong>{" "}
-                </td>
-                <td
-                  style={{
-                    border: "1px solid black",
-                    backgroundColor: getAchievementColor(
-                      achievementRateAccount.toFixed(2),
-                    ),
-                    color: "white",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                  }}
-                >
-                  {Number(achievementRateAccount).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                </td>
-              </tr>
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H4</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>New Account against the plan </strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievementRateAccount.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievementRateAccount).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+                </tr>
 
-              <tr>
-                <td style={{ border: "1px solid black" }}>H5</td>
-                <td style={{ border: "1px solid black" }}>
-                  <strong>
-                    Unauthorized transaction against the plan{" "}
-                  </strong>{" "}
-                </td>
-                <td
-                  style={{
-                    border: "1px solid black",
-                    backgroundColor: getAchievementColor(
-                      achievementRateunauthorizedTran.toFixed(2),
-                    ),
-                    color: "white",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                  }}
-                >
-                  {Number(achievementRateunauthorizedTran).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                </td>
-              </tr>
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H5</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>
+                      Unauthorized transaction against the plan{" "}
+                    </strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievementRateunauthorizedTran.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievementRateunauthorizedTran).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+                </tr>
 
-              <tr>
-                <td style={{ border: "1px solid black" }}>H7</td>
-                <td style={{ border: "1px solid black" }}>
-                  <strong>Active Card against the plan </strong>{" "}
-                </td>
-                <td
-                  style={{
-                    border: "1px solid black",
-                    backgroundColor: getAchievementColor(
-                      achievementActivecard.toFixed(2),
-                    ),
-                    color: "white",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                  }}
-                >
-                  {Number(achievementActivecard).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                </td>
-              </tr>
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H7</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>Active Card against the plan </strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievementActivecard.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievementActivecard).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+                </tr>
 
-              <tr>
-                <td style={{ border: "1px solid black" }}>H8</td>
-                <td style={{ border: "1px solid black" }}>
-                  <strong>EEU against the plan </strong>{" "}
-                </td>
-                <td
-                  style={{
-                    border: "1px solid black",
-                    backgroundColor: getAchievementColor(
-                      achievementEeu.toFixed(2),
-                    ),
-                    color: "white",
-                    fontWeight: "bold",
-                    textAlign: "center",
-                  }}
-                >
-                  {Number(achievementEeu).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H8</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>EEU against the plan </strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievementEeu.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievementEeu).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div
+            style={{
+              width: "35%",
+              backgroundColor: "#c7dce5",
+              border: "2px solid black",
+              padding: "10px",
+            }}
+          >
+            <h4>Health Metrics / KPI</h4>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ border: "1px solid black" }}>S/N</th>
+                  <th style={{ border: "1px solid black" }}>Metric</th>
+                  <th
+                    style={{
+                      border: "1px solid black",
+                    }}
+                  >
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H1</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>Deposit Target Achievment Rate - from Mapped Customers</strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievementRateDeposit.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievementRateDeposit).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H2</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>Deposit Target Achievment Rate of Assigned District</strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievementdistrictDeposit.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievementdistrictDeposit).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H3</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>
+                      Target Achievment Rate -FCY
+                    </strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievementRateFcy.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievementRateFcy).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+
+                </tr>
+
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H4</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>Collection Performance against the Weeks's Plan</strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievementRateLoan.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievementRateLoan).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style={{ border: "1px solid black" }}>H5</td>
+                  <td style={{ border: "1px solid black" }}>
+                    <strong>
+                      Special Mention Ratio(Portfolio){" "}
+                    </strong>{" "}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid black",
+                      backgroundColor: getAchievementColor(
+                        achievmentSpecialMentionLoan.toFixed(2),
+                      ),
+                      color: "white",
+                      fontWeight: "bold",
+                      textAlign: "center",
+                    }}
+                  >
+                    {Number(achievmentSpecialMentionLoan).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+
       </div>
 
       {/* NEW ROW FOR BAU AND QUARTER OKR MONITORING */}

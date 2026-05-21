@@ -103,17 +103,59 @@ export const createAccountMapping = async (req, res) => {
       message: "account_number and account_holder are required",
     });
   }
+  if (!user_name) {
+    return res.status(400).json({
+      message: "user_name is required",
+    });
+  }
 
   try {
-    // Check duplicate account
-    const check = await pool.query(
-      `SELECT 1 FROM public.accountmapping WHERE account_number = $1 LIMIT 1`,
-      [cleaned_account_number],
+    // Fetch current user details
+    const userRes = await pool.query(
+      "SELECT organization, position FROM public.users WHERE user_name = $1",
+      [user_name]
     );
 
-    if (check.rows.length > 0) {
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({
+        message: `User '${user_name}' not found`,
+      });
+    }
+
+    const { organization, position } = userRes.rows[0];
+    const orgLower = (organization || "").toLowerCase();
+    const posLower = (position || "").toLowerCase();
+
+    // Check organization eligibility
+    if (orgLower !== "branch" && orgLower !== "district" && orgLower !== "ho") {
+      return res.status(403).json({
+        message: "Account mapping is only allowed for users from Branch, District, or Ho organizations.",
+      });
+    }
+
+    // Check position eligibility
+    if ((orgLower === "district" || orgLower === "ho") && posLower !== "crm") {
+      return res.status(403).json({
+        message: `Users from ${organization} organization must have CRM position to register accounts.`,
+      });
+    }
+
+    // Check duplicate account in the same organization
+    const check = await pool.query(
+      `SELECT am.user_name, u.organization 
+       FROM public.accountmapping am
+       LEFT JOIN public.users u ON am.user_name = u.user_name
+       WHERE am.account_number = $1`,
+      [cleaned_account_number]
+    );
+
+    const alreadyRegisteredInOrg = check.rows.some(
+      row => (row.organization || "").toLowerCase() === orgLower
+    );
+
+    if (alreadyRegisteredInOrg) {
       return res.status(409).json({
-        message: "Account is already registered",
+        message: `Account is already registered by a user from the ${organization} organization`,
       });
     }
 
@@ -327,6 +369,35 @@ export const importExcelAccountMapping = async (req, res) => {
   }
 
   try {
+    // Fetch current user details for authorization checks
+    const userRes = await pool.query(
+      "SELECT organization, position FROM public.users WHERE user_name = $1",
+      [user_name]
+    );
+
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({
+        message: `User '${user_name}' not found`,
+      });
+    }
+
+    const { organization, position } = userRes.rows[0];
+    const orgLower = (organization || "").toLowerCase();
+    const posLower = (position || "").toLowerCase();
+
+    // Check organization eligibility
+    if (orgLower !== "branch" && orgLower !== "district" && orgLower !== "ho") {
+      return res.status(403).json({
+        message: "Account mapping is only allowed for users from Branch, District, or Ho organizations.",
+      });
+    }
+
+    // Check position eligibility
+    if ((orgLower === "district" || orgLower === "ho") && posLower !== "crm") {
+      return res.status(403).json({
+        message: `Users from ${organization} organization must have CRM position to register accounts.`,
+      });
+    }
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
@@ -357,13 +428,24 @@ export const importExcelAccountMapping = async (req, res) => {
       }
 
       try {
-        // 1. Check duplicate in DB
+        // 1. Check duplicate account in the same organization
         const check = await pool.query(
-          `SELECT 1 FROM public.accountmapping WHERE account_number = $1 LIMIT 1`,
-          [accountNumber],
+          `SELECT am.user_name, u.organization 
+           FROM public.accountmapping am
+           LEFT JOIN public.users u ON am.user_name = u.user_name
+           WHERE am.account_number = $1`,
+          [accountNumber]
         );
-        if (check.rows.length > 0) {
-          results.skipped.push({ account: accountNumber, reason: "Already registered" });
+
+        const alreadyRegisteredInOrg = check.rows.some(
+          row => (row.organization || "").toLowerCase() === orgLower
+        );
+
+        if (alreadyRegisteredInOrg) {
+          results.skipped.push({
+            account: accountNumber,
+            reason: `Already registered by a user from the ${organization} organization`,
+          });
           continue;
         }
 

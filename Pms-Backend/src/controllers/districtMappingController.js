@@ -223,7 +223,7 @@ export const getMappedDistrictsByUser = async (req, res) => {
 export const getTargetsAndDepositByDistricts = async (req, res) => {
   try {
     const { districts } = req.body;
-
+    console.log("req.body", req.body);
     const result = await getTargetTotals(districts);
     // console.log('targetTotals', result);
     res.status(200).json(result);
@@ -238,8 +238,7 @@ export const getTargetsAndDepositByDistricts = async (req, res) => {
 };
 
 const getTargetTotals = async (districts) => {
-
-
+  console.log("districts", districts);
   const result = await pool.query(
     `
     SELECT

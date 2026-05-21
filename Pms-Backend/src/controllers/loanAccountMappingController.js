@@ -429,3 +429,140 @@ export const importExcelLoanAccountMapping = async (req, res) => {
     res.status(500).json({ error: "Failed to process bulk upload" });
   }
 };
+
+
+// ✅ Get Outstanding Balance for Loans
+export const getLoanOutstandingBalanceByUser = async (req, res) => {
+  const { user_id, position, team, subprocess, process } = req.body;
+  if (!user_id || !position) {
+    return res.status(400).json({
+      error: "User ID and position are required",
+    });
+  }
+
+  try {
+    let query;
+    let values;
+
+    if (position === "CRM" || position === "Individual") {
+      query = `
+        SELECT 
+          SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
+        FROM public.loanaccountmapping
+        WHERE user_name = $1
+      `;
+      values = [user_id];
+    } else if (position === "Manager") {
+      query = `
+        SELECT 
+          SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
+        FROM public.loanaccountmapping
+        WHERE team = $1
+      `;
+      values = [team];
+    } else if (position === "Director" || position === "Senior Director") {
+      query = `
+        SELECT 
+          SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
+        FROM public.loanaccountmapping
+        WHERE subprocess = $1
+      `;
+      values = [subprocess];
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT 
+          SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
+        FROM public.loanaccountmapping
+        WHERE process = $1
+      `;
+      values = [process];
+    } else if (position === "CEO") {
+      query = `
+        SELECT 
+          SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
+        FROM public.loanaccountmapping
+      `;
+      values = [];
+    } else {
+      return res.status(400).json({ error: "Invalid position" });
+    }
+
+    const result = await pool.query(query, values);
+
+    res.status(200).json({
+      total_balance: result.rows[0].total_balance || 0,
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// ✅ Get Special Mention Outstanding Balance for Loans
+export const getSpecialMentionLoanSumBalanceByUser = async (req, res) => {
+  console.log("requestData", req.body);
+  const { user_id, position, team, subprocess, process } = req.body;
+  if (!user_id || !position) {
+    return res.status(400).json({
+      error: "User ID and position are required",
+    });
+  }
+
+  try {
+    let query;
+    let values;
+
+    if (position === "CRM" || position === "Individual") {
+      query = `
+        SELECT 
+          SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
+        FROM public.loanaccountmapping
+        WHERE user_name = $1 AND status = 'Special Mention'
+      `;
+      values = [user_id];
+    } else if (position === "Manager") {
+      query = `
+        SELECT 
+          SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
+        FROM public.loanaccountmapping
+        WHERE team = $1 AND status = 'Special Mention'
+      `;
+      values = [team];
+    } else if (position === "Director" || position === "Senior Director") {
+      query = `
+        SELECT 
+          SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
+        FROM public.loanaccountmapping
+        WHERE subprocess = $1 AND status = 'Special Mention'
+      `;
+      values = [subprocess];
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT 
+          SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
+        FROM public.loanaccountmapping
+        WHERE process = $1 AND status = 'Special Mention'
+      `;
+      values = [process];
+    } else if (position === "CEO") {
+      query = `
+        SELECT 
+          SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
+        FROM public.loanaccountmapping
+        WHERE status = 'Special Mention'
+      `;
+      values = [];
+    } else {
+      return res.status(400).json({ error: "Invalid position" });
+    }
+
+    const result = await pool.query(query, values);
+
+    res.status(200).json({
+      total_balance: result.rows[0].total_balance || 0,
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};

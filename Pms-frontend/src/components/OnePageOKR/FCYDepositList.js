@@ -24,6 +24,9 @@ import {
   TextField,
   Divider,
   MenuItem,
+  FormControlLabel,
+  Checkbox,
+  Autocomplete,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -70,7 +73,73 @@ const FCYDepositList = () => {
     team: user?.team || "",
     crm_name: user?.FullName || "",
     createdby: user?.UserName || "",
+    is_shared: false,
+    shared_with: "",
+    shared_amount_1: 0,
+    shared_amount_2: 0,
   });
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchQuery.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        setSearchLoading(true);
+        const res = await axios.get(`${baseUrl}/users/search?q=${searchQuery}`);
+        setSearchResults(res.data);
+      } catch (err) {
+        console.error("User search failed", err);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
+  const handleSharedAmount1Change = (val) => {
+    const amt1 = Number(val) || 0;
+    const total = Number(deposit.amount) || 0;
+    const amt2 = total - amt1;
+    setDeposit(prev => ({
+      ...prev,
+      shared_amount_1: amt1,
+      shared_amount_2: amt2 >= 0 ? amt2 : 0
+    }));
+  };
+
+  const handleSharedAmount2Change = (val) => {
+    const amt2 = Number(val) || 0;
+    const total = Number(deposit.amount) || 0;
+    const amt1 = total - amt2;
+    setDeposit(prev => ({
+      ...prev,
+      shared_amount_1: amt1 >= 0 ? amt1 : 0,
+      shared_amount_2: amt2
+    }));
+  };
+
+  const handleMainAmountChange = (val) => {
+    const mainAmt = Number(val) || 0;
+    const isShareAllowed = mainAmt > 50000;
+    setDeposit(prev => {
+      const isShared = prev.is_shared && isShareAllowed;
+      return {
+        ...prev,
+        amount: mainAmt,
+        is_shared: isShared,
+        shared_amount_1: isShared ? mainAmt : 0,
+        shared_amount_2: 0,
+      };
+    });
+  };
 
   const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 
@@ -121,7 +190,13 @@ const FCYDepositList = () => {
       team: user?.team || "",
       crm_name: user?.FullName || "",
       createdby: user?.UserName || "",
+      is_shared: false,
+      shared_with: "",
+      shared_amount_1: 0,
+      shared_amount_2: 0,
     });
+    setSearchQuery("");
+    setSearchResults([]);
     setShowForm(true);
   };
 
@@ -129,6 +204,24 @@ const FCYDepositList = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (deposit.is_shared) {
+      const numAmount = Number(deposit.amount) || 0;
+      if (numAmount <= 50000) {
+        toast.error("Sharing is only allowed for amounts greater than 50,000");
+        return;
+      }
+      const sumShares = (Number(deposit.shared_amount_1) || 0) + (Number(deposit.shared_amount_2) || 0);
+      if (sumShares > numAmount) {
+        toast.error("The sum of shared amounts cannot exceed the main amount");
+        return;
+      }
+      if (!deposit.shared_with) {
+        toast.error("Please select a user to share with");
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       if (deposit.fcy_id) {
@@ -141,14 +234,22 @@ const FCYDepositList = () => {
       fetchDeposits();
       handleClose();
     } catch (err) {
-      toast.error("Operation failed");
+      toast.error(err.response?.data?.message || "Operation failed");
     } finally {
       setLoading(false);
     }
   };
 
   const handleEdit = (d) => {
-    setDeposit(d);
+    setDeposit({
+      ...d,
+      is_shared: d.is_shared || false,
+      shared_with: d.shared_with || "",
+      shared_amount_1: d.shared_amount_1 || 0,
+      shared_amount_2: d.shared_amount_2 || 0,
+    });
+    setSearchQuery("");
+    setSearchResults([]);
     setShowForm(true);
   };
 
@@ -266,11 +367,123 @@ const FCYDepositList = () => {
                   <TextField fullWidth label="Account Holder" value={deposit.account_holder} onChange={(e) => setDeposit({ ...deposit, account_holder: e.target.value })} required size="small" />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth label="Amount" type="number" value={deposit.amount} onChange={(e) => setDeposit({ ...deposit, amount: e.target.value })} required size="small" />
+                  <TextField fullWidth label="Amount" type="number" value={deposit.amount} onChange={(e) => handleMainAmountChange(e.target.value)} required size="small" />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField fullWidth label="Reference" value={deposit.reference} onChange={(e) => setDeposit({ ...deposit, reference: e.target.value })} size="small" />
                 </Grid>
+
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={Boolean(deposit.is_shared && deposit.amount > 50000)}
+                        disabled={Number(deposit.amount) <= 50000 || Boolean(deposit.fcy_id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setDeposit(prev => ({
+                            ...prev,
+                            is_shared: checked,
+                            shared_amount_1: checked ? Number(prev.amount) : 0,
+                            shared_amount_2: 0,
+                            shared_with: "",
+                          }));
+                        }}
+                      />
+                    }
+                    label="To be Shared"
+                  />
+                  {Number(deposit.amount) <= 50000 && !deposit.fcy_id && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: -0.5 }}>
+                      Sharing is only allowed for amounts greater than 50,000
+                    </Typography>
+                  )}
+                  {Boolean(deposit.fcy_id) && deposit.is_shared && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: -0.5 }}>
+                      This is a shared deposit entry. Edit its individual details here.
+                    </Typography>
+                  )}
+                </Grid>
+
+                {deposit.is_shared && Number(deposit.amount) > 50000 && !deposit.fcy_id && (
+                  <>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Logged User"
+                        value={deposit.crm_name || deposit.user_name}
+                        disabled
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Logged User Amount Share"
+                        type="number"
+                        value={deposit.shared_amount_1 || ""}
+                        onChange={(e) => handleSharedAmount1Change(e.target.value)}
+                        required
+                        size="small"
+                        inputProps={{ min: 0, max: deposit.amount }}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} sm={6}>
+                      <Autocomplete
+                        size="small"
+                        options={searchResults}
+                        loading={searchLoading}
+                        isOptionEqualToValue={(option, value) => option.user_name === value?.user_name}
+                        getOptionLabel={(option) => {
+                          if (typeof option === "string") return option;
+                          return `(${option.user_name})${option.full_name || ""}`;
+                        }}
+                        onInputChange={(event, newInputValue) => {
+                          setSearchQuery(newInputValue);
+                        }}
+                        value={
+                          searchResults.find(u => u.user_name === deposit.shared_with) ||
+                          (deposit.shared_with ? { user_name: deposit.shared_with, full_name: "" } : null)
+                        }
+                        onChange={(event, newValue) => {
+                          setDeposit(prev => ({
+                            ...prev,
+                            shared_with: newValue ? newValue.user_name : ""
+                          }));
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Share With (Type min 3 characters)"
+                            required
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {searchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Shared User Amount Share"
+                        type="number"
+                        value={deposit.shared_amount_2 || ""}
+                        onChange={(e) => handleSharedAmount2Change(e.target.value)}
+                        required
+                        size="small"
+                        inputProps={{ min: 0, max: deposit.amount }}
+                      />
+                    </Grid>
+                  </>
+                )}
                 {/* <Grid item xs={12} sm={6}>
                   <TextField fullWidth label="Status" select value={deposit.status} onChange={(e) => setDeposit({...deposit, status: e.target.value})} size="small">
                     <MenuItem value="Pending">Pending</MenuItem>

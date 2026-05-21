@@ -66,33 +66,120 @@ export const createFcyDeposit = async (req, res) => {
     crm_name,
     status,
     createdby,
+    is_shared,
+    shared_with,
+    shared_amount_1,
+    shared_amount_2,
   } = req.body;
 
   try {
-    const result = await pool.query(
-      `INSERT INTO public.fcydeposit 
-       (account_number, account_holder, amount, reference, user_name, created_at, process, subprocess, team, crm_name, status, createdby)
-       VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11)
-       RETURNING *`,
-      [
-        account_number,
-        account_holder,
-        amount || 0,
-        reference,
-        user_name,
-        process,
-        subprocess,
-        team,
-        crm_name,
-        status || 'Pending',
-        createdby || user_name,
-      ],
-    );
+    // Check for duplicate reference
+    if (reference) {
+      const dupCheck = await pool.query(
+        "SELECT fcy_id FROM public.fcydeposit WHERE reference = $1",
+        [reference]
+      );
+      if (dupCheck.rows.length > 0) {
+        return res.status(409).json({ message: `Reference '${reference}' already exists. Duplicate references are not allowed.` });
+      }
+    }
 
-    res.status(201).json({
-      message: "FCY deposit created",
-      deposit: result.rows[0],
-    });
+    if (is_shared) {
+      const numAmount = Number(amount) || 0;
+      if (numAmount <= 50000) {
+        return res.status(400).json({ message: "Sharing is only allowed for amounts greater than 50,000" });
+      }
+      const sumShares = (Number(shared_amount_1) || 0) + (Number(shared_amount_2) || 0);
+      if (sumShares > numAmount) {
+        return res.status(400).json({ message: "Sum of shared amounts cannot exceed total amount" });
+      }
+      if (!shared_with) {
+        return res.status(400).json({ message: "Second user for sharing is required" });
+      }
+
+      // Fetch shared user's details
+      const sharedUserRes = await pool.query(
+        "SELECT process, subprocess, team, full_name FROM public.users WHERE user_name = $1",
+        [shared_with]
+      );
+      if (sharedUserRes.rows.length === 0) {
+        return res.status(404).json({ message: `Shared user '${shared_with}' not found` });
+      }
+      const sUser = sharedUserRes.rows[0];
+
+      // Insert Row 1: Logged user
+      const result1 = await pool.query(
+        `INSERT INTO public.fcydeposit 
+         (account_number, account_holder, amount, reference, user_name, created_at, process, subprocess, team, crm_name, status, createdby, is_shared)
+         VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, TRUE)
+         RETURNING *`,
+        [
+          account_number,
+          account_holder,
+          shared_amount_1 || 0,
+          reference,
+          user_name,
+          process,
+          subprocess,
+          team,
+          crm_name,
+          status || 'Pending',
+          createdby || user_name,
+        ],
+      );
+
+      // Insert Row 2: Shared user
+      const result2 = await pool.query(
+        `INSERT INTO public.fcydeposit 
+         (account_number, account_holder, amount, reference, user_name, created_at, process, subprocess, team, crm_name, status, createdby, is_shared)
+         VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, TRUE)
+         RETURNING *`,
+        [
+          account_number,
+          account_holder,
+          shared_amount_2 || 0,
+          reference,
+          shared_with,
+          sUser.process,
+          sUser.subprocess,
+          sUser.team,
+          sUser.full_name,
+          status || 'Pending',
+          createdby || user_name,
+        ],
+      );
+
+      return res.status(201).json({
+        message: "FCY deposits created and shared successfully",
+        deposits: [result1.rows[0], result2.rows[0]],
+      });
+    } else {
+      // Normal flow: Single row insertion
+      const result = await pool.query(
+        `INSERT INTO public.fcydeposit 
+         (account_number, account_holder, amount, reference, user_name, created_at, process, subprocess, team, crm_name, status, createdby, is_shared)
+         VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, FALSE)
+         RETURNING *`,
+        [
+          account_number,
+          account_holder,
+          amount || 0,
+          reference,
+          user_name,
+          process,
+          subprocess,
+          team,
+          crm_name,
+          status || 'Pending',
+          createdby || user_name,
+        ],
+      );
+
+      return res.status(201).json({
+        message: "FCY deposit created",
+        deposit: result.rows[0],
+      });
+    }
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: "Server error" });
@@ -114,6 +201,7 @@ export const updateFcyDeposit = async (req, res) => {
     crm_name,
     status,
     approvedby,
+    is_shared,
   } = req.body;
 
   try {
@@ -129,8 +217,9 @@ export const updateFcyDeposit = async (req, res) => {
            team = $8,
            crm_name = $9,
            status = $10,
-           approvedby = $11
-       WHERE fcy_id = $12
+           approvedby = $11,
+           is_shared = $12
+       WHERE fcy_id = $13
        RETURNING *`,
       [
         account_number,
@@ -144,6 +233,7 @@ export const updateFcyDeposit = async (req, res) => {
         crm_name,
         status,
         approvedby,
+        is_shared || false,
         id,
       ],
     );
