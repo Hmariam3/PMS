@@ -321,14 +321,14 @@ const AccountMappingList = () => {
       const res = await axios.post(`${baseUrl}/accountmapping/import-excel`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      
+
       const { summary } = res.data;
       toast.success(`Import complete: ${summary.successCount} success, ${summary.errorCount} failed, ${summary.skippedCount} skipped`);
-      
+
       if (summary.errorCount > 0) {
         console.table(res.data.results.errors);
       }
-      
+
       fetchMappings();
       setSelectedFile(null);
     } catch (err) {
@@ -373,9 +373,7 @@ const AccountMappingList = () => {
             Account Mappings
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">One Page OKR</Typography>
             <Typography color="text.primary">Mappings</Typography>
           </Breadcrumbs>

@@ -266,7 +266,7 @@ export const getLoanDetail = async (req, res) => {
       message: "Success",
       data: result,
     });
-    console.log("result: ", result);
+
   } catch (error) {
     console.error("SOAP LOAN ERROR:", error.message);
     res.status(400).json({

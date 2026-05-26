@@ -272,6 +272,7 @@ export const getEvaluationsByUserObjective = async (req, res) => {
 // GET evaluations by evaluator
 export const getEvaluationsByEvaluator = async (req, res) => {
   const { evaluator } = req.body;
+
   if (!evaluator) {
     return res.status(400).json({
       error: "Evaluator is required",
@@ -283,7 +284,7 @@ export const getEvaluationsByEvaluator = async (req, res) => {
         pe.*,
         u.full_name as evaluated_full_name
       FROM public.performance_evaluations pe
-      LEFT JOIN public.users u ON pe.evaluated = u.mail_address
+      INNER JOIN public.users u ON pe.evaluated = u.mail_address
       WHERE pe.evaluator = $1
       ORDER BY evaluated, pe.evaluation_date DESC;
     `;
@@ -298,7 +299,7 @@ export const getEvaluationsByEvaluator = async (req, res) => {
   }
 };
 export const getByEvaluatedUser = async (req, res) => {
-  const { evaluated } = req.body;
+  const { evaluated, evaluator } = req.body;
 
   try {
     const query = `
@@ -310,16 +311,16 @@ export const getByEvaluatedUser = async (req, res) => {
         o.objective_weight,
         u.full_name as evaluator_full_name
       FROM public.performance_evaluations pe
-      LEFT JOIN public.performance_metrics pm
+      INNER JOIN public.performance_metrics pm
         ON pe.metric_id = pm.metric_id
-      LEFT JOIN public.objectives o
+      INNER JOIN public.objectives o
         ON pm.objective_id = o.objective_id
-      LEFT JOIN public.users u
+      INNER JOIN public.users u
         ON pe.evaluator = u.mail_address
-      WHERE pe.evaluated = $1
+      WHERE pe.evaluated = $1 
+        AND pe.evaluator = $2
     `;
-
-    const result = await pool.query(query, [evaluated]);
+    const result = await pool.query(query, [evaluated, evaluator]);
 
     res.json(result.rows);
   } catch (err) {

@@ -219,9 +219,7 @@ const OnePageKRList = () => {
             Key Results (KR)
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">One Page OKR</Typography>
             <Typography color="text.primary">KRs</Typography>
           </Breadcrumbs>

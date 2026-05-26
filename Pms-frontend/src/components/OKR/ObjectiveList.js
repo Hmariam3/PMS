@@ -223,8 +223,7 @@ const ObjectiveList = () => {
   };
 
   const handleEdit = (obj) => {
-    console.log("Editing objective", obj);
-    console.log("objective", objectives);
+
     setObjectiveForm({
       ...obj,
       pillar_id: obj.pillar_id?.toString() || "",
@@ -258,9 +257,7 @@ const ObjectiveList = () => {
             Objectives
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">OKR</Typography>
             <Typography color="text.primary">Objectives</Typography>
           </Breadcrumbs>
@@ -565,6 +562,10 @@ const ObjectiveList = () => {
                       <MenuItem value="Coopay Ebirr Activation">Coopay Ebirr Activation</MenuItem>
                       <MenuItem value="ATM CRM Uptime Rate">ATM CRM Uptime Rate</MenuItem>
                       <MenuItem value="Customer Satisfaction">Customer Satisfaction</MenuItem>
+                      <MenuItem value="Customer Engagement">Customer Engagement</MenuItem>
+                      <MenuItem value="New Customer Onboarding">New Customer Onboarding</MenuItem>
+                      <MenuItem value="Deposit Sustainability">Deposit Sustainability</MenuItem>
+                      <MenuItem value="SPM">SPM</MenuItem>
                       <MenuItem value="Employee Performance">Employee Performance</MenuItem>
                       <MenuItem value="Gl">Gl</MenuItem>
                       <MenuItem value="Cash Book">Cash Book</MenuItem>

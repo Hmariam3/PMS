@@ -156,9 +156,7 @@ const PriorityList = () => {
             Branch Priorities
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">One Page OKR</Typography>
             <Typography color="text.primary">Priorities</Typography>
           </Breadcrumbs>

@@ -167,9 +167,7 @@ const MyFeedbacks = () => {
             My Personal Feedbacks
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">My Account</Typography>
             <Typography color="text.primary">Feedbacks</Typography>
           </Breadcrumbs>
@@ -245,14 +243,14 @@ const MyFeedbacks = () => {
               Feedback Details
             </Typography>
             <Divider sx={{ mb: 3 }} />
-            
+
             {feedbackMember && (
               <Box sx={{ mb: 4 }}>
                 <Typography variant="subtitle1" fontWeight={700}>{feedbackMember.subject}</Typography>
                 <Typography variant="body2" sx={{ mt: 1, color: "#475569", bgcolor: "#f1f5f9", p: 2, borderRadius: 1 }}>
                   {feedbackMember.message}
                 </Typography>
-                
+
                 {feedbackMember.reply && (
                   <Box sx={{ mt: 2, p: 2, bgcolor: "#ecfdf5", borderLeft: "4px solid #10b981", borderRadius: 1 }}>
                     <Typography variant="caption" sx={{ fontWeight: 700, color: "#047857", display: "block", mb: 0.5 }}>
@@ -284,7 +282,7 @@ const MyFeedbacks = () => {
                 onChange={handleFeedbackChange}
               />
             </Stack>
-            
+
             <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
               <Button onClick={() => setShowFeedbackModal(false)}>Close</Button>
               <Button variant="contained" color="success" onClick={sendFeedback}>

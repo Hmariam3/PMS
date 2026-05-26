@@ -90,7 +90,7 @@ const PerformanceMetricList = () => {
     try {
       setLoading(true);
       let metricRes = "";
-      console.log("user", user)
+
       if (user.role === "Admin") {
         metricRes = await axios.get(`${baseUrl}/performances`);
       }
@@ -197,9 +197,7 @@ const PerformanceMetricList = () => {
             Performance Metrics
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">OKR</Typography>
             <Typography color="text.primary">Metrics</Typography>
           </Breadcrumbs>

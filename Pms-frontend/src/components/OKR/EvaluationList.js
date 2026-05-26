@@ -80,12 +80,12 @@ const EvaluationList = () => {
       team: user.team || null,
       cbsusername: user.cbsusername || null,
     };
-    console.log("requestData", requestData);
+
     try {
       setLoading(true);
       const res = await axios.post(`${baseUrl}/evaluations`, requestData);
       setEvaluations(res.data);
-      console.log("res.data", res);
+
     } catch (err) {
       console.error(err);
       toast.error("Failed to fetch evaluations");

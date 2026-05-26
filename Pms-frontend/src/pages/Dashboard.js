@@ -45,7 +45,7 @@ const Dashboard = () => {
       team: user.team || null,
       cbsusername: user.cbsusername || null,
     };
-
+    console.log("requestData", requestData);
     const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 
     // Helper to safely fetch and set state
@@ -209,13 +209,13 @@ const Dashboard = () => {
         `${baseUrl}/loanaccountmapping/getSpecialMentionLoanSumBalanceByUser`,
         requestData
       );
-      console.log("specialMentionLoanRes", specialMentionLoanRes);
+
       // for Loan Outstanding Balance
       const loanOutstandingBalanceRes = await axios.post(
         `${baseUrl}/loanaccountmapping/getLoanOutstandingBalanceByUser`,
         requestData
       );
-      console.log("loanOutstandingBalanceRes", loanOutstandingBalanceRes);
+
 
 
       // for Fcy
@@ -659,139 +659,241 @@ const Dashboard = () => {
               </tbody>
             </table>
           </div>
-        ) : (
-          <div
-            style={{
-              width: "35%",
-              backgroundColor: "#c7dce5",
-              border: "2px solid black",
-              padding: "10px",
-            }}
-          >
-            <h4>Health Metrics / KPI</h4>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  <th style={{ border: "1px solid black" }}>S/N</th>
-                  <th style={{ border: "1px solid black" }}>Metric</th>
-                  <th
-                    style={{
-                      border: "1px solid black",
-                    }}
-                  >
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style={{ border: "1px solid black" }}>H1</td>
-                  <td style={{ border: "1px solid black" }}>
-                    <strong>Deposit Target Achievment Rate - from Mapped Customers</strong>{" "}
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid black",
-                      backgroundColor: getAchievementColor(
-                        achievementRateDeposit.toFixed(2),
-                      ),
-                      color: "white",
-                      fontWeight: "bold",
-                      textAlign: "center",
-                    }}
-                  >
-                    {Number(achievementRateDeposit).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                  </td>
-                </tr>
+        ) :
+          user.process === "Interest Free Banking" ?
+            (
+              <div
+                style={{
+                  width: "35%",
+                  backgroundColor: "#c7dce5",
+                  border: "2px solid black",
+                  padding: "10px",
+                }}
+              >
+                <h4>Health Metrics / KPI</h4>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ border: "1px solid black" }}>S/N</th>
+                      <th style={{ border: "1px solid black" }}>Metric</th>
+                      <th
+                        style={{
+                          border: "1px solid black",
+                        }}
+                      >
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={{ border: "1px solid black" }}>H1</td>
+                      <td style={{ border: "1px solid black" }}>
+                        <strong>Deposit Target Achievment Rate - from Mapped Customers</strong>{" "}
+                      </td>
+                      <td
+                        style={{
+                          border: "1px solid black",
+                          backgroundColor: getAchievementColor(
+                            achievementRateDeposit.toFixed(2),
+                          ),
+                          color: "white",
+                          fontWeight: "bold",
+                          textAlign: "center",
+                        }}
+                      >
+                        {Number(achievementRateDeposit).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                      </td>
+                    </tr>
 
-                <tr>
-                  <td style={{ border: "1px solid black" }}>H2</td>
-                  <td style={{ border: "1px solid black" }}>
-                    <strong>Deposit Target Achievment Rate of Assigned District</strong>{" "}
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid black",
-                      backgroundColor: getAchievementColor(
-                        achievementdistrictDeposit.toFixed(2),
-                      ),
-                      color: "white",
-                      fontWeight: "bold",
-                      textAlign: "center",
-                    }}
-                  >
-                    {Number(achievementdistrictDeposit).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                  </td>
-                </tr>
+                    <tr>
+                      <td style={{ border: "1px solid black" }}>H2</td>
+                      <td style={{ border: "1px solid black" }}>
+                        <strong>Deposit Target Achievment Rate of Assigned District</strong>{" "}
+                      </td>
+                      <td
+                        style={{
+                          border: "1px solid black",
+                          backgroundColor: getAchievementColor(
+                            achievementdistrictDeposit.toFixed(2),
+                          ),
+                          color: "white",
+                          fontWeight: "bold",
+                          textAlign: "center",
+                        }}
+                      >
+                        {Number(achievementdistrictDeposit).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                      </td>
+                    </tr>
 
-                <tr>
-                  <td style={{ border: "1px solid black" }}>H3</td>
-                  <td style={{ border: "1px solid black" }}>
-                    <strong>
-                      Target Achievment Rate -FCY
-                    </strong>{" "}
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid black",
-                      backgroundColor: getAchievementColor(
-                        achievementRateFcy.toFixed(2),
-                      ),
-                      color: "white",
-                      fontWeight: "bold",
-                      textAlign: "center",
-                    }}
-                  >
-                    {Number(achievementRateFcy).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                  </td>
+                    <tr>
+                      <td style={{ border: "1px solid black" }}>H3</td>
+                      <td style={{ border: "1px solid black" }}>
+                        <strong>
+                          Target Achievment Rate -FCY
+                        </strong>{" "}
+                      </td>
+                      <td
+                        style={{
+                          border: "1px solid black",
+                          backgroundColor: getAchievementColor(
+                            achievementRateFcy.toFixed(2),
+                          ),
+                          color: "white",
+                          fontWeight: "bold",
+                          textAlign: "center",
+                        }}
+                      >
+                        {Number(achievementRateFcy).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                      </td>
 
-                </tr>
+                    </tr>
 
-                <tr>
-                  <td style={{ border: "1px solid black" }}>H4</td>
-                  <td style={{ border: "1px solid black" }}>
-                    <strong>Collection Performance against the Weeks's Plan</strong>{" "}
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid black",
-                      backgroundColor: getAchievementColor(
-                        achievementRateLoan.toFixed(2),
-                      ),
-                      color: "white",
-                      fontWeight: "bold",
-                      textAlign: "center",
-                    }}
-                  >
-                    {Number(achievementRateLoan).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                  </td>
-                </tr>
+                    <tr>
+                      <td style={{ border: "1px solid black" }}>H4</td>
+                      <td style={{ border: "1px solid black" }}>
+                        <strong>Collection Performance against the Weeks's Plan</strong>{" "}
+                      </td>
+                      <td
+                        style={{
+                          border: "1px solid black",
+                          backgroundColor: getAchievementColor(
+                            achievementRateLoan.toFixed(2),
+                          ),
+                          color: "white",
+                          fontWeight: "bold",
+                          textAlign: "center",
+                        }}
+                      >
+                        {Number(achievementRateLoan).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                      </td>
+                    </tr>
 
-                <tr>
-                  <td style={{ border: "1px solid black" }}>H5</td>
-                  <td style={{ border: "1px solid black" }}>
-                    <strong>
-                      Special Mention Ratio(Portfolio){" "}
-                    </strong>{" "}
-                  </td>
-                  <td
-                    style={{
-                      border: "1px solid black",
-                      backgroundColor: getAchievementColor(
-                        achievmentSpecialMentionLoan.toFixed(2),
-                      ),
-                      color: "white",
-                      fontWeight: "bold",
-                      textAlign: "center",
-                    }}
-                  >
-                    {Number(achievmentSpecialMentionLoan).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        )}
+                    <tr>
+                      <td style={{ border: "1px solid black" }}>H5</td>
+                      <td style={{ border: "1px solid black" }}>
+                        <strong>
+                          Special Mention Ratio(Portfolio){" "}
+                        </strong>{" "}
+                      </td>
+                      <td
+                        style={{
+                          border: "1px solid black",
+                          backgroundColor: getAchievementColor(
+                            achievmentSpecialMentionLoan.toFixed(2),
+                          ),
+                          color: "white",
+                          fontWeight: "bold",
+                          textAlign: "center",
+                        }}
+                      >
+                        {Number(achievmentSpecialMentionLoan).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )
+            : (user.position === "CRM" && user.organization === "Ho") ?
+              (
+                <div
+                  style={{
+                    width: "35%",
+                    backgroundColor: "#c7dce5",
+                    border: "2px solid black",
+                    padding: "10px",
+                  }}
+                >
+                  <h4>Health Metrics / KPI</h4>
+
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        <th style={{ border: "1px solid black" }}>S/N</th>
+                        <th style={{ border: "1px solid black" }}>Metric</th>
+                        <th
+                          style={{
+                            border: "1px solid black",
+                          }}
+                        >
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td style={{ border: "1px solid black" }}>H1</td>
+                        <td style={{ border: "1px solid black" }}>
+                          <strong>Target Achievement Rate - Deposit</strong>{" "}
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid black",
+                            backgroundColor: getAchievementColor(
+                              achievementRateDeposit.toFixed(2),
+                            ),
+                            color: "white",
+                            fontWeight: "bold",
+                            textAlign: "center",
+                          }}
+                        >
+                          {Number(achievementRateDeposit).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td style={{ border: "1px solid black" }}>H2</td>
+                        <td style={{ border: "1px solid black" }}>
+                          <strong>Target Achievement Rate - FCY</strong>{" "}
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid black",
+                            backgroundColor: getAchievementColor(
+                              achievementRateFcy.toFixed(2),
+                            ),
+                            color: "white",
+                            fontWeight: "bold",
+                            textAlign: "center",
+                          }}
+                        >
+                          {Number(achievementRateFcy).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td style={{ border: "1px solid black" }}>H3</td>
+                        <td style={{ border: "1px solid black" }}>
+                          <strong>
+                            Loan Collection Performance against the plan
+                          </strong>{" "}
+                        </td>
+                        <td
+                          style={{
+                            border: "1px solid black",
+                            backgroundColor: getAchievementColor(
+                              achievementRateLoan.toFixed(2),
+                            ),
+                            color: "white",
+                            fontWeight: "bold",
+                            textAlign: "center",
+                          }}
+                        >
+                          {Number(achievementRateLoan).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+              )
+              :
+              (
+                <div>
+                  <h2>No Data Available</h2>
+                </div>
+              )
+        }
 
       </div>
 

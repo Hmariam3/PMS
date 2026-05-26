@@ -36,14 +36,17 @@ const DashboardTeam = () => {
   //   Fetch Users
   const fetchUsers = async () => {
     try {
-      const res = await axios.post(`${baseUrl}/users/getUserByPostion/`, {
-        user_id: user.UserName,
-        position: user.position,
-        process: user.process || null,
-        subprocess: user.subprocess || null,
-        team: user.team || null,
-        cbsusername: user.cbsusername || null,
-      });
+      const res = await axios.post(`${baseUrl}/users/getUserByPostion/`,
+        {
+
+          user_id: user.UserName,
+          position: user.position,
+          supervisor: user.MailAdress || null,
+          process: user.process || null,
+          subprocess: user.subprocess || null,
+          team: user.team || null,
+          cbsusername: user.cbsusername || null,
+        });
 
       let filteredUsers = Array.isArray(res.data) ? res.data : [];
       if (user.position === "Individual") {
@@ -71,7 +74,7 @@ const DashboardTeam = () => {
         return (a.full_name || "").localeCompare(b.full_name || "");
       });
 
-      console.log("user team", filteredUsers);
+
       setUsers(filteredUsers);
     } catch (err) {
       console.error(err);
@@ -102,6 +105,24 @@ const DashboardTeam = () => {
         requestData
       );
 
+      // for Loan Special Mention
+      const specialMentionLoanRes = await axios.post(
+        `${baseUrl}/loanaccountmapping/getSpecialMentionLoanSumBalanceByUser`,
+        requestData
+      );
+
+      const loanOutstandingBalanceRes = await axios.post(
+        `${baseUrl}/loanaccountmapping/getLoanOutstandingBalanceByUser`,
+        requestData
+      );
+
+      // for special mention
+      const actualSpecialmappingLoan = specialMentionLoanRes?.data?.total_balance || 0;
+      const actualOutStandingLoan = loanOutstandingBalanceRes?.data?.total_balance || 0;
+
+      const achievementspecialMentionLoanRate =
+        actualOutStandingLoan > 0 ? (actualSpecialmappingLoan / actualOutStandingLoan) * 100 : 0;
+
 
       // for non financial product
       const userNonDepositTargetRes = await axios.post(
@@ -110,7 +131,7 @@ const DashboardTeam = () => {
       );
 
       // actual balance  from system and maapped and fcy and loan 
-      // for finatial product
+      // for financial product
       let ifbBalance = 0;
       let accountBalance = 0;
       const isDirectorOrSenior = singleUser.position === "Director" || singleUser.position === "Senior Director";
@@ -133,8 +154,6 @@ const DashboardTeam = () => {
           requestData
         );
         accountBalance = accountRes.data.total_difference || 0;
-
-
       }
 
       const fcyRes = await axios.post(
@@ -160,7 +179,7 @@ const DashboardTeam = () => {
         );
       }
 
-      console.log("loan", loanRes.data)
+
 
       // for non financial product
       const newaccountRes = await axios.post(
@@ -179,6 +198,19 @@ const DashboardTeam = () => {
         `${baseUrl}/nondeposit/eeutransaction/`,
         requestData
       );
+
+      const newAccountOnboardingRes = await axios.post(
+        `${baseUrl}/nondeposit/getNewCustomerOnboardingSummaryByUser/`,
+        requestData
+      );
+
+
+      const customerEngagementRes = await axios.post(
+        `${baseUrl}/nondeposit/getCustomerEngagementSummaryByUser/`,
+        requestData
+      );
+
+
 
       // calculated for finatial and non finatial product target and balance
       // get targets  and set
@@ -209,25 +241,33 @@ const DashboardTeam = () => {
       const unauthorizeTransTarget = userNonDepositTargetRes.data.total_unauthorized || 0;
       const activeCardTarget = userNonDepositTargetRes.data.active_card || 0;
       const eeuTransactionTarget = userNonDepositTargetRes.data.eeu_transaction || 0;
+      const customer_engagementTarget = userNonDepositTargetRes.data.customer_engagement || 0;
+      const new_customer_onboardingTarget = userNonDepositTargetRes.data.new_customer_onboarding || 0;
+
 
       // get actual non financial product
       const actualNewAccount = newaccountRes?.data?.total_accounts || 0;
       const actualUnutorizedTran = unutorizedTranRes?.data?.total_unauthorized || 0;
       const actualactiveCard = activecardRes?.data?.total_active_card_users || 0;
       const actualeEEU = eeuRes?.data?.total_txn_count || 0;
+      const actualcustomerEngagement = customerEngagementRes?.data?.total_customer_engagement || 0;
+      const actualNewCustomerOnboarding = newAccountOnboardingRes?.data?.total_new_customer_onboarding || 0;
 
       // calculate daily expected for non financial product
       const expectedNewAccount = (daysPassed / 90) * newAccountTarget;
       const expectedUnutorized = (daysPassed / 90) * unauthorizeTransTarget;
       const expectedActiveCard = (daysPassed / 90) * activeCardTarget;
       const expectedEEU = (daysPassed / 90) * eeuTransactionTarget;
+      const expectedCustomerEngagement = (daysPassed / 90) * customer_engagementTarget;
+      const expectedNewCustomerOnboarding = (daysPassed / 90) * new_customer_onboardingTarget;
 
       // calculate current achivement rate for non financial product
       const achievementNewAccount = expectedNewAccount > 0 ? (actualNewAccount / expectedNewAccount) * 100 : 0;
       const achievementUnauthorized = expectedUnutorized > 0 ? (actualUnutorizedTran / expectedUnutorized) * 100 : 0;
       const achievementActiveCard = expectedActiveCard > 0 ? (actualactiveCard / expectedActiveCard) * 100 : 0;
       const achievementEEU = expectedEEU > 0 ? (actualeEEU / expectedEEU) * 100 : 0;
-
+      const achievementCustomerEngagement = expectedCustomerEngagement > 0 ? (actualcustomerEngagement / expectedCustomerEngagement) * 100 : 0;
+      const achievementNewCustomerOnboarding = expectedNewCustomerOnboarding > 0 ? (actualNewCustomerOnboarding / expectedNewCustomerOnboarding) * 100 : 0;
 
       // for ifb departement crm 
       // mapped districts
@@ -273,6 +313,9 @@ const DashboardTeam = () => {
           achievementActiveCard,
           achievementEEU,
           districtAchievement,
+          achievementCustomerEngagement,
+          achievementNewCustomerOnboarding,
+          achievementspecialMentionLoanRate,
         },
       }));
     } catch (err) {
@@ -420,17 +463,86 @@ const DashboardTeam = () => {
                       }}
                     >
                       {[
-                        { label: "Deposit", val: data.achievementDeposit },
-                        { label: "FCY", val: data.achievementFcy },
-                        { label: "Loan", val: data.achievementLoan },
-                        { label: "New Account", val: data.achievementNewAccount },
-                        { label: "Unauthorized", val: data.achievementUnauthorized },
-                        { label: "Active Card", val: data.achievementActiveCard },
-                        { label: "EEU Account", val: data.achievementEEU },
-                        ...(data.districtAchievement || []).map((item) => ({
-                          label: item.district,
-                          val: item.achievementdistrictDeposit,
-                        })),
+                        ...(user.organization === "Branch" || user.process === "Interest Free Banking" || (user.position === "CRM" && user.organization === "Ho")
+                          ? [{ label: "Deposit", val: data.achievementDeposit }]
+                          : []),
+
+                        ...(user.organization === "Branch" || user.process === "Interest Free Banking" || (user.position === "CRM" && user.organization === "Ho")
+                          ? [{ label: "FCY", val: data.achievementFcy }]
+                          : []),
+
+                        ...(user.organization === "Branch" || user.process === "Interest Free Banking" || (user.position === "CRM" && user.organization === "Ho")
+                          ? [{ label: "Loan", val: data.achievementLoan }]
+                          : []),
+
+                        ...(user.organization === "Branch"
+                          ? [
+                            {
+                              label: "New Account",
+                              val: data.achievementNewAccount,
+                            },
+                          ]
+                          : []),
+
+                        ...(user.organization === "Branch"
+                          ? [
+                            {
+                              label: "Unauthorized",
+                              val: data.achievementUnauthorized,
+                            },
+                          ]
+                          : []),
+
+                        ...(user.organization === "Branch"
+                          ? [
+                            {
+                              label: "Active Card",
+                              val: data.achievementActiveCard,
+                            },
+                          ]
+                          : []),
+
+                        ...(user.organization === "Branch"
+                          ? [
+                            {
+                              label: "EEU Account",
+                              val: data.achievementEEU,
+                            },
+                          ]
+                          : []),
+
+                        ...(user.process === "Interest Free Banking"
+                          ? [
+                            {
+                              label: "Customer Engagement",
+                              val: data.achievementCustomerEngagement,
+                            },
+                          ]
+                          : []),
+
+                        ...(user.process === "Interest Free Banking"
+                          ? [
+                            {
+                              label: "New Customer Onboarding",
+                              val: data.achievementNewCustomerOnboarding,
+                            },
+                          ]
+                          : []),
+
+                        ...(user.process === "Interest Free Banking"
+                          ? [
+                            {
+                              label: "Special Mention Loan Rate",
+                              val: data.achievementspecialMentionLoanRate,
+                            },
+                          ]
+                          : []),
+                        ...(user.process === "Interest Free Banking"
+                          ? (data.districtAchievement || []).map((item) => ({
+                            label: item.district,
+                            val: item.achievementdistrictDeposit,
+                          }))
+                          : []),
                       ].map((kpi, idx) => (
                         <Box
                           key={idx}

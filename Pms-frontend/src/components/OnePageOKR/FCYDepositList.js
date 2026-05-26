@@ -128,7 +128,7 @@ const FCYDepositList = () => {
 
   const handleMainAmountChange = (val) => {
     const mainAmt = Number(val) || 0;
-    const isShareAllowed = mainAmt > 50000;
+    const isShareAllowed = mainAmt > 0;
     setDeposit(prev => {
       const isShared = prev.is_shared && isShareAllowed;
       return {
@@ -204,11 +204,11 @@ const FCYDepositList = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (deposit.is_shared) {
       const numAmount = Number(deposit.amount) || 0;
-      if (numAmount <= 50000) {
-        toast.error("Sharing is only allowed for amounts greater than 50,000");
+      if (numAmount <= 0) {
+        toast.error("Sharing is only allowed for amounts greater than 0");
         return;
       }
       const sumShares = (Number(deposit.shared_amount_1) || 0) + (Number(deposit.shared_amount_2) || 0);
@@ -377,8 +377,8 @@ const FCYDepositList = () => {
                   <FormControlLabel
                     control={
                       <Checkbox
-                        checked={Boolean(deposit.is_shared && deposit.amount > 50000)}
-                        disabled={Number(deposit.amount) <= 50000 || Boolean(deposit.fcy_id)}
+                        checked={Boolean(deposit.is_shared && deposit.amount > 0)}
+                        disabled={Number(deposit.amount) <= 0 || Boolean(deposit.fcy_id)}
                         onChange={(e) => {
                           const checked = e.target.checked;
                           setDeposit(prev => ({
@@ -393,9 +393,9 @@ const FCYDepositList = () => {
                     }
                     label="To be Shared"
                   />
-                  {Number(deposit.amount) <= 50000 && !deposit.fcy_id && (
+                  {Number(deposit.amount) <= 0 && !deposit.fcy_id && (
                     <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: -0.5 }}>
-                      Sharing is only allowed for amounts greater than 50,000
+                      Sharing is only allowed for amounts greater than 0
                     </Typography>
                   )}
                   {Boolean(deposit.fcy_id) && deposit.is_shared && (
@@ -405,7 +405,7 @@ const FCYDepositList = () => {
                   )}
                 </Grid>
 
-                {deposit.is_shared && Number(deposit.amount) > 50000 && !deposit.fcy_id && (
+                {deposit.is_shared && Number(deposit.amount) > 0 && !deposit.fcy_id && (
                   <>
                     <Grid item xs={12} sm={6}>
                       <TextField
@@ -416,7 +416,7 @@ const FCYDepositList = () => {
                         size="small"
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={6} sx={{ width: "150px" }}>
                       <TextField
                         fullWidth
                         label="Logged User Amount Share"
@@ -429,7 +429,7 @@ const FCYDepositList = () => {
                       />
                     </Grid>
 
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={6} sx={{ width: "300px" }}>
                       <Autocomplete
                         size="small"
                         options={searchResults}
@@ -470,7 +470,7 @@ const FCYDepositList = () => {
                         )}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
+                    <Grid item xs={12} sm={6} sx={{ width: "150px" }}>
                       <TextField
                         fullWidth
                         label="Shared User Amount Share"

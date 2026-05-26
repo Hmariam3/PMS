@@ -175,9 +175,7 @@ const BranchGradeList = () => {
             Branch Grades
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">Configuration</Typography>
             <Typography color="text.primary">Branch Grades</Typography>
           </Breadcrumbs>

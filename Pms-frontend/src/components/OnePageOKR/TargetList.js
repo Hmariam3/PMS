@@ -74,6 +74,7 @@ const TargetList = () => {
     const requestData = {
       user_id: user.UserName,
       position: user.position,
+      supervisor: user.MailAdress || null,
       process: user.process || null,
       subprocess: user.subprocess || null,
       team: user.team,

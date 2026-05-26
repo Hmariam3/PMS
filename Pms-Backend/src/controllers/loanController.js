@@ -250,25 +250,20 @@ export const getLoanBalanceDifferenceByUser = async (req, res) => {
       values = [user_id];
     } else if (position === "Director" || position === "Senior Director") {
       query = `
-        SELECT 
-        SUM(COALESCE(d."TOTAL_COLLECTION", 0)))   AS total_difference
-        FROM public."DW_LOAN_DUE_COLLECTION" d
-        JOIN public.users u 
-          ON u.company_code = d."CO_CODE"
-        WHERE u.subprocess = $1 
+    SELECT 
+        SUM(COALESCE("TOTAL_COLLECTION", 0)) AS total_difference
+    FROM public."DW_LOAN_DUE_COLLECTION" 
+    WHERE "SUBPROCESS" = $1
       `;
       values = [subprocess];
 
       //  VP / CHF → filter by process
     } else if (position === "VP" || position === "CHF") {
       query = `
-        SELECT 
-       SUM(COALESCE(d."TOTAL_COLLECTION", 0)) 
-         AS total_difference
-        FROM public."DW_LOAN_DUE_COLLECTION" d
-        JOIN public.users u 
-          ON u.company_code = d."CO_CODE"
-        WHERE u.process = $1
+       SELECT 
+       SUM(COALESCE("TOTAL_COLLECTION", 0)) AS total_difference
+    FROM public."DW_LOAN_DUE_COLLECTION" 
+    WHERE "PROCESS" = $1
       `;
       values = [process];
 

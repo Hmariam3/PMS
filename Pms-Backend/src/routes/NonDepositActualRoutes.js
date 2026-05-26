@@ -6,7 +6,10 @@ import {
   getEeuPaymentsSummaryByUser,
   getAuditedTxnSummaryByUser,
   getDigitalTxnPercentageSummaryByUser,
-  getCRMCashDepositSummaryByUser
+  getCRMCashDepositSummaryByUser,
+  getCustomerEngagementSummaryByUser,
+  getNewCustomerOnboardingSummaryByUser,
+  getCashDepositbyBranchSummaryByUser
 } from "../controllers/NonDepositActualController.js";
 
 const router = express.Router();
@@ -17,5 +20,8 @@ router.post("/eeutransaction", getEeuPaymentsSummaryByUser);
 router.post("/getAuditedTxnSummaryByUser", getAuditedTxnSummaryByUser);
 router.post("/getDigitalTxnPercentageSummaryByUser", getDigitalTxnPercentageSummaryByUser);
 router.post("/getCRMCashDepositSummaryByUser", getCRMCashDepositSummaryByUser);
+router.post("/getCustomerEngagementSummaryByUser", getCustomerEngagementSummaryByUser);
+router.post("/getNewCustomerOnboardingSummaryByUser", getNewCustomerOnboardingSummaryByUser);
+router.post("/getCashDepositbyBranchSummaryByUser", getCashDepositbyBranchSummaryByUser);
 
 export default router;

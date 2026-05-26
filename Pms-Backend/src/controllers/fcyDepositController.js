@@ -86,8 +86,8 @@ export const createFcyDeposit = async (req, res) => {
 
     if (is_shared) {
       const numAmount = Number(amount) || 0;
-      if (numAmount <= 50000) {
-        return res.status(400).json({ message: "Sharing is only allowed for amounts greater than 50,000" });
+      if (numAmount <= 0) {
+        return res.status(400).json({ message: "Sharing is only allowed for amounts greater than 0" });
       }
       const sumShares = (Number(shared_amount_1) || 0) + (Number(shared_amount_2) || 0);
       if (sumShares > numAmount) {

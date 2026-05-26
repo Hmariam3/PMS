@@ -569,6 +569,139 @@ export const getAuditedTxnSummaryByUser = async (req, res) => {
   }
 };
 
+// =====================================================
+// Get Cash Collection By Branch Summary
+// =====================================================
+export const getCashDepositbyBranchSummaryByUser = async (
+  req,
+  res
+) => {
+  const {
+    position,
+    user_name,
+    team,
+    subprocess,
+    process,
+  } = req.body;
+
+  try {
+    let query = "";
+    let values = [];
+
+    // =========================
+    // CRM / Individual
+    // =========================
+    if (position === "CRM" || position === "Individual") {
+      query = `
+        SELECT 
+          COALESCE(
+            SUM(a."TOTAL_CASH_CREDIT"),
+            0
+          ) AS total_cash_collection
+        FROM public."DW_CASH_COLLECTION_BY_BRANCH" a
+        JOIN public.users u
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
+      `;
+
+      values = [user_name];
+
+      // =========================
+      // Manager
+      // =========================
+    } else if (position === "Manager") {
+      query = `
+        SELECT 
+          a."DISTRICT_NAME",
+          COALESCE(
+            SUM(a."TOTAL_CASH_CREDIT"),
+            0
+          ) AS total_cash_collection
+        FROM public."DW_CASH_COLLECTION_BY_BRANCH" a
+        WHERE a."DISTRICT_NAME" = $1
+        GROUP BY a."DISTRICT_NAME"
+      `;
+
+      values = [team];
+
+      // =========================
+      // Director / Senior Director
+      // =========================
+    } else if (
+      position === "Director" ||
+      position === "Senior Director"
+    ) {
+      query = `
+        SELECT 
+          a."SUBPROCESS",
+          COALESCE(
+            SUM(a."TOTAL_CASH_CREDIT"),
+            0
+          ) AS total_cash_collection
+        FROM public."DW_CASH_COLLECTION_BY_BRANCH" a
+        WHERE a."SUBPROCESS" = $1
+        GROUP BY a."SUBPROCESS"
+      `;
+
+      values = [subprocess];
+
+      // =========================
+      // VP / CHF
+      // =========================
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT 
+          a."PROCESS",
+          COALESCE(
+            SUM(a."TOTAL_CASH_CREDIT"),
+            0
+          ) AS total_cash_collection
+        FROM public."DW_CASH_COLLECTION_BY_BRANCH" a
+        WHERE a."PROCESS" = $1
+        GROUP BY a."PROCESS"
+      `;
+
+      values = [process];
+
+      // =========================
+      // CEO
+      // =========================
+    } else if (position === "CEO") {
+      query = `
+        SELECT 
+          a."PROCESS",
+          a."SUBPROCESS",
+          COALESCE(
+            SUM(a."TOTAL_CASH_CREDIT"),
+            0
+          ) AS total_cash_collection
+        FROM public."DW_CASH_COLLECTION_BY_BRANCH" a
+        GROUP BY a."PROCESS", a."SUBPROCESS"
+        ORDER BY a."PROCESS"
+      `;
+    } else {
+      return res.status(400).json({
+        error: "Invalid position",
+      });
+    }
+
+    const result = await pool.query(query, values);
+
+    res.status(200).json({
+      total_cash_collection:
+        result.rows[0]?.total_cash_collection || 0,
+
+      data: result.rows,
+    });
+  } catch (err) {
+    console.error(err.message);
+
+    res.status(500).json({
+      error: err.message,
+    });
+  }
+};
+
 export const getCRMCashDepositSummaryByUser = async (req, res) => {
   const { cbsusername, position, user_name, subprocess, process } =
     req.body;
@@ -668,6 +801,257 @@ export const getCRMCashDepositSummaryByUser = async (req, res) => {
     res.json({
       total_crm_cash:
         result.rows[0]?.total_crm_cash || 0,
+
+      data: result.rows,
+    });
+  } catch (err) {
+    console.error(err.message);
+
+    res.status(500).json({
+      error: err.message,
+    });
+  }
+};
+
+
+
+// =====================================================
+// Get Actual Customer Engagement Summary
+// =====================================================
+export const getCustomerEngagementSummaryByUser = async (req, res) => {
+  const {
+    position,
+    user_name,
+    team,
+    subprocess,
+    process,
+  } = req.body;
+
+  try {
+    let query = "";
+    let values = [];
+
+    // =========================
+    // CRM / Individual
+    // =========================
+    if (position === "CRM" || position === "Individual") {
+      query = `
+        SELECT 
+          COUNT(*) AS total_customer_engagement
+        FROM public.engagement
+        WHERE engagement_type = 'Customer Engagement'
+          AND status = 'Approved'
+          AND user_name = $1
+      `;
+
+      values = [user_name];
+
+      // =========================
+      // Manager
+      // =========================
+    } else if (position === "Manager") {
+      query = `
+        SELECT 
+          team,
+          COUNT(*) AS total_customer_engagement
+        FROM public.engagement
+        WHERE engagement_type = 'Customer Engagement'
+          AND status = 'Approved'
+          AND team = $1
+        GROUP BY team
+      `;
+
+      values = [team];
+
+      // =========================
+      // Director / Senior Director
+      // =========================
+    } else if (
+      position === "Director" ||
+      position === "Senior Director"
+    ) {
+      query = `
+        SELECT 
+          subprocess,
+          COUNT(*) AS total_customer_engagement
+        FROM public.engagement
+        WHERE engagement_type = 'Customer Engagement'
+          AND status = 'Approved'
+          AND subprocess = $1
+        GROUP BY subprocess
+      `;
+
+      values = [subprocess];
+
+      // =========================
+      // VP / CHF
+      // =========================
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT 
+          process,
+          COUNT(*) AS total_customer_engagement
+        FROM public.engagement
+        WHERE engagement_type = 'Customer Engagement'
+          AND status = 'Approved'
+          AND process = $1
+        GROUP BY process
+      `;
+
+      values = [process];
+
+      // =========================
+      // CEO
+      // =========================
+    } else if (position === "CEO") {
+      query = `
+        SELECT 
+          process,
+          subprocess,
+          COUNT(*) AS total_customer_engagement
+        FROM public.engagement
+        WHERE engagement_type = 'Customer Engagement'
+          AND status = 'Approved'
+        GROUP BY process, subprocess
+        ORDER BY process
+      `;
+    } else {
+      return res.status(400).json({
+        error: "Invalid position",
+      });
+    }
+
+    const result = await pool.query(query, values);
+
+    res.status(200).json({
+      total_customer_engagement:
+        result.rows[0]?.total_customer_engagement || 0,
+
+      data: result.rows,
+    });
+  } catch (err) {
+    console.error(err.message);
+
+    res.status(500).json({
+      error: err.message,
+    });
+  }
+};
+
+// =====================================================
+// Get Actual New Customer Onboarding Summary
+// =====================================================
+export const getNewCustomerOnboardingSummaryByUser = async (
+  req,
+  res
+) => {
+  const {
+    position,
+    user_name,
+    team,
+    subprocess,
+    process,
+  } = req.body;
+
+  try {
+    let query = "";
+    let values = [];
+
+    // =========================
+    // CRM / Individual
+    // =========================
+    if (position === "CRM" || position === "Individual") {
+      query = `
+        SELECT 
+          COUNT(*) AS total_new_customer_onboarding
+        FROM public.engagement
+        WHERE engagement_type = 'New Customer Onboarding'
+          AND status = 'Approved'
+          AND user_name = $1
+      `;
+
+      values = [user_name];
+
+      // =========================
+      // Manager
+      // =========================
+    } else if (position === "Manager") {
+      query = `
+        SELECT 
+          team,
+          COUNT(*) AS total_new_customer_onboarding
+        FROM public.engagement
+        WHERE engagement_type = 'New Customer Onboarding'
+          AND status = 'Approved'
+          AND team = $1
+        GROUP BY team
+      `;
+
+      values = [team];
+
+      // =========================
+      // Director / Senior Director
+      // =========================
+    } else if (
+      position === "Director" ||
+      position === "Senior Director"
+    ) {
+      query = `
+        SELECT 
+          subprocess,
+          COUNT(*) AS total_new_customer_onboarding
+        FROM public.engagement
+        WHERE engagement_type = 'New Customer Onboarding'
+          AND status = 'Approved'
+          AND subprocess = $1
+        GROUP BY subprocess
+      `;
+
+      values = [subprocess];
+
+      // =========================
+      // VP / CHF
+      // =========================
+    } else if (position === "VP" || position === "CHF") {
+      query = `
+        SELECT 
+          process,
+          COUNT(*) AS total_new_customer_onboarding
+        FROM public.engagement
+        WHERE engagement_type = 'New Customer Onboarding'
+          AND status = 'Approved'
+          AND process = $1
+        GROUP BY process
+      `;
+
+      values = [process];
+
+      // =========================
+      // CEO
+      // =========================
+    } else if (position === "CEO") {
+      query = `
+        SELECT 
+          process,
+          subprocess,
+          COUNT(*) AS total_new_customer_onboarding
+        FROM public.engagement
+        WHERE engagement_type = 'New Customer Onboarding'
+          AND status = 'Approved'
+        GROUP BY process, subprocess
+        ORDER BY process
+      `;
+    } else {
+      return res.status(400).json({
+        error: "Invalid position",
+      });
+    }
+
+    const result = await pool.query(query, values);
+
+    res.status(200).json({
+      total_new_customer_onboarding:
+        result.rows[0]?.total_new_customer_onboarding || 0,
 
       data: result.rows,
     });

@@ -172,9 +172,7 @@ const PillarList = () => {
             Pillars
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">OKR</Typography>
             <Typography color="text.primary">Pillars</Typography>
           </Breadcrumbs>

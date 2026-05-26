@@ -22,7 +22,7 @@ export const createUser = async (req, res) => {
     departmentid,
     company_code,
   } = req.body;
-    console.log("createUser",req.body);
+
   try {
     //  Check if user already exists
     const existingUser = await pool.query(
@@ -172,7 +172,8 @@ export const getAllUsers = async (req, res) => {
 
 // ================= GET USER BY POSITION =================
 export const getUserByPostion = async (req, res) => {
-  const { user_id, position, team, subprocess, process } = req.body;
+  const { user_id, position, team, subprocess, process, supervisor } = req.body;
+
 
   if (!user_id || !position) {
     return res.status(400).json({ error: "User ID and position are required" });
@@ -184,22 +185,30 @@ export const getUserByPostion = async (req, res) => {
 
     if (position === "CRM" || position === "Individual") {
       query = `
-        SELECT * FROM public.users
-        WHERE user_name = $1
-        ORDER BY id
-      `;
-      values = [user_id];
+        SELECT u.*
+    FROM public.users u
+    INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+    WHERE u.user_name = $1
+      AND e.supervisor = $2
+    ORDER BY u.id
+`;
+      values = [user_id, supervisor];
     } else if (position === "Manager") {
       if (!team) {
         return res.status(400).json({ error: "Team is required for Manager" });
       }
 
       query = `
-        SELECT * FROM public.users
-        WHERE team = $1
-        ORDER BY id
-      `;
-      values = [team];
+        SELECT u.*
+        FROM public.users u
+        INNER JOIN public.employees e
+            ON u.mail_address = e.outlook_address
+        WHERE u.team = $1
+          AND e.supervisor = $2
+        ORDER BY u.id
+    `;
+      values = [team, supervisor];
     } else if (position === "Director" || position === "Senior Director") {
       if (!subprocess) {
         return res
@@ -208,12 +217,17 @@ export const getUserByPostion = async (req, res) => {
       }
 
       query = `
-        SELECT * FROM public.users
-        WHERE subprocess = $1
-        ORDER BY id
-      `;
-      values = [subprocess];
+    SELECT u.*
+    FROM public.users u
+    INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+    WHERE u.subprocess = $1
+      AND e.supervisor = $2
+    ORDER BY u.id
+`;
+      values = [subprocess, supervisor];
     } else if (position === "VP" || position === "CHF") {
+
       if (!process) {
         return res
           .status(400)
@@ -221,17 +235,27 @@ export const getUserByPostion = async (req, res) => {
       }
 
       query = `
-        SELECT * FROM public.users
-        WHERE process = $1
-        ORDER BY id
-      `;
-      values = [process];
+    SELECT u.*
+    FROM public.users u
+    INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+    WHERE e.supervisor = $1
+      AND u.process = $2
+    ORDER BY u.id
+`;
+
+      values = [supervisor, process];
     } else if (position === "CEO") {
       query = `
-        SELECT * FROM public.users
-        ORDER BY id
-      `;
-      values = [];
+      SELECT u.*
+      FROM public.users u
+      INNER JOIN public.employees e
+          ON u.mail_address = e.outlook_address
+      WHERE e.supervisor = $1
+      ORDER BY u.id
+  `;
+
+      values = [supervisor];
     } else {
       return res.status(400).json({ error: "Invalid position value" });
     }
@@ -242,6 +266,7 @@ export const getUserByPostion = async (req, res) => {
     const result = await pool.query(query, values);
 
     res.status(200).json(result.rows);
+
   } catch (err) {
     console.error("Error:", err.message);
     res.status(500).json({ error: "Server error" });
@@ -252,38 +277,29 @@ export const updateUser = async (req, res) => {
   const { id } = req.params;
 
   const {
-    user_name,
-    full_name,
-    department,
-    mail_address,
-    title,
-    cbsusername,
-    departmentid,
-    company_code,
+    process,
+    subprocess,
+    team,
+    position,
+    organization,
   } = req.body;
 
   try {
     const result = await pool.query(
       `UPDATE public.users
-       SET user_name=$1,
-           full_name=$2,
-           department=$3,
-           mail_address=$4,
-           title=$5,
-           cbsusername=$6,
-           departmentid=$7,
-           company_code=$8
-       WHERE id=$9
+       SET process=$1,
+           subprocess=$2,
+           team=$3,
+           position=$4,
+           organization=$5
+       WHERE id=$6
        RETURNING *`,
       [
-        user_name,
-        full_name,
-        department,
-        mail_address,
-        title,
-        cbsusername,
-        departmentid,
-        company_code,
+        process,
+        subprocess,
+        team,
+        position,
+        organization,
         id,
       ],
     );

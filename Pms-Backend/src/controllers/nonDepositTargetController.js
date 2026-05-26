@@ -329,50 +329,101 @@ export const deleteNonDepositTarget = async (req, res) => {
 
 // Role-based fetch
 export const getNonDepositTargetByUser = async (req, res) => {
-  const { user_id, position, team, subprocess, process } = req.body;
+  const { user_id, position, supervisor, team, subprocess, process } = req.body;
 
   try {
     let query = "";
     let values = [];
 
     if (position === "CRM" || position === "Individual") {
+
       query = `
-        SELECT * 
-        FROM public.non_deposit_target 
-        WHERE user_name = $1
-      `;
+      SELECT * 
+      FROM public.non_deposit_target 
+      WHERE user_name = $1
+      ORDER BY target_id
+    `;
+
       values = [user_id];
+
     } else if (position === "Manager") {
+
       query = `
-        SELECT * 
-        FROM public.non_deposit_target 
-        WHERE team = $1
-      `;
-      values = [team];
+      SELECT ndt.*
+      FROM public.non_deposit_target ndt
+      INNER JOIN public.users u
+        ON ndt.user_name = u.user_name
+      INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+      WHERE ndt.team = $1
+        AND e.supervisor = $2
+      ORDER BY ndt.target_id
+    `;
+
+      values = [team, supervisor];
+
     } else if (position === "Director" || position === "Senior Director") {
+
       query = `
-        SELECT * 
-        FROM public.non_deposit_target 
-        WHERE subprocess = $1
-      `;
-      values = [subprocess];
+      SELECT ndt.*
+      FROM public.non_deposit_target ndt
+      INNER JOIN public.users u
+        ON ndt.user_name = u.user_name
+      INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+      WHERE ndt.subprocess = $1
+        AND e.supervisor = $2
+      ORDER BY ndt.target_id
+    `;
+
+      values = [subprocess, supervisor];
+
     } else if (position === "VP" || position === "CHF") {
+
       query = `
-        SELECT * 
-        FROM public.non_deposit_target 
-        WHERE process = $1
-      `;
-      values = [process];
+      SELECT ndt.*
+      FROM public.non_deposit_target ndt
+      INNER JOIN public.users u
+        ON ndt.user_name = u.user_name
+      INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+      WHERE ndt.process = $1
+        AND e.supervisor = $2
+      ORDER BY ndt.target_id
+    `;
+
+
+      values = [process, supervisor];
+
+
+    } else if (position === "CEO") {
+
+      query = `
+      SELECT ndt.*
+      FROM public.non_deposit_target ndt
+      INNER JOIN public.users u
+        ON ndt.user_name = u.user_name
+      INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+      WHERE e.supervisor = $1
+      ORDER BY ndt.target_id
+    `;
+
+      values = [supervisor];
+
     } else {
+
       query = `
-        SELECT * 
-        FROM public.non_deposit_target
-      `;
+      SELECT * 
+      FROM public.non_deposit_target
+      ORDER BY target_id
+    `;
     }
 
     const result = await pool.query(query, values);
 
     res.json(result.rows);
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -445,23 +496,26 @@ export const getNonDepositSummaryByUser = async (req, res) => {
         SUM(audit_report_quality) AS audit_report_quality,
         SUM(cash_surprise_checks) AS cash_surprise_checks,
         SUM(employee_perf_threshold) AS employee_perf_threshold,
-        SUM(transaction_audit_rate) AS transaction_audit_rate
+        SUM(transaction_audit_rate) AS transaction_audit_rate,
 
-      FROM public.non_deposit_target
+        SUM(customer_engagement) AS customer_engagement,
+        SUM(new_customer_onboarding) AS new_customer_onboarding
+
+      FROM public.non_deposit_target where status = 'Approved'
     `;
 
     if (position === "CRM" || position === "Individual") {
-      query = baseQuery + ` WHERE user_name = $1`;
+      query = baseQuery + ` AND user_name = $1`;
 
       values = [user_id];
     } else if (position === "Manager") {
-      query = baseQuery + ` WHERE team = $1`;
+      query = baseQuery + ` AND team = $1`;
       values = [team];
     } else if (position === "Director" || position === "Senior Director") {
-      query = baseQuery + ` WHERE subprocess = $1`;
+      query = baseQuery + ` AND subprocess = $1`;
       values = [subprocess];
     } else if (position === "VP" || position === "CHF") {
-      query = baseQuery + ` WHERE process = $1`;
+      query = baseQuery + ` AND process = $1`;
       values = [process];
     } else if (position === "CEO") {
       query = baseQuery;
@@ -493,6 +547,9 @@ export const getNonDepositSummaryByUser = async (req, res) => {
       cash_surprise_checks: row.cash_surprise_checks || 0,
       employee_perf_threshold: row.employee_perf_threshold || 0,
       transaction_audit_rate: row.transaction_audit_rate || 0,
+      customer_engagement: row.customer_engagement || 0,
+      new_customer_onboarding: row.new_customer_onboarding || 0,
+
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

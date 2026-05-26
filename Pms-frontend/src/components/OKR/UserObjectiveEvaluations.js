@@ -78,9 +78,12 @@ const UserObjectiveEvaluations = () => {
       const results = await Promise.all(
         evaluatedUsers.map(async (emp) => {
           const res = await axios.post(`${baseUrl}/evaluations/getByEvaluatedUser`, {
-            evaluated: emp.evaluated,
+            evaluated: emp.evaluated, evaluator: user.MailAdress
           });
           const evaluationsData = res.data;
+
+
+
 
           const grouped = evaluationsData.reduce((acc, item) => {
             const key = item.objective_name;
@@ -98,9 +101,10 @@ const UserObjectiveEvaluations = () => {
           }, {});
 
           Object.values(grouped).forEach((obj) => {
-            if (obj.total_score > obj.objective_weight) {
-              obj.total_score = obj.objective_weight;
-            }
+            // if (obj.total_score > obj.objective_weight) {
+            //   obj.total_score = obj.objective_weight;
+            // }
+            obj.total_score = (obj.total_score * 100) / 5;
           });
 
           const total_score = Object.values(grouped).reduce((sum, obj) => sum + obj.total_score, 0);
@@ -181,9 +185,7 @@ const UserObjectiveEvaluations = () => {
             Employee Evaluations
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">OKR</Typography>
             <Typography color="text.primary">Evaluations</Typography>
           </Breadcrumbs>

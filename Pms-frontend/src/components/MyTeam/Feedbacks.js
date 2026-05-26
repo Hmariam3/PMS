@@ -188,9 +188,7 @@ const Feedbacks = () => {
             My Team Feedbacks
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">My Team</Typography>
             <Typography color="text.primary">Feedbacks</Typography>
           </Breadcrumbs>

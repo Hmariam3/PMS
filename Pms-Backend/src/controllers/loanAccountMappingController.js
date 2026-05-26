@@ -500,7 +500,7 @@ export const getLoanOutstandingBalanceByUser = async (req, res) => {
 
 // ✅ Get Special Mention Outstanding Balance for Loans
 export const getSpecialMentionLoanSumBalanceByUser = async (req, res) => {
-  console.log("requestData", req.body);
+
   const { user_id, position, team, subprocess, process } = req.body;
   if (!user_id || !position) {
     return res.status(400).json({
@@ -517,7 +517,7 @@ export const getSpecialMentionLoanSumBalanceByUser = async (req, res) => {
         SELECT 
           SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
         FROM public.loanaccountmapping
-        WHERE user_name = $1 AND status = 'Special Mention'
+        WHERE user_name = $1 AND status = 'SME'
       `;
       values = [user_id];
     } else if (position === "Manager") {
@@ -525,7 +525,7 @@ export const getSpecialMentionLoanSumBalanceByUser = async (req, res) => {
         SELECT 
           SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
         FROM public.loanaccountmapping
-        WHERE team = $1 AND status = 'Special Mention'
+        WHERE team = $1 AND status = 'SME'
       `;
       values = [team];
     } else if (position === "Director" || position === "Senior Director") {
@@ -533,7 +533,7 @@ export const getSpecialMentionLoanSumBalanceByUser = async (req, res) => {
         SELECT 
           SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
         FROM public.loanaccountmapping
-        WHERE subprocess = $1 AND status = 'Special Mention'
+        WHERE subprocess = $1 AND status = 'SME'
       `;
       values = [subprocess];
     } else if (position === "VP" || position === "CHF") {
@@ -541,7 +541,7 @@ export const getSpecialMentionLoanSumBalanceByUser = async (req, res) => {
         SELECT 
           SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
         FROM public.loanaccountmapping
-        WHERE process = $1 AND status = 'Special Mention'
+        WHERE process = $1 AND status = 'SME'
       `;
       values = [process];
     } else if (position === "CEO") {
@@ -549,7 +549,7 @@ export const getSpecialMentionLoanSumBalanceByUser = async (req, res) => {
         SELECT 
           SUM(ABS(COALESCE(outstanding_balance, 0))) AS total_balance
         FROM public.loanaccountmapping
-        WHERE status = 'Special Mention'
+        WHERE status = 'SME'
       `;
       values = [];
     } else {

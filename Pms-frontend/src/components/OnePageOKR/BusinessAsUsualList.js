@@ -198,9 +198,7 @@ const BusinessAsUsualList = () => {
             Business As Usual (BAU)
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">Operations</Typography>
             <Typography color="text.primary">BAU</Typography>
           </Breadcrumbs>

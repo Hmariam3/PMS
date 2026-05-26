@@ -94,6 +94,7 @@ const NonDepositTargetList = () => {
     const requestData = {
       user_id: user.UserName,
       position: user.position,
+      supervisor: user.MailAdress || null,
       process: user.process || null,
       subprocess: user.subprocess || null,
       team: user.team,
@@ -356,6 +357,8 @@ const NonDepositTargetList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Cash Surprise Checks</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Employee Perf Threshold</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Transaction Audit Rate</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Customer Engagement</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>New Customer Onboarding</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
                   Actions
@@ -387,6 +390,8 @@ const NonDepositTargetList = () => {
                   <TableCell>{t.cash_surprise_checks}</TableCell>
                   <TableCell>{t.employee_perf_threshold}</TableCell>
                   <TableCell>{t.transaction_audit_rate}</TableCell>
+                  <TableCell>{t.customer_engagement}</TableCell>
+                  <TableCell>{t.new_customer_onboarding}</TableCell>
                   <TableCell>
                     <span
                       style={{

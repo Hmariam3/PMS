@@ -44,7 +44,7 @@ const modalStyle = {
 
 const PerformanceMetricList = ({ member }) => {
   const { user } = useContext(AuthContext);
-  console.log("user", user);
+
   const [metrics, setMetrics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showEvalModal, setShowEvalModal] = useState(false);
@@ -66,9 +66,10 @@ const PerformanceMetricList = ({ member }) => {
 
   const fetchMetricsByTitle = async (title) => {
     try {
+
       setLoading(true);
       const res = await axios.get(
-        `${baseUrl}/performances/bytitleName/${encodeURIComponent(title)}`
+        `${baseUrl}/performances/bytitleName/${encodeURIComponent(title)}/${encodeURIComponent(user.branch_grade)}`
       );
       setMetrics(res.data);
     } catch (err) {
@@ -85,9 +86,6 @@ const PerformanceMetricList = ({ member }) => {
       const res = await axios.get(
         `${baseUrl}/users/byEmail/${member.outlook_address}`
       );
-
-      console.log("fetchUserInfo", member);
-
       setUserinfo(res.data);
     } catch (err) {
       console.error(err);
@@ -175,18 +173,21 @@ const PerformanceMetricList = ({ member }) => {
           }
         }
       }
-      // if (cash_collectionTarget > 0) {
-      //   if (type === "Cash Collection") {
-      //     const collectionRes = await axios.post(`${baseUrl}/loan/loanBalanceDifference`, requestData);
-      //     return { actual: Number(loanRes.data.total_difference) || 0, target: cash_collectionTarget };
-      //   }
-      // }
+      if (cash_collectionTarget > 0) {
+        if (type === "Cash Collection") {
+          const collectionRes = await axios.post(`${baseUrl}/nondeposit/getCashDepositbyBranchSummaryByUser`, requestData);
+          return { actual: Number(collectionRes.data.total_cash_collection) || 0, target: cash_collectionTarget };
+        }
+      }
+
       if (cash_deposited_crmTarget > 0) {
         if (type === "CRM Deposit") {
           const CRMDepositRes = await axios.post(`${baseUrl}/nondeposit/getCRMCashDepositSummaryByUser/`, requestData);
           return { actual: Number(CRMDepositRes.data.total_crm_cash) || 0, target: cash_deposited_crmTarget };
         }
       }
+
+
 
 
 
@@ -217,6 +218,9 @@ const PerformanceMetricList = ({ member }) => {
       const audit_report_qualityTarget = userNonDepositTargetRes.data.audit_report_quality || 0;
       const cash_surprise_checksTarget = userNonDepositTargetRes.data.cash_surprise_checks || 0;
       const employee_perf_thresholdTarget = userNonDepositTargetRes.data.employee_perf_threshold || 0;
+      const customer_engagementTarget = userNonDepositTargetRes.data.customer_engagement || 0;
+      const new_customer_onboardingTarget = userNonDepositTargetRes.data.new_customer_onboarding || 0;
+
 
       if (newAccountTarget > 0) {
         if (type === "account") {
@@ -255,6 +259,52 @@ const PerformanceMetricList = ({ member }) => {
           return { actual: digtaltsRes?.data?.digital_txn_percentage || 0, target: digital_transaction_volumeTarget };
         }
       }
+
+      if (customer_engagementTarget > 0) {
+        if (type === "Customer Engagement") {
+          const customerEngagementRes = await axios.post(`${baseUrl}/nondeposit/getCustomerEngagementSummaryByUser/`, requestData);
+          return { actual: customerEngagementRes?.data?.total_customer_engagement || 0, target: customer_engagementTarget };
+        }
+      }
+
+      if (new_customer_onboardingTarget > 0) {
+        if (type === "New Customer Onboarding") {
+          const newCustomerOnboardingRes = await axios.post(`${baseUrl}/nondeposit/getNewCustomerOnboardingSummaryByUser/`, requestData);
+          return { actual: newCustomerOnboardingRes?.data?.total_new_customer_onboarding || 0, target: new_customer_onboardingTarget };
+        }
+      }
+
+      // for SPM
+      if (type === "SPM") {
+
+        // ================================
+        // Loan Special Mention
+        // ================================
+        const specialMentionLoanRes = await axios.post(
+          `${baseUrl}/loanaccountmapping/getSpecialMentionLoanSumBalanceByUser`,
+          requestData
+        );
+
+        const specialMentionActual =
+          specialMentionLoanRes?.data?.total_balance || 0;
+
+        // ================================
+        // Loan Outstanding Balance
+        // ================================
+        const loanOutstandingBalanceRes = await axios.post(
+          `${baseUrl}/loanaccountmapping/getLoanOutstandingBalanceByUser`,
+          requestData
+        );
+
+        const outstandingBalanceActual =
+          loanOutstandingBalanceRes?.data?.total_balance || 0;
+
+        return {
+          actual: specialMentionActual,
+          target: outstandingBalanceActual,
+        };
+      }
+
       // null actual from system 
 
       if (type === "Merchant Recruitment") {
@@ -323,7 +373,6 @@ const PerformanceMetricList = ({ member }) => {
   };
 
   const handleAddEvaluation = async (metric) => {
-    console.log("");
     setSelectedMetric(metric);
     let type = "";
     const lowerCalcFor = metric.calculated_for?.toLowerCase() || "";
@@ -360,6 +409,10 @@ const PerformanceMetricList = ({ member }) => {
     else if (lowerCalcFor.includes("Compliance Rate")) type = "Compliance Rate";
     else if (lowerCalcFor.includes("Reports 3 Days Rate")) type = "Reports 3 Days Rate";
     else if (lowerCalcFor.includes("Employee Perf Threshold")) type = "Employee Perf Threshold";
+    else if (lowerCalcFor.includes("Customer Engagement")) type = "Customer Engagement";
+    else if (lowerCalcFor.includes("New Customer Onboarding")) type = "New Customer Onboarding";
+    else if (lowerCalcFor.includes("Deposit Sustainability")) type = "Deposit Sustainability";
+    else if (lowerCalcFor.includes("SPM")) type = "SPM";
     let evaluationValue = 0;
     let calculatedWeight = 0;
     if (metric.input_by === "System") {
@@ -526,6 +579,24 @@ const PerformanceMetricList = ({ member }) => {
             calculatedWeight = 0;
           }
         }
+
+        // SPM
+        else if (metric.calculated_for === "SPM") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive < 3) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 3 && actualachive <= 4) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive > 4 && actualachive <= 5) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive > 5) {
+            calculatedWeight = 0;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
       } else {
         calculatedWeight = 0;
       }

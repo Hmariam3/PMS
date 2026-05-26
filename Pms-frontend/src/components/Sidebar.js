@@ -64,18 +64,19 @@ const getNavLinks = (user) => {
 
   const isAdmin = role === "Admin";
   const isHO = orgUnit === "Ho";
-  const isDistrict = orgUnit === "District";
+  const isDistrict = orgUnit === "Do";
   const isBranch = orgUnit === "Branch";
   const isDirector = position.includes("Director");
   const isCRM = position === "CRM";
   const isIndividual = position === "Individual";
+  const isVPOrCHF = position.includes("VP") || position.includes("CHF");
 
   return [
     {
       text: "Dashboard",
       path: "/",
       icon: <DashboardIcon />,
-      show: isHO || isDistrict || isDirector,
+      show: isHO || (isDistrict && isDirector) || isVPOrCHF,
     },
     {
       text: "Team Dashboard",
@@ -83,26 +84,28 @@ const getNavLinks = (user) => {
       icon: <GroupWorkIcon />,
       show: true,
     },
-    {
-      text: "Employees",
-      path: "/employees",
-      icon: <BadgeIcon />,
-      show: isAdmin,
-    },
-    {
-      text: "Users",
-      icon: <ManageAccountsIcon />,
-      show: isAdmin,
-      children: [
-        { text: "All Users", path: "/users", icon: <PeopleIcon />, show: isAdmin },
-        { text: "Admins", path: "/admins", icon: <AdminPanelSettingsIcon />, show: isAdmin },
-      ],
-    },
+    // {
+    //   text: "Employees",
+    //   path: "/employees",
+    //   icon: <BadgeIcon />,
+    //   show: isAdmin,
+    // },
+    // {
+    //   text: "Users",
+    //   icon: <ManageAccountsIcon />,
+    //   show: isAdmin,
+    //   children: [
+    //     { text: "All Users", path: "/users", icon: <PeopleIcon />, show: isAdmin },
+    //     { text: "Admins", path: "/admins", icon: <AdminPanelSettingsIcon />, show: isAdmin },
+    //   ],
+    // },
     {
       text: "Settings",
       icon: <SettingsIcon />,
       show: isAdmin,
       children: [
+        { text: "Manage Users", path: "/users", icon: <PeopleIcon />, show: isAdmin },
+        { text: "Employee Master", path: "/employees", icon: <BadgeIcon />, show: isAdmin },
         { text: "Proceses", path: "/proceses", icon: <WorkIcon />, show: isAdmin },
         { text: "Sub Process", path: "/subprocess", icon: <AccountTreeIcon />, show: isAdmin },
         { text: "Branch", path: "/branch", icon: <BusinessIcon />, show: isAdmin },
@@ -117,28 +120,28 @@ const getNavLinks = (user) => {
     {
       text: "One Page OKR",
       icon: <EmojiEventsIcon />,
-      show: isHO || (isDistrict && isDirector || isAdmin),
+      show: isHO || (isDistrict && isDirector) || isAdmin || isVPOrCHF,
       children: [
-        { text: "Objectives", path: "/onepageobjective", icon: <FlagIcon />, show: isHO || (isDistrict && isDirector) },
-        { text: "Key Result", path: "/keyresult", icon: <ChecklistIcon />, show: isHO || (isDistrict && isDirector) },
-        { text: "Priority List", path: "/prioritylist", icon: <ListAltIcon />, show: isHO || (isDistrict && isDirector) },
-        { text: "Business As Usual", path: "/bau", icon: <WorkIcon />, show: isHO || (isDistrict && isDirector) },
-        { text: "Quarter OKR", path: "/quarter-okr", icon: <PieChartIcon />, show: isHO || (isDistrict && isDirector) },
-        { text: "Engagement", path: "/engagement", icon: <PsychologyIcon />, show: isCRM || (isDistrict && isDirector) || isAdmin },
+        { text: "Objectives", path: "/onepageobjective", icon: <FlagIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
+        { text: "Key Result", path: "/keyresult", icon: <ChecklistIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
+        { text: "Priority List", path: "/prioritylist", icon: <ListAltIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
+        { text: "Business As Usual", path: "/bau", icon: <WorkIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
+        { text: "Quarter OKR", path: "/quarter-okr", icon: <PieChartIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
+        { text: "Engagement", path: "/engagement", icon: <PsychologyIcon />, show: isCRM || (isDistrict && isDirector) || isAdmin || isVPOrCHF },
       ],
     },
     {
       text: "Set Target",
       icon: <GpsFixedIcon />,
-      show: isBranch || isCRM || isAdmin,
+      show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF,
       children: [
-        { text: "Local Account Mapping", path: "/accountmapping", icon: <LinkIcon />, show: isBranch || isCRM || isAdmin },
-        { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <CurrencyExchangeIcon />, show: isBranch || isCRM || isAdmin },
-        { text: "FCY Deposit", path: "/fcy-deposit", icon: <SavingsIcon />, show: isBranch || isCRM || isAdmin },
-        { text: "Loan Account Mapping", path: "/loanaccountmapping", icon: <AccountBalanceWalletIcon />, show: isCRM || isAdmin },
+        { text: "Local Account Mapping", path: "/accountmapping", icon: <LinkIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
+        { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <CurrencyExchangeIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
+        { text: "FCY Generation", path: "/fcy-deposit", icon: <SavingsIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
+        { text: "Loan Account Mapping", path: "/loanaccountmapping", icon: <AccountBalanceWalletIcon />, show: isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
         { text: "District Mapping", path: "/districtmapping", icon: <MapIcon />, show: isCRM || isAdmin },
-        { text: "Financial Target", path: "/target", icon: <AccountBalanceIcon />, show: isBranch || isCRM || isAdmin },
-        { text: "Non Financial Target", path: "/nondeposittarget", icon: <TrackChangesIcon />, show: isBranch || isCRM || isAdmin },
+        { text: "Financial Target", path: "/target", icon: <AccountBalanceIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
+        { text: "Non Financial Target", path: "/nondeposittarget", icon: <TrackChangesIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
       ],
     },
     {
@@ -153,7 +156,7 @@ const getNavLinks = (user) => {
         { text: "Team Feedback", path: "/feedback", icon: <ThumbsUpDownIcon />, show: !isIndividual },
         { text: "Evaluation", path: "/evaluation", icon: <AssignmentTurnedInIcon />, show: isAdmin },
         { text: "Team Score", path: "/score", icon: <ScoreboardIcon />, show: !isIndividual },
-        { text: "Your Performance Metrics", path: "/yourperformance", icon: <AutoGraphIcon />, show: true },
+        { text: "My Performance Metrics", path: "/yourperformance", icon: <AutoGraphIcon />, show: true },
         { text: "My Feedback", path: "/myfeedback", icon: <ThumbsUpDownIcon />, show: isIndividual },
         { text: "My Score", path: "/myscore", icon: <ScoreboardIcon />, show: isIndividual },
       ],

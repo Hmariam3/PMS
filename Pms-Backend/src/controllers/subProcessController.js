@@ -48,7 +48,7 @@ export const getSubProcessById = async (req, res) => {
 // Create a new sub-process
 export const createSubProcess = async (req, res) => {
   const { sub_process_name, process_id } = req.body;
-  console.log("req.body", req.body);
+
   try {
     const result = await pool.query(
       `INSERT INTO public.sub_processess (process_name, process_id, created_date, updated_date)

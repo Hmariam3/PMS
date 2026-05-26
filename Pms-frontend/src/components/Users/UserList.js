@@ -73,6 +73,11 @@ const UserList = () => {
     created_by: user?.FullName || "",
   });
 
+  const [processes, setProcesses] = useState([]);
+  const [subprocesses, setSubProcesses] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -88,13 +93,51 @@ const UserList = () => {
 
   useEffect(() => {
     fetchUsers();
+    const loadDropdownData = async () => {
+      try {
+        const [procRes, subRes, branchRes] = await Promise.all([
+          axios.get(`${baseUrl}/processes`),
+          axios.get(`${baseUrl}/subProcess`),
+          axios.get(`${baseUrl}/branches`),
+        ]);
+        setProcesses(procRes.data);
+        setSubProcesses(subRes.data);
+        setTeams(branchRes.data);
+      } catch (err) {
+        console.error("Failed to load dropdown data:", err);
+      }
+    };
+    loadDropdownData();
   }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    if (name === "process") {
+      setFormData({
+        ...formData,
+        process: value,
+        subprocess: "",
+        team: "",
+      });
+    } else if (name === "subprocess") {
+      setFormData({
+        ...formData,
+        subprocess: value,
+        team: "",
+      });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
   };
+
+  const filteredSubProcesses = subprocesses.filter(
+    (sp) => sp.process_name === formData.process
+  );
+
+  const filteredbranch = teams.filter(
+    (br) => br.sub_proccess === formData.subprocess
+  );
 
   const validate = () => {
     const newErrors = {};
@@ -153,6 +196,18 @@ const UserList = () => {
     }
   };
 
+  const filteredUsers = users.filter((u) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      u.user_name?.toLowerCase().includes(term) ||
+      u.full_name?.toLowerCase().includes(term) ||
+      u.mail_address?.toLowerCase().includes(term) ||
+      u.department?.toLowerCase().includes(term) ||
+      u.process?.toLowerCase().includes(term) ||
+      u.organization?.toLowerCase().includes(term)
+    );
+  });
+
   return (
     <Box sx={{ p: 3 }}>
       <Stack
@@ -166,9 +221,7 @@ const UserList = () => {
             User Management
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">Users</Typography>
             <Typography color="text.primary">User List</Typography>
           </Breadcrumbs>
@@ -201,6 +254,16 @@ const UserList = () => {
       </Stack>
 
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end" }}>
+          <TextField
+            placeholder="Search users..."
+            variant="outlined"
+            size="small"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ width: { xs: "100%", sm: 300 } }}
+          />
+        </Box>
         <TableContainer sx={{ minWidth: 800 }}>
           <Table hover>
             <TableHead sx={{ backgroundColor: "#f8fafc" }}>
@@ -217,7 +280,7 @@ const UserList = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {users.map((u) => (
+              {filteredUsers.map((u) => (
                 <TableRow key={u.id} hover>
                   <TableCell>{u.user_name}</TableCell>
                   <TableCell>{u.full_name}</TableCell>
@@ -227,12 +290,12 @@ const UserList = () => {
                   <TableCell>{u.organization}</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
-                      {/* <Tooltip title="Edit">
+                      <Tooltip title="Edit">
                         <IconButton color="primary" size="small" onClick={() => handleEdit(u)}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete">
+                      {/* <Tooltip title="Delete">
                         <IconButton color="error" size="small" onClick={() => handleDelete(u.id)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -273,6 +336,7 @@ const UserList = () => {
                     helperText={errors.user_name}
                     required
                     size="small"
+                    InputProps={{ readOnly: !!formData.id }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -286,6 +350,7 @@ const UserList = () => {
                     helperText={errors.full_name}
                     required
                     size="small"
+                    InputProps={{ readOnly: !!formData.id }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -300,6 +365,7 @@ const UserList = () => {
                     helperText={errors.mail_address}
                     required
                     size="small"
+                    InputProps={{ readOnly: !!formData.id }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -310,49 +376,78 @@ const UserList = () => {
                     value={formData.department}
                     onChange={handleChange}
                     size="small"
+                    InputProps={{ readOnly: !!formData.id }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Process"
-                    name="process"
-                    value={formData.process}
-                    onChange={handleChange}
-                    size="small"
-                  />
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Process</InputLabel>
+                    <Select
+                      name="process"
+                      value={formData.process || ""}
+                      label="Process"
+                      onChange={handleChange}
+                    >
+                      <MenuItem value=""><em>Select Process</em></MenuItem>
+                      {processes.map((p) => (
+                        <MenuItem key={p.id} value={p.process_name}>{p.process_name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Subprocess"
-                    name="subprocess"
-                    value={formData.subprocess}
-                    onChange={handleChange}
-                    size="small"
-                  />
+                  <FormControl fullWidth size="small" disabled={!formData.process}>
+                    <InputLabel>Sub Process</InputLabel>
+                    <Select
+                      name="subprocess"
+                      value={formData.subprocess || ""}
+                      label="Sub Process"
+                      onChange={handleChange}
+                    >
+                      <MenuItem value=""><em>Select Sub Process</em></MenuItem>
+                      {filteredSubProcesses.map((sp) => (
+                        <MenuItem key={sp.id} value={sp.sub_process_name}>{sp.sub_process_name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Team"
-                    name="team"
-                    value={formData.team}
-                    onChange={handleChange}
-                    size="small"
-                  />
+                  <FormControl fullWidth size="small" disabled={!formData.subprocess}>
+                    <InputLabel>Team / Branch</InputLabel>
+                    <Select
+                      name="team"
+                      value={formData.team || ""}
+                      label="Team / Branch"
+                      onChange={handleChange}
+                    >
+                      <MenuItem value=""><em>Select Team / Branch</em></MenuItem>
+                      {filteredbranch.map((t) => (
+                        <MenuItem key={t.id} value={t.branch_name}>{t.branch_name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Position"
-                    name="position"
-                    value={formData.position}
-                    onChange={handleChange}
-                    size="small"
-                  />
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Position</InputLabel>
+                    <Select
+                      name="position"
+                      value={formData.position}
+                      label="Position"
+                      onChange={handleChange}
+                    >
+                      <MenuItem value="CEO">CEO</MenuItem>
+                      <MenuItem value="CHF">CHF</MenuItem>
+                      <MenuItem value="VP">VP</MenuItem>
+                      <MenuItem value="Senior Director">Senior Director</MenuItem>
+                      <MenuItem value="Director">Director</MenuItem>
+                      <MenuItem value="Manager">Manager</MenuItem>
+                      <MenuItem value="CRM">CRM</MenuItem>
+                      <MenuItem value="Individual">Individual</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                {/* <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="Report To"
@@ -360,8 +455,9 @@ const UserList = () => {
                     value={formData.reportto}
                     onChange={handleChange}
                     size="small"
+                    InputProps={{ readOnly: !!formData.id }}
                   />
-                </Grid>
+                </Grid> */}
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth size="small">
                     <InputLabel>Role</InputLabel>
@@ -371,21 +467,27 @@ const UserList = () => {
                       label="Role"
                       onChange={handleChange}
                     >
+                      <MenuItem value="Admin">Admin</MenuItem>
                       <MenuItem value="maker">Maker</MenuItem>
-                      <MenuItem value="checker">Checker</MenuItem>
-                      <MenuItem value="admin">Admin</MenuItem>
+
                     </Select>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Organization"
-                    name="organization"
-                    value={formData.organization}
-                    onChange={handleChange}
-                    size="small"
-                  />
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Organization</InputLabel>
+                    <Select
+                      name="organization"
+                      value={formData.organization}
+                      label="Organization"
+                      onChange={handleChange}
+                    >
+                      <MenuItem value="Ho">Ho</MenuItem>
+                      <MenuItem value="Do">Do</MenuItem>
+                      <MenuItem value="Branch">Branch</MenuItem>
+
+                    </Select>
+                  </FormControl>
                 </Grid>
               </Grid>
               <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>

@@ -58,7 +58,7 @@ const PerformanceMetricByTitle = () => {
 
   const fetchData = async () => {
     try {
-      console.log("user", user);
+
 
       setLoading(true);
       const metricRes = await axios.get(
@@ -108,9 +108,7 @@ const PerformanceMetricByTitle = () => {
             Metrics for your Title: {user.title}
           </Typography>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">
-              Dashboard
-            </Link>
+
             <Typography color="text.primary">OKR</Typography>
             <Typography color="text.primary">My Metrics</Typography>
           </Breadcrumbs>
@@ -129,7 +127,7 @@ const PerformanceMetricByTitle = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Weight</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Unit</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Frequency</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Target FY</TableCell>
+                {/* <TableCell sx={{ fontWeight: 600 }}>Target FY</TableCell> */}
                 <TableCell sx={{ fontWeight: 600 }} align="center">
                   Actions
                 </TableCell>
@@ -145,7 +143,7 @@ const PerformanceMetricByTitle = () => {
                   <TableCell>{m.metric_weight}%</TableCell>
                   <TableCell>{m.unit_of_measure}</TableCell>
                   <TableCell>{m.evaluation_frequency}</TableCell>
-                  <TableCell>{m.target_fy}</TableCell>
+                  {/* <TableCell>{m.target_fy}</TableCell> */}
                   <TableCell align="center">
                     <Tooltip title="Details">
                       <IconButton

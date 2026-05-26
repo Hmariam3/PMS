@@ -239,7 +239,7 @@ export const deleteTarget = async (req, res) => {
   }
 };
 export const getTargetByUser = async (req, res) => {
-  const { user_id, position, team, subprocess, process } = req.body;
+  const { user_id, position, supervisor, team, subprocess, process } = req.body;
 
   if (!user_id || !position) {
     return res.status(400).json({ error: "User ID and position are required" });
@@ -250,49 +250,84 @@ export const getTargetByUser = async (req, res) => {
     let values;
 
     if (position === "CRM" || position === "Individual") {
+
       query = `
-        SELECT *
-        FROM public.targets
-        WHERE user_name = $1
-        ORDER BY target_id
-      `;
+      SELECT t.*
+      FROM public.targets t
+      WHERE t.user_name = $1
+      ORDER BY t.target_id
+    `;
+
       values = [user_id];
+
     } else if (position === "Manager") {
+
       query = `
-        SELECT *
-        FROM public.targets
-        WHERE team = $1
-        ORDER BY target_id
-      `;
-      values = [team];
+      SELECT t.*
+      FROM public.targets t
+      INNER JOIN public.users u
+        ON t.user_name = u.user_name
+      INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+      WHERE t.team = $1
+        AND e.supervisor = $2
+      ORDER BY t.target_id
+    `;
+
+      values = [team, supervisor];
+
     } else if (position === "Director" || position === "Senior Director") {
+
       query = `
-        SELECT *
-        FROM public.targets
-        WHERE subprocess = $1
-        ORDER BY target_id
-      `;
-      values = [subprocess];
+      SELECT t.*
+      FROM public.targets t
+      INNER JOIN public.users u
+        ON t.user_name = u.user_name
+      INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+      WHERE t.subprocess = $1
+        AND e.supervisor = $2
+      ORDER BY t.target_id
+    `;
+
+      values = [subprocess, supervisor];
+
     } else if (position === "VP" || position === "CHF") {
+
       query = `
-        SELECT *
-        FROM public.targets
-        WHERE process = $1
-        ORDER BY target_id
-      `;
-      values = [process];
+      SELECT t.*
+      FROM public.targets t
+      INNER JOIN public.users u
+        ON t.user_name = u.user_name
+      INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+      WHERE t.process = $1
+        AND e.supervisor = $2
+      ORDER BY t.target_id
+    `;
+
+      values = [process, supervisor];
+
     } else if (position === "CEO") {
+
       query = `
-        SELECT *
-        FROM public.targets
-        ORDER BY target_id
-      `;
-      values = [];
+      SELECT t.*
+      FROM public.targets t
+      INNER JOIN public.users u
+        ON t.user_name = u.user_name
+      INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+      WHERE e.supervisor = $1
+      ORDER BY t.target_id
+    `;
+
+      values = [supervisor];
     }
 
     const result = await pool.query(query, values);
 
     res.status(200).json(result.rows);
+
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: "Server error" });

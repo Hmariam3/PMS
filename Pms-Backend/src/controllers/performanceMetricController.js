@@ -269,8 +269,7 @@ export const getMetricsByTitle = async (req, res) => {
 
 // Get metrics by title_name
 export const getMetricsByTitleName = async (req, res) => {
-  const { title_name } = req.params;
-
+  const { title_name, branch_grade } = req.params;
   try {
     const result = await pool.query(
       `SELECT 
@@ -297,9 +296,9 @@ export const getMetricsByTitleName = async (req, res) => {
          ON pm.objective_id = o.objective_id
        INNER JOIN public.titles t
          ON o.title_id = t.id
-       WHERE t.title_name = $1
+       WHERE t.title_name = $1 AND o.grade=$2
        ORDER BY pm.metric_id ASC`,
-      [title_name],
+      [title_name, branch_grade],
     );
 
     res.status(200).json(result.rows);

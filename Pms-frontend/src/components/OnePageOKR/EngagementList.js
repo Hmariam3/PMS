@@ -232,11 +232,8 @@ const EngagementList = () => {
                 </Grid>
                 <Grid item xs={12} sm={6} sx={{ width: 300 }}>
                   <TextField fullWidth label="Engagement Type" select value={engagement.engagement_type} onChange={(e) => setEngagement({ ...engagement, engagement_type: e.target.value })} required size="small">
-                    <MenuItem value="Meeting">Meeting</MenuItem>
-                    <MenuItem value="Call">Call</MenuItem>
-                    <MenuItem value="Email">Email</MenuItem>
-                    <MenuItem value="Site Visit">Site Visit</MenuItem>
-                    <MenuItem value="Other">Other</MenuItem>
+                    <MenuItem value="Customer Engagement">Customer Engagement</MenuItem>
+                    <MenuItem value="New Customer Onboarding">New Customer Onboarding</MenuItem>
                   </TextField>
                 </Grid>
                 {/* <Grid item xs={12} sm={6} >
