@@ -47,7 +47,7 @@ const DashboardTeam = () => {
           team: user.team || null,
           cbsusername: user.cbsusername || null,
         });
-
+      console.log("res", res.data);
       let filteredUsers = Array.isArray(res.data) ? res.data : [];
       if (user.position === "Individual") {
         filteredUsers = filteredUsers.filter((u) => u.user_name === user.UserName);
@@ -91,7 +91,7 @@ const DashboardTeam = () => {
       team: singleUser.team || null,
       cbsusername: singleUser.cbsusername || null,
     };
-
+    console.log("requestData", requestData);
     try {
       const priorRes = await axios.post(
         `${baseUrl}/priorities/getPriorityByUser`,

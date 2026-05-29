@@ -220,6 +220,7 @@ const PerformanceMetricList = ({ member }) => {
       const employee_perf_thresholdTarget = userNonDepositTargetRes.data.employee_perf_threshold || 0;
       const customer_engagementTarget = userNonDepositTargetRes.data.customer_engagement || 0;
       const new_customer_onboardingTarget = userNonDepositTargetRes.data.new_customer_onboarding || 0;
+      const armingc_deposit_proportionTarget = userNonDepositTargetRes.data.armingc_deposit_proportion || 0;
 
 
       if (newAccountTarget > 0) {
@@ -254,9 +255,13 @@ const PerformanceMetricList = ({ member }) => {
         }
       }
       if (digital_transaction_volumeTarget > 0) {
+
         if (type === "Digital Transaction") {
+
           const digtaltsRes = await axios.post(`${baseUrl}/nondeposit/getDigitalTxnPercentageSummaryByUser/`, requestData);
+          console.log("digital_transaction_volume", digtaltsRes);
           return { actual: digtaltsRes?.data?.digital_txn_percentage || 0, target: digital_transaction_volumeTarget };
+
         }
       }
 
@@ -271,6 +276,13 @@ const PerformanceMetricList = ({ member }) => {
         if (type === "New Customer Onboarding") {
           const newCustomerOnboardingRes = await axios.post(`${baseUrl}/nondeposit/getNewCustomerOnboardingSummaryByUser/`, requestData);
           return { actual: newCustomerOnboardingRes?.data?.total_new_customer_onboarding || 0, target: new_customer_onboardingTarget };
+        }
+      }
+
+      if (armingc_deposit_proportionTarget > 0) {
+        if (type === "Armingc Deposit Proportion") {
+          const armingcDepositProportionRes = await axios.post(`${baseUrl}/nondeposit/getArmingcDepositProportionSummaryByUser/`, requestData);
+          return { actual: armingcDepositProportionRes?.data?.total_armingc_deposit_proportion || 0, target: armingc_deposit_proportionTarget };
         }
       }
 
@@ -364,6 +376,9 @@ const PerformanceMetricList = ({ member }) => {
       if (type === "Employee Performance") {
         return { actual: 0, target: employee_perf_thresholdTarget };
       }
+      if (type === "Armingc Deposit Proportion") {
+        return { actual: 0, target: armingc_deposit_proportionTarget };
+      }
 
       return { actual: 0, target: 0 };
     } catch (err) {
@@ -375,44 +390,46 @@ const PerformanceMetricList = ({ member }) => {
   const handleAddEvaluation = async (metric) => {
     setSelectedMetric(metric);
     let type = "";
-    const lowerCalcFor = metric.calculated_for?.toLowerCase() || "";
-    if (lowerCalcFor.includes("deposit")) type = "deposit";
-    else if (lowerCalcFor.includes("fcy")) type = "fcy";
-    else if (lowerCalcFor.includes("loan")) type = "loan";
-    else if (lowerCalcFor.includes("card")) type = "card";
-    else if (lowerCalcFor.includes("transaction")) type = "transaction";
-    else if (lowerCalcFor.includes("account")) type = "account";
-    else if (lowerCalcFor.includes("eeu")) type = "EEU";
-    else if (lowerCalcFor.includes("Transaction Audit")) type = "Transaction Audit";
-    else if (lowerCalcFor.includes("Digital Transaction")) type = "Digital Transaction";
-    else if (lowerCalcFor.includes("Cash Collection")) type = "Cash Collection";
-    else if (lowerCalcFor.includes("CRM")) type = "CRM";
-    else if (lowerCalcFor.includes("Merchant Recruitment")) type = "Merchant Recruitment";
-    else if (lowerCalcFor.includes("Merchant Transaction Volume")) type = "Merchant Transaction Volume";
-    else if (lowerCalcFor.includes("Agent Recruitment")) type = "Agent Recruitment";
-    else if (lowerCalcFor.includes("Agent Transaction Volume")) type = "Agent Transaction Volume";
-    else if (lowerCalcFor.includes("Michu Unique Recruitment")) type = "Michu Unique Recruitment";
-    else if (lowerCalcFor.includes("Coopay Ebirr Activation")) type = "Coopay Ebirr Activation";
-    else if (lowerCalcFor.includes("ATM CRM Uptime Rate")) type = "ATM CRM Uptime Rate";
-    else if (lowerCalcFor.includes("Customer")) type = "Customer";
-    else if (lowerCalcFor.includes("Product")) type = "Product";
-    else if (lowerCalcFor.includes("Gl")) type = "Gl";
-    else if (lowerCalcFor.includes("Customer Satisfaction")) type = "Customer Satisfaction";
-    else if (lowerCalcFor.includes("Cash Book")) type = "Cash Book";
-    else if (lowerCalcFor.includes("Cash Surprise Cheque")) type = "Cash Surprise Cheque";
-    else if (lowerCalcFor.includes("Audit Quality")) type = "Audit Quality";
-    else if (lowerCalcFor.includes("Branch Compliance")) type = "Branch Compliance";
-    else if (lowerCalcFor.includes("Compliance with the directives")) type = "Compliance with the directives";
-    else if (lowerCalcFor.includes("Cash Balance Accuracy Rate")) type = "Cash Balance Accuracy Rate";
-    else if (lowerCalcFor.includes("Zero Customer Complaints")) type = "Zero Customer Complaints";
-    else if (lowerCalcFor.includes("Avg Txn Per CSO")) type = "Avg Txn Per CSO";
-    else if (lowerCalcFor.includes("Compliance Rate")) type = "Compliance Rate";
-    else if (lowerCalcFor.includes("Reports 3 Days Rate")) type = "Reports 3 Days Rate";
-    else if (lowerCalcFor.includes("Employee Perf Threshold")) type = "Employee Perf Threshold";
-    else if (lowerCalcFor.includes("Customer Engagement")) type = "Customer Engagement";
-    else if (lowerCalcFor.includes("New Customer Onboarding")) type = "New Customer Onboarding";
-    else if (lowerCalcFor.includes("Deposit Sustainability")) type = "Deposit Sustainability";
-    else if (lowerCalcFor.includes("SPM")) type = "SPM";
+    const lowerCalcFor = metric.calculated_for?.toLowerCase().trim() || "";
+
+    if (lowerCalcFor === "deposit") type = "deposit";
+    else if (lowerCalcFor === "fcy") type = "fcy";
+    else if (lowerCalcFor === "loan") type = "loan";
+    else if (lowerCalcFor === "card") type = "card";
+    else if (lowerCalcFor === "transaction") type = "transaction";
+    else if (lowerCalcFor === "account") type = "account";
+    else if (lowerCalcFor === "eeu") type = "EEU";
+    else if (lowerCalcFor === "transaction audit") type = "Transaction Audit";
+    else if (lowerCalcFor === "digital transaction") type = "Digital Transaction";
+    else if (lowerCalcFor === "cash collection") type = "Cash Collection";
+    else if (lowerCalcFor === "crm") type = "CRM";
+    else if (lowerCalcFor === "merchant recruitment") type = "Merchant Recruitment";
+    else if (lowerCalcFor === "merchant transaction volume") type = "Merchant Transaction Volume";
+    else if (lowerCalcFor === "agent recruitment") type = "Agent Recruitment";
+    else if (lowerCalcFor === "agent transaction volume") type = "Agent Transaction Volume";
+    else if (lowerCalcFor === "michu unique recruitment") type = "Michu Unique Recruitment";
+    else if (lowerCalcFor === "coopay ebirr activation") type = "Coopay Ebirr Activation";
+    else if (lowerCalcFor === "atm crm uptime rate") type = "ATM CRM Uptime Rate";
+    else if (lowerCalcFor === "customer") type = "Customer";
+    else if (lowerCalcFor === "product") type = "Product";
+    else if (lowerCalcFor === "gl") type = "Gl";
+    else if (lowerCalcFor === "customer satisfaction") type = "Customer Satisfaction";
+    else if (lowerCalcFor === "cash book") type = "Cash Book";
+    else if (lowerCalcFor === "cash surprise cheque") type = "Cash Surprise Cheque";
+    else if (lowerCalcFor === "audit quality") type = "Audit Quality";
+    else if (lowerCalcFor === "branch compliance") type = "Branch Compliance";
+    else if (lowerCalcFor === "compliance with the directives") type = "Compliance with the directives";
+    else if (lowerCalcFor === "cash balance accuracy rate") type = "Cash Balance Accuracy Rate";
+    else if (lowerCalcFor === "zero customer complaints") type = "Zero Customer Complaints";
+    else if (lowerCalcFor === "avg txn per cso") type = "Avg Txn Per CSO";
+    else if (lowerCalcFor === "compliance rate") type = "Compliance Rate";
+    else if (lowerCalcFor === "reports 3 days rate") type = "Reports 3 Days Rate";
+    else if (lowerCalcFor === "employee perf threshold") type = "Employee Perf Threshold";
+    else if (lowerCalcFor === "customer engagement") type = "Customer Engagement";
+    else if (lowerCalcFor === "new customer onboarding") type = "New Customer Onboarding";
+    else if (lowerCalcFor === "armingc deposit proportion") type = "Armingc Deposit Proportion";
+    else if (lowerCalcFor === "deposit sustainability") type = "Deposit Sustainability";
+    else if (lowerCalcFor === "spm") type = "SPM";
     let evaluationValue = 0;
     let calculatedWeight = 0;
     if (metric.input_by === "System") {
@@ -763,6 +780,23 @@ const PerformanceMetricList = ({ member }) => {
 
           if (actualachive === 100) {
             calculatedWeight = 4 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
+        // Arming C for District
+        else if (metric.calculated_for === "Armingc Deposit Proportion") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive === 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 85 && actualachive < 100) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 71 && actualachive < 85) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 14 && actualachive < 71) {
+            calculatedWeight = 1 * metricWeight;
           } else {
             calculatedWeight = 0;
           }

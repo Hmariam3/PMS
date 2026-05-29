@@ -10,6 +10,7 @@ export const getObjectives = async (req, res) => {
         t.title_name,
         o.objective_name,
         o.objective_weight,
+        o.grade,
         o.created_by,
         o.updated_by,
         o.created_date,

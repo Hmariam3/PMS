@@ -329,7 +329,7 @@ export const getActiveCardUsersSummaryByUser = async (req, res) => {
   }
 };
 export const getDigitalTxnPercentageSummaryByUser = async (req, res) => {
-  const { cbsusername, position, user_name, subprocess, process } = req.body;
+  const { cbsusername, position, user_id, subprocess, process } = req.body;
 
   try {
     let query = "";
@@ -341,22 +341,15 @@ export const getDigitalTxnPercentageSummaryByUser = async (req, res) => {
     if (position === "CRM" || position === "Individual") {
       query = `
         SELECT 
+          COALESCE(SUM(a. "DIGITAL_TXN_PERCENTAGE"), 0) AS digital_txn_percentage,
           COALESCE(SUM(a."DIGITAL_TXN_COUNT"), 0) AS total_digital_txn_count,
-          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count,
-          COALESCE(
-            ROUND(
-              (SUM(a."DIGITAL_TXN_COUNT")::numeric /
-              NULLIF(SUM(a."TOTAL_TXN_COUNT"), 0)) * 100,
-              2
-            ),
-            0
-          ) AS digital_txn_percentage
+          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count
         FROM public."DW_DIGITAL_TXN_PERCENTAGE" a
         JOIN public.users u
           ON u.company_code = a."BRANCH_CODE"
         WHERE u.user_name = $1
       `;
-      values = [user_name];
+      values = [user_id];
 
       // =========================
       // Manager
@@ -364,22 +357,15 @@ export const getDigitalTxnPercentageSummaryByUser = async (req, res) => {
     } else if (position === "Manager") {
       query = `
         SELECT 
+          COALESCE(SUM(a. "DIGITAL_TXN_PERCENTAGE"), 0) AS digital_txn_percentage,
           COALESCE(SUM(a."DIGITAL_TXN_COUNT"), 0) AS total_digital_txn_count,
-          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count,
-          COALESCE(
-            ROUND(
-              (SUM(a."DIGITAL_TXN_COUNT")::numeric /
-              NULLIF(SUM(a."TOTAL_TXN_COUNT"), 0)) * 100,
-              2
-            ),
-            0
-          ) AS digital_txn_percentage
+          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count
         FROM public."DW_DIGITAL_TXN_PERCENTAGE" a
         JOIN public.users u
           ON u.company_code = a."BRANCH_CODE"
         WHERE u.user_name = $1
       `;
-      values = [user_name];
+      values = [user_id];
 
       // =========================
       // Director
@@ -388,16 +374,9 @@ export const getDigitalTxnPercentageSummaryByUser = async (req, res) => {
       query = `
         SELECT 
           a."SUBPROCESS",
+          COALESCE(SUM(a. "DIGITAL_TXN_PERCENTAGE"), 0) AS digital_txn_percentage,
           COALESCE(SUM(a."DIGITAL_TXN_COUNT"), 0) AS total_digital_txn_count,
-          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count,
-          COALESCE(
-            ROUND(
-              (SUM(a."DIGITAL_TXN_COUNT")::numeric /
-              NULLIF(SUM(a."TOTAL_TXN_COUNT"), 0)) * 100,
-              2
-            ),
-            0
-          ) AS digital_txn_percentage
+          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count
         FROM public."DW_DIGITAL_TXN_PERCENTAGE" a
         WHERE a."SUBPROCESS" = $1
         GROUP BY a."SUBPROCESS"
@@ -411,16 +390,9 @@ export const getDigitalTxnPercentageSummaryByUser = async (req, res) => {
       query = `
         SELECT 
           a."BRANCH_NAME",
+          COALESCE(SUM(a. "DIGITAL_TXN_PERCENTAGE"), 0) AS digital_txn_percentage,
           COALESCE(SUM(a."DIGITAL_TXN_COUNT"), 0) AS total_digital_txn_count,
-          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count,
-          COALESCE(
-            ROUND(
-              (SUM(a."DIGITAL_TXN_COUNT")::numeric /
-              NULLIF(SUM(a."TOTAL_TXN_COUNT"), 0)) * 100,
-              2
-            ),
-            0
-          ) AS digital_txn_percentage
+          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count
         FROM public."DW_DIGITAL_TXN_PERCENTAGE" a
         WHERE a."PROCESS" = $1
         GROUP BY a."BRANCH_NAME"
@@ -435,16 +407,9 @@ export const getDigitalTxnPercentageSummaryByUser = async (req, res) => {
         SELECT 
           a."PROCESS",
           a."SUBPROCESS",
+          COALESCE(SUM(a. "DIGITAL_TXN_PERCENTAGE"), 0) AS digital_txn_percentage,
           COALESCE(SUM(a."DIGITAL_TXN_COUNT"), 0) AS total_digital_txn_count,
-          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count,
-          COALESCE(
-            ROUND(
-              (SUM(a."DIGITAL_TXN_COUNT")::numeric /
-              NULLIF(SUM(a."TOTAL_TXN_COUNT"), 0)) * 100,
-              2
-            ),
-            0
-          ) AS digital_txn_percentage
+          COALESCE(SUM(a."TOTAL_TXN_COUNT"), 0) AS total_txn_count
         FROM public."DW_DIGITAL_TXN_PERCENTAGE" a
         GROUP BY a."PROCESS", a."SUBPROCESS"
         ORDER BY a."PROCESS"

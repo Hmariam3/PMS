@@ -15,7 +15,10 @@ export const getAllNonDepositTargets = async (req, res) => {
         coopay_ebirr_activation, atm_crm_uptime_rate, created_by, approved_by, 
         approved_at, status, cash_balance_accuracy_rate, zero_customer_complaints, 
         avg_txn_per_cso, compliance_rate, reports_3days_rate, audit_report_quality, 
-        cash_surprise_checks, employee_perf_threshold, transaction_audit_rate
+        cash_surprise_checks, employee_perf_threshold, transaction_audit_rate,
+        customer_engagement,
+        new_customer_onboarding,
+        armingc_deposit_proportion,
       FROM public.non_deposit_target
       ORDER BY target_id`,
     );
@@ -43,7 +46,10 @@ export const getNonDepositTargetById = async (req, res) => {
         coopay_ebirr_activation, atm_crm_uptime_rate, created_by, approved_by, 
         approved_at, status, cash_balance_accuracy_rate, zero_customer_complaints, 
         avg_txn_per_cso, compliance_rate, reports_3days_rate, audit_report_quality, 
-        cash_surprise_checks, employee_perf_threshold, transaction_audit_rate
+        cash_surprise_checks, employee_perf_threshold, transaction_audit_rate,
+        customer_engagement,
+        new_customer_onboarding,
+        armingc_deposit_proportion,
       FROM public.non_deposit_target
       WHERE target_id = $1`,
       [id],
@@ -87,6 +93,9 @@ export const createNonDepositTarget = async (req, res) => {
     cash_surprise_checks,
     employee_perf_threshold,
     transaction_audit_rate,
+    customer_engagement,
+    new_customer_onboarding,
+    armingc_deposit_proportion,
 
     process,
     subprocess,
@@ -134,6 +143,9 @@ export const createNonDepositTarget = async (req, res) => {
         cash_surprise_checks,
         employee_perf_threshold,
         transaction_audit_rate,
+        customer_engagement,
+        new_customer_onboarding,
+        armingc_deposit_proportion,
 
         process,
         subprocess,
@@ -145,7 +157,7 @@ export const createNonDepositTarget = async (req, res) => {
         $1,$2,$3,$4,$5,
         $6,$7,$8,$9,$10,$11,$12,$13,
         $14,$15,$16,$17,$18,$19,$20,$21,$22,
-        $23,$24,$25,$26,$27
+        $23,$24,$25,$26,$27,$28,$29,$30
       )
       RETURNING *`,
       [
@@ -173,6 +185,9 @@ export const createNonDepositTarget = async (req, res) => {
         cash_surprise_checks || 0,
         employee_perf_threshold || 0,
         transaction_audit_rate || 0,
+        customer_engagement || 0,
+        new_customer_onboarding || 0,
+        armingc_deposit_proportion || 0,
 
         process || null,
         subprocess || null,
@@ -219,6 +234,9 @@ export const updateNonDepositTarget = async (req, res) => {
     cash_surprise_checks,
     employee_perf_threshold,
     transaction_audit_rate,
+    customer_engagement,
+    new_customer_onboarding,
+    armingc_deposit_proportion,
 
     process,
     subprocess,
@@ -254,13 +272,16 @@ export const updateNonDepositTarget = async (req, res) => {
         cash_surprise_checks = $20,
         employee_perf_threshold = $21,
         transaction_audit_rate = $22,
+        customer_engagement = $23,
+        new_customer_onboarding = $24,
+        armingc_deposit_proportion = $25,
 
-        process = $23,
-        subprocess = $24,
-        team = $25,
-        status = $26
+        process = $26,
+        subprocess = $27,
+        team = $28,
+        status = $29
 
-       WHERE target_id = $27
+       WHERE target_id = $30
        RETURNING *`,
       [
         user_name,
@@ -287,6 +308,9 @@ export const updateNonDepositTarget = async (req, res) => {
         cash_surprise_checks || 0,
         employee_perf_threshold || 0,
         transaction_audit_rate || 0,
+        customer_engagement || 0,
+        new_customer_onboarding || 0,
+        armingc_deposit_proportion || 0,
 
         process || null,
         subprocess || null,
@@ -499,7 +523,8 @@ export const getNonDepositSummaryByUser = async (req, res) => {
         SUM(transaction_audit_rate) AS transaction_audit_rate,
 
         SUM(customer_engagement) AS customer_engagement,
-        SUM(new_customer_onboarding) AS new_customer_onboarding
+        SUM(new_customer_onboarding) AS new_customer_onboarding,
+        SUM(armingc_deposit_proportion) AS armingc_deposit_proportion
 
       FROM public.non_deposit_target where status = 'Approved'
     `;
@@ -549,6 +574,7 @@ export const getNonDepositSummaryByUser = async (req, res) => {
       transaction_audit_rate: row.transaction_audit_rate || 0,
       customer_engagement: row.customer_engagement || 0,
       new_customer_onboarding: row.new_customer_onboarding || 0,
+      armingc_deposit_proportion: row.armingc_deposit_proportion || 0,
 
     });
   } catch (err) {

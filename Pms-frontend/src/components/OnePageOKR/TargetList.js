@@ -295,7 +295,7 @@ const TargetList = () => {
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
 
-                      {user.position === "Manager" && t.created_by !== user.UserName && t.status !== "Approved" && (
+                      {(user.position === "Manager" || user.position === "Director" || user.position === "Senior Director" || user.position === "VP") && t.created_by !== user.UserName && t.status !== "Approved" && (
                         <Tooltip title="Approve">
                           <IconButton color="success" size="small" onClick={() => handleApprove(t)}>
                             <CheckIcon fontSize="small" />

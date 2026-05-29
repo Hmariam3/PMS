@@ -190,25 +190,29 @@ export const getUserByPostion = async (req, res) => {
     INNER JOIN public.employees e
         ON u.mail_address = e.outlook_address
     WHERE u.user_name = $1
-      AND e.supervisor = $2
+      
     ORDER BY u.id
 `;
-      values = [user_id, supervisor];
+      values = [user_id];
     } else if (position === "Manager") {
       if (!team) {
         return res.status(400).json({ error: "Team is required for Manager" });
       }
 
       query = `
-        SELECT u.*
-        FROM public.users u
-        INNER JOIN public.employees e
-            ON u.mail_address = e.outlook_address
-        WHERE u.team = $1
-          AND e.supervisor = $2
-        ORDER BY u.id
+              SELECT DISTINCT u.*
+              FROM public.users u
+              INNER JOIN public.employees e
+                  ON u.mail_address = e.outlook_address
+              WHERE 
+                  u.user_name = $1
+                  OR (
+                      u.team = $2
+                      AND e.supervisor = $3
+                  )
+              ORDER BY u.id;
     `;
-      values = [team, supervisor];
+      values = [user_id, team, supervisor];
     } else if (position === "Director" || position === "Senior Director") {
       if (!subprocess) {
         return res
@@ -217,15 +221,20 @@ export const getUserByPostion = async (req, res) => {
       }
 
       query = `
-    SELECT u.*
+    SELECT DISTINCT u.*
     FROM public.users u
     INNER JOIN public.employees e
         ON u.mail_address = e.outlook_address
-    WHERE u.subprocess = $1
-      AND e.supervisor = $2
+    WHERE 
+        u.user_name = $1
+        OR (
+            u.subprocess = $2
+            AND e.supervisor = $3
+        )
     ORDER BY u.id
 `;
-      values = [subprocess, supervisor];
+
+      values = [user_id, subprocess, supervisor];
     } else if (position === "VP" || position === "CHF") {
 
       if (!process) {
@@ -235,27 +244,33 @@ export const getUserByPostion = async (req, res) => {
       }
 
       query = `
-    SELECT u.*
+    SELECT DISTINCT u.*
     FROM public.users u
     INNER JOIN public.employees e
         ON u.mail_address = e.outlook_address
-    WHERE e.supervisor = $1
-      AND u.process = $2
+    WHERE 
+        u.user_name = $1
+        OR (
+            e.supervisor = $2
+            AND u.process = $3
+        )
     ORDER BY u.id
 `;
 
-      values = [supervisor, process];
+      values = [user_id, supervisor, process];
     } else if (position === "CEO") {
       query = `
-      SELECT u.*
-      FROM public.users u
-      INNER JOIN public.employees e
-          ON u.mail_address = e.outlook_address
-      WHERE e.supervisor = $1
-      ORDER BY u.id
-  `;
+    SELECT DISTINCT u.*
+    FROM public.users u
+    INNER JOIN public.employees e
+        ON u.mail_address = e.outlook_address
+    WHERE 
+        u.user_name = $1
+        OR e.supervisor = $2
+    ORDER BY u.id
+`;
 
-      values = [supervisor];
+      values = [user_id, supervisor];
     } else {
       return res.status(400).json({ error: "Invalid position value" });
     }
@@ -281,6 +296,7 @@ export const updateUser = async (req, res) => {
     subprocess,
     team,
     position,
+    role,
     organization,
   } = req.body;
 
@@ -291,14 +307,16 @@ export const updateUser = async (req, res) => {
            subprocess=$2,
            team=$3,
            position=$4,
-           organization=$5
-       WHERE id=$6
+           role=$5,
+           organization=$6
+       WHERE id=$7
        RETURNING *`,
       [
         process,
         subprocess,
         team,
         position,
+        role,
         organization,
         id,
       ],

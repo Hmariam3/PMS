@@ -187,6 +187,9 @@ const NonDepositTargetList = () => {
     if (target.cash_surprise_checks < 0) newErrors.cash_surprise_checks = "Target Must be Greater Than 0";
     if (target.employee_perf_threshold < 0) newErrors.employee_perf_threshold = "Target Must be Greater Than 0";
     if (target.transaction_audit_rate < 0) newErrors.transaction_audit_rate = "Target Must be Greater Than 0";
+    if (target.customer_engagement < 0) newErrors.customer_engagement = "Target Must be Greater Than 0";
+    if (target.new_customer_onboarding < 0) newErrors.new_customer_onboarding = "Target Must be Greater Than 0";
+    if (target.armingc_deposit_proportion < 0) newErrors.armingc_deposit_proportion = "Target Must be Greater Than 0";
     return newErrors;
   };
 
@@ -246,6 +249,9 @@ const NonDepositTargetList = () => {
       cash_surprise_checks: t.cash_surprise_checks || "",
       employee_perf_threshold: t.employee_perf_threshold || "",
       transaction_audit_rate: t.transaction_audit_rate || "",
+      customer_engagement: t.customer_engagement || "",
+      new_customer_onboarding: t.new_customer_onboarding || "",
+      armingc_deposit_proportion: t.armingc_deposit_proportion || "",
       created_by: t.created_by || "",
       approved_by: t.approved_by || "",
       approved_at: t.approved_at || "",
@@ -316,6 +322,9 @@ const NonDepositTargetList = () => {
               cash_surprise_checks: "",
               employee_perf_threshold: "",
               transaction_audit_rate: "",
+              customer_engagement: "",
+              new_customer_onboarding: "",
+              armingc_deposit_proportion: "",
               created_by: user?.UserName || "",
               approved_by: "",
               approved_at: "",
@@ -359,6 +368,7 @@ const NonDepositTargetList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Transaction Audit Rate</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Customer Engagement</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>New Customer Onboarding</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Arming C Deposit Proportion</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
                   Actions
@@ -392,6 +402,7 @@ const NonDepositTargetList = () => {
                   <TableCell>{t.transaction_audit_rate}</TableCell>
                   <TableCell>{t.customer_engagement}</TableCell>
                   <TableCell>{t.new_customer_onboarding}</TableCell>
+                  <TableCell>{t.armingc_deposit_proportion}</TableCell>
                   <TableCell>
                     <span
                       style={{
@@ -415,7 +426,7 @@ const NonDepositTargetList = () => {
                   </TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
-                      {user.position === "Manager" && t.created_by !== user.UserName && t.status !== "Approved" && (
+                      {(user.position === "Manager" || user.position === "Director" || user.position === "Senior Director" || user.position === "VP") && t.created_by !== user.UserName && t.status !== "Approved" && (
                         <Tooltip title="Approve">
                           <IconButton
                             color="success"
@@ -734,6 +745,45 @@ const NonDepositTargetList = () => {
                     onChange={handleChange}
                     error={!!errors.transaction_audit_rate}
                     helperText={errors.transaction_audit_rate}
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Customer Engagement"
+                    name="customer_engagement"
+                    type="number"
+                    value={target.customer_engagement}
+                    onChange={handleChange}
+                    error={!!errors.customer_engagement}
+                    helperText={errors.customer_engagement}
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="New Customer Onboarding"
+                    name="new_customer_onboarding"
+                    type="number"
+                    value={target.new_customer_onboarding}
+                    onChange={handleChange}
+                    error={!!errors.new_customer_onboarding}
+                    helperText={errors.new_customer_onboarding}
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Arming C Deposit Proportion"
+                    name="armingc_deposit_proportion"
+                    type="number"
+                    value={target.armingc_deposit_proportion}
+                    onChange={handleChange}
+                    error={!!errors.armingc_deposit_proportion}
+                    helperText={errors.armingc_deposit_proportion}
                     size="small"
                   />
                 </Grid>

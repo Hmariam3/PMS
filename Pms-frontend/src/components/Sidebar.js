@@ -61,15 +61,19 @@ const getNavLinks = (user) => {
   const role = user?.role || "";
   const position = user?.position || "";
   const orgUnit = user?.organization || "";
+  const process = user?.process || "";
 
   const isAdmin = role === "Admin";
   const isHO = orgUnit === "Ho";
+  const isDo = orgUnit === "Do";
   const isDistrict = orgUnit === "Do";
   const isBranch = orgUnit === "Branch";
   const isDirector = position.includes("Director");
   const isCRM = position === "CRM";
   const isIndividual = position === "Individual";
   const isVPOrCHF = position.includes("VP") || position.includes("CHF");
+  const isIFB = process === "Interest Free Banking";
+
 
   return [
     {
@@ -133,15 +137,15 @@ const getNavLinks = (user) => {
     {
       text: "Set Target",
       icon: <GpsFixedIcon />,
-      show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF,
+      show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo,
       children: [
-        { text: "Local Account Mapping", path: "/accountmapping", icon: <LinkIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
-        { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <CurrencyExchangeIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
-        { text: "FCY Generation", path: "/fcy-deposit", icon: <SavingsIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
-        { text: "Loan Account Mapping", path: "/loanaccountmapping", icon: <AccountBalanceWalletIcon />, show: isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
-        { text: "District Mapping", path: "/districtmapping", icon: <MapIcon />, show: isCRM || isAdmin },
-        { text: "Financial Target", path: "/target", icon: <AccountBalanceIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
-        { text: "Non Financial Target", path: "/nondeposittarget", icon: <TrackChangesIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF },
+        { text: "Local Account Mapping", path: "/accountmapping", icon: <LinkIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
+        { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <CurrencyExchangeIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
+        { text: "FCY Generation", path: "/fcy-deposit", icon: <SavingsIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
+        { text: "Loan Account Mapping", path: "/loanaccountmapping", icon: <AccountBalanceWalletIcon />, show: isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
+        { text: "District Mapping", path: "/districtmapping", icon: <MapIcon />, show: isCRM || isAdmin || isIFB },
+        { text: "Financial Target", path: "/target", icon: <AccountBalanceIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
+        { text: "Non Financial Target", path: "/nondeposittarget", icon: <TrackChangesIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
       ],
     },
     {
@@ -152,7 +156,7 @@ const getNavLinks = (user) => {
         { text: "Strategic Pillars", path: "/pillars", icon: <AccountTreeIcon />, show: isAdmin },
         { text: "Objectives", path: "/objective", icon: <FlagIcon />, show: isAdmin },
         { text: "Performance Metrics", path: "/performancemetrics", icon: <BarChartIcon />, show: isAdmin },
-        { text: "My Team", path: "/myteam", icon: <PeopleIcon />, show: !isIndividual },
+        { text: "My Team", path: "/myteam", icon: <PeopleIcon />, show: !isIndividual || isAdmin },
         { text: "Team Feedback", path: "/feedback", icon: <ThumbsUpDownIcon />, show: !isIndividual },
         { text: "Evaluation", path: "/evaluation", icon: <AssignmentTurnedInIcon />, show: isAdmin },
         { text: "Team Score", path: "/score", icon: <ScoreboardIcon />, show: !isIndividual },

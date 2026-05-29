@@ -45,7 +45,7 @@ const Dashboard = () => {
       team: user.team || null,
       cbsusername: user.cbsusername || null,
     };
-    console.log("requestData", requestData);
+
     const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 
     // Helper to safely fetch and set state

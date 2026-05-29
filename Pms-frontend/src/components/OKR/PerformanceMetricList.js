@@ -215,6 +215,7 @@ const PerformanceMetricList = () => {
                 <TableCell sx={{ fontWeight: 400 }}>Title</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Formula</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Weight</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Grade</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Frequency</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
                   Actions
@@ -232,6 +233,7 @@ const PerformanceMetricList = () => {
                   <TableCell>{m.title_name}</TableCell>
                   <TableCell>{m.measurement_formula}</TableCell>
                   <TableCell>{m.metric_weight}%</TableCell>
+                  <TableCell>{objectives.find((o) => o.objective_id === m.objective_id)?.grade || "-"}</TableCell>
                   <TableCell>{m.evaluation_frequency}</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
@@ -421,6 +423,9 @@ const PerformanceMetricList = () => {
                       <MenuItem value="Coopay Ebirr Activation">Coopay Ebirr Activation</MenuItem>
                       <MenuItem value="ATM CRM Uptime Rate">ATM CRM Uptime Rate</MenuItem>
                       <MenuItem value="Customer Satisfaction">Customer Satisfaction</MenuItem>
+                      <MenuItem value="Customer Engagement">Customer Engagement</MenuItem>
+                      <MenuItem value="New Customer Onboarding">New Customer Onboarding</MenuItem>
+                      <MenuItem value="Armingc Deposit Proportion">Armingc Deposit Proportion</MenuItem>
                       <MenuItem value="Employee Performance">Employee Performance</MenuItem>
                       <MenuItem value="Gl">Gl</MenuItem>
                       <MenuItem value="Cash Book">Cash Book</MenuItem>

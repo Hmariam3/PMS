@@ -72,6 +72,7 @@ const ObjectiveList = () => {
     objective_weight: 0,
     pillar_id: "",
     title_id: "",
+    grade: "",
     created_by: "",
     updated_by: "",
     grade: "",
@@ -284,6 +285,7 @@ const ObjectiveList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Objective Name</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Pillar</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Grade</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Weight</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
                   Actions
@@ -297,6 +299,7 @@ const ObjectiveList = () => {
                   <TableCell>{o.objective_name}</TableCell>
                   <TableCell>{o.pillar_name}</TableCell>
                   <TableCell>{o.title_name}</TableCell>
+                  <TableCell>{o.grade}</TableCell>
                   <TableCell>{o.objective_weight}%</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
@@ -564,6 +567,7 @@ const ObjectiveList = () => {
                       <MenuItem value="Customer Satisfaction">Customer Satisfaction</MenuItem>
                       <MenuItem value="Customer Engagement">Customer Engagement</MenuItem>
                       <MenuItem value="New Customer Onboarding">New Customer Onboarding</MenuItem>
+                      <MenuItem value="Armingc Deposit Proportion">Armingc Deposit Proportion</MenuItem>
                       <MenuItem value="Deposit Sustainability">Deposit Sustainability</MenuItem>
                       <MenuItem value="SPM">SPM</MenuItem>
                       <MenuItem value="Employee Performance">Employee Performance</MenuItem>
