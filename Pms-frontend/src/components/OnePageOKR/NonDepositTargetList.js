@@ -78,6 +78,10 @@ const NonDepositTargetList = () => {
     cash_surprise_checks: "",
     employee_perf_threshold: "",
     transaction_audit_rate: "",
+    gl: "",
+    customer_engagement: "",
+    new_customer_onboarding: "",
+    armingc_deposit_proportion: "",
 
     user_name: user?.UserName || "",
     process: user?.process || "",
@@ -119,10 +123,12 @@ const NonDepositTargetList = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (["new_account", "unauthorized_transaction", "active_card_no", "eeu_transaction_count", "merchant_recruitment", "merchant_transaction_volume", "agent_recruitment", "agent_transaction_volume", "michu_unique_recruitment", "digital_transaction_volume", "coopay_ebirr_activation", "atm_crm_uptime_rate", "cash_balance_accuracy_rate", "zero_customer_complaints", "avg_txn_per_cso", "compliance_rate", "reports_3days_rate", "audit_report_quality", "cash_surprise_checks", "employee_perf_threshold", "transaction_audit_rate", "gl", "customer_engagement", "new_customer_onboarding", "armingc_deposit_proportion"].includes(name)) {
+      if (!/^\d*\.?\d*$/.test(value)) return;
+    }
     setTarget({ ...target, [name]: value });
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
+    if (errors[name]) setErrors({ ...errors, [name]: null });
   };
-
   const handleApprove = async (t) => {
     try {
       if (t.created_by === user.UserName) {
@@ -190,6 +196,7 @@ const NonDepositTargetList = () => {
     if (target.customer_engagement < 0) newErrors.customer_engagement = "Target Must be Greater Than 0";
     if (target.new_customer_onboarding < 0) newErrors.new_customer_onboarding = "Target Must be Greater Than 0";
     if (target.armingc_deposit_proportion < 0) newErrors.armingc_deposit_proportion = "Target Must be Greater Than 0";
+    if (target.gl < 0) newErrors.gl = "Target Must be Greater Than 0";
     return newErrors;
   };
 
@@ -252,6 +259,7 @@ const NonDepositTargetList = () => {
       customer_engagement: t.customer_engagement || "",
       new_customer_onboarding: t.new_customer_onboarding || "",
       armingc_deposit_proportion: t.armingc_deposit_proportion || "",
+      gl: t.gl || "",
       created_by: t.created_by || "",
       approved_by: t.approved_by || "",
       approved_at: t.approved_at || "",
@@ -369,6 +377,7 @@ const NonDepositTargetList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Customer Engagement</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>New Customer Onboarding</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Arming C Deposit Proportion</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>GL</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
                   Actions
@@ -403,6 +412,7 @@ const NonDepositTargetList = () => {
                   <TableCell>{t.customer_engagement}</TableCell>
                   <TableCell>{t.new_customer_onboarding}</TableCell>
                   <TableCell>{t.armingc_deposit_proportion}</TableCell>
+                  <TableCell>{t.gl}</TableCell>
                   <TableCell>
                     <span
                       style={{
@@ -784,6 +794,19 @@ const NonDepositTargetList = () => {
                     onChange={handleChange}
                     error={!!errors.armingc_deposit_proportion}
                     helperText={errors.armingc_deposit_proportion}
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="GL"
+                    name="gl"
+                    type="number"
+                    value={target.gl}
+                    onChange={handleChange}
+                    error={!!errors.gl}
+                    helperText={errors.gl}
                     size="small"
                   />
                 </Grid>

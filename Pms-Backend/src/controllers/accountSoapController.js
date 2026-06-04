@@ -1,5 +1,12 @@
 import axios from "axios";
 import xml2js from "xml2js";
+import http from "http";
+import https from "https";
+
+const axiosInstance = axios.create({
+  httpAgent: new http.Agent({ keepAlive: false }),
+  httpsAgent: new https.Agent({ keepAlive: false }),
+});
 
 export const fetchAccountBalanceFromSoap = async (accountNumber) => {
   if (!accountNumber) {
@@ -28,7 +35,7 @@ export const fetchAccountBalanceFromSoap = async (accountNumber) => {
   </soapenv:Envelope>
   `;
 
-  const response = await axios.post(process.env.SOAP_URL, xmlRequest, {
+  const response = await axiosInstance.post(process.env.SOAP_URL, xmlRequest, {
     headers: {
       "Content-Type": "text/xml;charset=UTF-8",
     },
@@ -121,7 +128,7 @@ export const getUserInfo = async (req, res) => {
     </soapenv:Envelope>
     `;
 
-    const response = await axios.post(process.env.SOAP_URL, xmlRequest, {
+    const response = await axiosInstance.post(process.env.SOAP_URL, xmlRequest, {
       headers: {
         "Content-Type": "text/xml;charset=UTF-8",
       },
@@ -212,7 +219,7 @@ export const fetchLoanDetailFromSoap = async (loanaccountnumber) => {
   </soapenv:Envelope>
   `;
 
-  const response = await axios.post(process.env.SOAP_URL, xmlRequest, {
+  const response = await axiosInstance.post(process.env.SOAP_URL, xmlRequest, {
     headers: {
       "Content-Type": "text/xml;charset=UTF-8",
     },

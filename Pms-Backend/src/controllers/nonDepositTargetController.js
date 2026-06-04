@@ -19,6 +19,7 @@ export const getAllNonDepositTargets = async (req, res) => {
         customer_engagement,
         new_customer_onboarding,
         armingc_deposit_proportion,
+        gl,
       FROM public.non_deposit_target
       ORDER BY target_id`,
     );
@@ -50,6 +51,7 @@ export const getNonDepositTargetById = async (req, res) => {
         customer_engagement,
         new_customer_onboarding,
         armingc_deposit_proportion,
+        gl,
       FROM public.non_deposit_target
       WHERE target_id = $1`,
       [id],
@@ -96,6 +98,7 @@ export const createNonDepositTarget = async (req, res) => {
     customer_engagement,
     new_customer_onboarding,
     armingc_deposit_proportion,
+    gl,
 
     process,
     subprocess,
@@ -146,6 +149,7 @@ export const createNonDepositTarget = async (req, res) => {
         customer_engagement,
         new_customer_onboarding,
         armingc_deposit_proportion,
+        gl,
 
         process,
         subprocess,
@@ -157,7 +161,7 @@ export const createNonDepositTarget = async (req, res) => {
         $1,$2,$3,$4,$5,
         $6,$7,$8,$9,$10,$11,$12,$13,
         $14,$15,$16,$17,$18,$19,$20,$21,$22,
-        $23,$24,$25,$26,$27,$28,$29,$30
+        $23,$24,$25,$26,$27,$28,$29,$30,$31
       )
       RETURNING *`,
       [
@@ -188,6 +192,7 @@ export const createNonDepositTarget = async (req, res) => {
         customer_engagement || 0,
         new_customer_onboarding || 0,
         armingc_deposit_proportion || 0,
+        gl || 0,
 
         process || null,
         subprocess || null,
@@ -237,6 +242,7 @@ export const updateNonDepositTarget = async (req, res) => {
     customer_engagement,
     new_customer_onboarding,
     armingc_deposit_proportion,
+    gl,
 
     process,
     subprocess,
@@ -275,13 +281,14 @@ export const updateNonDepositTarget = async (req, res) => {
         customer_engagement = $23,
         new_customer_onboarding = $24,
         armingc_deposit_proportion = $25,
+        gl = $26,
 
-        process = $26,
-        subprocess = $27,
-        team = $28,
-        status = $29
+        process = $27,
+        subprocess = $28,
+        team = $29,
+        status = $30
 
-       WHERE target_id = $30
+       WHERE target_id = $31
        RETURNING *`,
       [
         user_name,
@@ -311,6 +318,7 @@ export const updateNonDepositTarget = async (req, res) => {
         customer_engagement || 0,
         new_customer_onboarding || 0,
         armingc_deposit_proportion || 0,
+        gl || 0,
 
         process || null,
         subprocess || null,
@@ -373,18 +381,22 @@ export const getNonDepositTargetByUser = async (req, res) => {
     } else if (position === "Manager") {
 
       query = `
-      SELECT ndt.*
-      FROM public.non_deposit_target ndt
-      INNER JOIN public.users u
-        ON ndt.user_name = u.user_name
-      INNER JOIN public.employees e
-        ON u.mail_address = e.outlook_address
-      WHERE ndt.team = $1
-        AND e.supervisor = $2
-      ORDER BY ndt.target_id
+          SELECT ndt.*
+          FROM public.non_deposit_target ndt
+          INNER JOIN public.users u
+              ON ndt.user_name = u.user_name
+          INNER JOIN public.employees e
+              ON u.mail_address = e.outlook_address
+          WHERE
+              u.user_name = $1
+              OR (
+                  u.team = $2
+                  AND e.supervisor = $3
+              )
+          ORDER BY ndt.target_id;
     `;
 
-      values = [team, supervisor];
+      values = [user_id, team, supervisor];
 
     } else if (position === "Director" || position === "Senior Director") {
 
@@ -392,48 +404,58 @@ export const getNonDepositTargetByUser = async (req, res) => {
       SELECT ndt.*
       FROM public.non_deposit_target ndt
       INNER JOIN public.users u
-        ON ndt.user_name = u.user_name
+          ON ndt.user_name = u.user_name
       INNER JOIN public.employees e
-        ON u.mail_address = e.outlook_address
-      WHERE ndt.subprocess = $1
-        AND e.supervisor = $2
+          ON u.mail_address = e.outlook_address
+      WHERE
+          u.user_name = $1
+          OR (
+              u.subprocess = $2
+              AND e.supervisor = $3
+          )
       ORDER BY ndt.target_id
     `;
 
-      values = [subprocess, supervisor];
+      values = [user_id, subprocess, supervisor];
 
     } else if (position === "VP" || position === "CHF") {
 
       query = `
-      SELECT ndt.*
-      FROM public.non_deposit_target ndt
-      INNER JOIN public.users u
-        ON ndt.user_name = u.user_name
-      INNER JOIN public.employees e
-        ON u.mail_address = e.outlook_address
-      WHERE ndt.process = $1
-        AND e.supervisor = $2
-      ORDER BY ndt.target_id
+  SELECT ndt.*
+  FROM public.non_deposit_target ndt
+  INNER JOIN public.users u
+      ON ndt.user_name = u.user_name
+  INNER JOIN public.employees e
+      ON u.mail_address = e.outlook_address
+  WHERE
+      u.user_name = $1
+      OR (
+          u.process = $2
+          AND e.supervisor = $3
+      )
+  ORDER BY ndt.target_id
     `;
 
 
-      values = [process, supervisor];
+      values = [user_id, process, supervisor];
 
 
     } else if (position === "CEO") {
 
       query = `
-      SELECT ndt.*
-      FROM public.non_deposit_target ndt
-      INNER JOIN public.users u
-        ON ndt.user_name = u.user_name
-      INNER JOIN public.employees e
-        ON u.mail_address = e.outlook_address
-      WHERE e.supervisor = $1
-      ORDER BY ndt.target_id
+  SELECT ndt.*
+  FROM public.non_deposit_target ndt
+  INNER JOIN public.users u
+      ON ndt.user_name = u.user_name
+  INNER JOIN public.employees e
+      ON u.mail_address = e.outlook_address
+  WHERE
+      u.user_name = $1
+      OR e.supervisor = $2
+  ORDER BY ndt.target_id
     `;
 
-      values = [supervisor];
+      values = [user_id, supervisor];
 
     } else {
 
@@ -524,7 +546,8 @@ export const getNonDepositSummaryByUser = async (req, res) => {
 
         SUM(customer_engagement) AS customer_engagement,
         SUM(new_customer_onboarding) AS new_customer_onboarding,
-        SUM(armingc_deposit_proportion) AS armingc_deposit_proportion
+        SUM(armingc_deposit_proportion) AS armingc_deposit_proportion,
+        SUM(gl) AS gl
 
       FROM public.non_deposit_target where status = 'Approved'
     `;
@@ -575,7 +598,7 @@ export const getNonDepositSummaryByUser = async (req, res) => {
       customer_engagement: row.customer_engagement || 0,
       new_customer_onboarding: row.new_customer_onboarding || 0,
       armingc_deposit_proportion: row.armingc_deposit_proportion || 0,
-
+      gl: row.gl || 0,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

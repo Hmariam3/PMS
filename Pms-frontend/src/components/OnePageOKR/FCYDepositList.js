@@ -149,6 +149,7 @@ const FCYDepositList = () => {
       const res = await axios.post(`${baseUrl}/fcy-deposit/getFcyDepositsByUser`, {
         user_id: user.UserName,
         position: user.position,
+        supervisor: user.mail_address,
         process: user.process,
         subprocess: user.subprocess,
         team: user.team,
@@ -337,13 +338,18 @@ const FCYDepositList = () => {
                   <TableCell>{d.crm_name}</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
-                      {user.position === "Manager" && d.created_by !== user.UserName && d.status !== "Approved" && (
+                      {user.position === "Manager" && d.createdby !== user.UserName && d.status !== "Approved" && (
                         <IconButton color="success" size="small" onClick={() => handleApprove(d)}>
                           <CheckIcon fontSize="small" />
                         </IconButton>
                       )}
-                      <IconButton color="primary" onClick={() => handleEdit(d)}><EditIcon fontSize="small" /></IconButton>
-                      <IconButton color="error" onClick={() => handleDelete(d.fcy_id)}><DeleteIcon fontSize="small" /></IconButton>
+                      {d.createdby === user.UserName && d.status === "Pending" && (
+                        <IconButton color="primary" onClick={() => handleEdit(d)}><EditIcon fontSize="small" /></IconButton>)
+                      }
+                      {d.createdby === user.UserName && d.status === "Pending" && (
+                        <IconButton color="error" onClick={() => handleDelete(d.fcy_id)}><DeleteIcon fontSize="small" /></IconButton>)
+                      }
+
                     </Stack>
                   </TableCell>
                 </TableRow>

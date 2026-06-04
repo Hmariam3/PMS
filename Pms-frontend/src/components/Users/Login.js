@@ -109,7 +109,7 @@ const Login = () => {
             const orgUnit = userdata.organization || "";
             const pos = userdata.position || "";
             const isHO = orgUnit.toUpperCase() === "HO";
-            const isDistrict = orgUnit.toLowerCase() === "district";
+            const isDistrict = orgUnit.toLowerCase() === "do";
             const isDirector = pos.toLowerCase().includes("director");
 
             if (isHO || (isDistrict && isDirector)) {

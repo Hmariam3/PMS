@@ -333,7 +333,14 @@ const AccountMappingList = () => {
       setSelectedFile(null);
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || "Upload failed");
+      toast.error(
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        (err.response && err.response.status === 413 ? "File too large (413)" : null) ||
+        (err.response && err.response.status === 504 ? "Server timeout (504)" : null) ||
+        err.message ||
+        "Upload failed"
+      );
     } finally {
       setLoading(false);
     }

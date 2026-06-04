@@ -15,7 +15,7 @@ export const getAllFcyDeposits = async (req, res) => {
 
 // Get FCY deposits by user context
 export const getFcyDepositsByUser = async (req, res) => {
-  const { user_id, position, team, subprocess, process } = req.body;
+  const { user_id, position, team, supervisor, subprocess, process } = req.body;
 
   if (!user_id || !position) {
     return res.status(400).json({ error: "User ID and position are required" });
@@ -29,17 +29,70 @@ export const getFcyDepositsByUser = async (req, res) => {
       query = `SELECT * FROM public.fcydeposit WHERE user_name = $1 ORDER BY fcy_id`;
       values = [user_id];
     } else if (position === "Manager") {
-      query = `SELECT * FROM public.fcydeposit WHERE team = $1 ORDER BY fcy_id`;
-      values = [team];
+      query = `
+SELECT f.*
+FROM public.fcydeposit f
+INNER JOIN public.users u
+    ON f.user_name = u.user_name
+INNER JOIN public.employees e
+    ON u.mail_address = e.outlook_address
+WHERE
+    u.user_name = $1
+    OR (
+        u.team = $2
+        AND e.supervisor = $3
+    )
+ORDER BY f.fcy_id
+`;
+      values = [user_id, team, supervisor];
     } else if (position === "Director" || position === "Senior Director") {
-      query = `SELECT * FROM public.fcydeposit WHERE subprocess = $1 ORDER BY fcy_id`;
-      values = [subprocess];
+      query = `
+SELECT f.*
+FROM public.fcydeposit f
+INNER JOIN public.users u
+    ON f.user_name = u.user_name
+INNER JOIN public.employees e
+    ON u.mail_address = e.outlook_address
+WHERE
+    u.user_name = $1
+    OR (
+        u.subprocess = $2
+        AND e.supervisor = $3
+    )
+ORDER BY f.fcy_id
+`;
+      values = [user_id, subprocess, supervisor];
     } else if (position === "VP" || position === "CHF") {
-      query = `SELECT * FROM public.fcydeposit WHERE process = $1 ORDER BY fcy_id`;
-      values = [process];
+      query = `
+SELECT f.*
+FROM public.fcydeposit f
+INNER JOIN public.users u
+    ON f.user_name = u.user_name
+INNER JOIN public.employees e
+    ON u.mail_address = e.outlook_address
+WHERE
+    u.user_name = $1
+    OR (
+        u.process = $2
+        AND e.supervisor = $3
+    )
+ORDER BY f.fcy_id
+`;
+      values = [user_id, process, supervisor];
     } else if (position === "CEO") {
-      query = `SELECT * FROM public.fcydeposit ORDER BY fcy_id`;
-      values = [];
+      query = `
+SELECT f.*
+FROM public.fcydeposit f
+INNER JOIN public.users u
+    ON f.user_name = u.user_name
+INNER JOIN public.employees e
+    ON u.mail_address = e.outlook_address
+WHERE
+    u.user_name = $1
+    OR e.supervisor = $1
+ORDER BY f.fcy_id
+`;
+      values = [user_id, supervisor];
     } else {
       return res.status(400).json({ error: "Invalid position" });
     }

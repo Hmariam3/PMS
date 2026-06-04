@@ -54,6 +54,7 @@ import FlagIcon from "@mui/icons-material/Flag";
 import PieChartIcon from "@mui/icons-material/PieChart";
 import ChecklistIcon from "@mui/icons-material/Checklist";
 import PsychologyIcon from "@mui/icons-material/Psychology";
+import SummarizeIcon from "@mui/icons-material/Summarize";
 
 import { AuthContext } from "../AuthContext";
 
@@ -63,6 +64,7 @@ const getNavLinks = (user) => {
   const orgUnit = user?.organization || "";
   const process = user?.process || "";
 
+  const isHaile = user?.UserName === "hailemariamk";
   const isAdmin = role === "Admin";
   const isHO = orgUnit === "Ho";
   const isDo = orgUnit === "Do";
@@ -163,6 +165,14 @@ const getNavLinks = (user) => {
         { text: "My Performance Metrics", path: "/yourperformance", icon: <AutoGraphIcon />, show: true },
         { text: "My Feedback", path: "/myfeedback", icon: <ThumbsUpDownIcon />, show: isIndividual },
         { text: "My Score", path: "/myscore", icon: <ScoreboardIcon />, show: isIndividual },
+      ],
+    },
+    {
+      text: "Reports",
+      icon: <SummarizeIcon />,
+      show: isHaile,
+      children: [
+        { text: "User Targets Report", path: "/reports/user-targets", icon: <AssessmentIcon />, show: isHaile },
       ],
     },
   ];

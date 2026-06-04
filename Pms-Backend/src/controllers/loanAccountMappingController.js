@@ -356,7 +356,7 @@ export const importExcelLoanAccountMapping = async (req, res) => {
         // 1. Check duplicate
         const check = await pool.query(
           `SELECT 1 FROM public.loanaccountmapping WHERE loan_account_number = $1 LIMIT 1`,
-          [accountNumber],
+          [accountNumber]
         );
         if (check.rows.length > 0) {
           results.skipped.push({ account: accountNumber, reason: "Already registered" });
@@ -369,13 +369,13 @@ export const importExcelLoanAccountMapping = async (req, res) => {
         // 3. Fetch Branch Info
         let district = "";
         let branch = "";
-        if (soapData.campany_code) {
+        if (soapData.companycode) {
           const branchRes = await pool.query(
             `SELECT b.branch_name, s.process_name 
              FROM public.branches b
              JOIN public.sub_processess s ON b.subprocess_id = s.id
              WHERE b.branch_code = $1`,
-            [soapData.branchCode],
+            [soapData.companycode]
           );
           if (branchRes.rows.length > 0) {
             branch = branchRes.rows[0].branch_name;
@@ -393,7 +393,7 @@ export const importExcelLoanAccountMapping = async (req, res) => {
             accountNumber,
             soapData.customerName,
             parseFloat(String(soapData.amount).replace(/,/g, "")) || 0, // Mapping original loan amount
-            parseFloat(String(soapData.outstandingAmount).replace(/,/g, "")) || 0, // Accurate outstanding balance
+            parseFloat(String(soapData.outstandingAmount || soapData.outstandingBalance).replace(/,/g, "")) || 0, // Accurate outstanding balance
             soapData.status,
             user_name,
             process || null,
@@ -403,7 +403,7 @@ export const importExcelLoanAccountMapping = async (req, res) => {
             branch,
             soapData.customer_id,
             user_name,
-          ],
+          ]
         );
 
         results.success.push({ account: accountNumber, holder: soapData.customerName });

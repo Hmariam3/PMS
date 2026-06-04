@@ -263,65 +263,79 @@ export const getTargetByUser = async (req, res) => {
     } else if (position === "Manager") {
 
       query = `
-      SELECT t.*
-      FROM public.targets t
-      INNER JOIN public.users u
-        ON t.user_name = u.user_name
-      INNER JOIN public.employees e
-        ON u.mail_address = e.outlook_address
-      WHERE t.team = $1
-        AND e.supervisor = $2
-      ORDER BY t.target_id
+SELECT t.*
+FROM public.targets t
+INNER JOIN public.users u
+    ON t.user_name = u.user_name
+INNER JOIN public.employees e
+    ON u.mail_address = e.outlook_address
+WHERE
+    u.user_name = $1
+    OR (
+        u.team = $2
+        AND e.supervisor = $3
+    )
+ORDER BY t.target_id;
     `;
 
-      values = [team, supervisor];
+      values = [user_id, team, supervisor];
 
     } else if (position === "Director" || position === "Senior Director") {
 
       query = `
-      SELECT t.*
-      FROM public.targets t
-      INNER JOIN public.users u
-        ON t.user_name = u.user_name
-      INNER JOIN public.employees e
-        ON u.mail_address = e.outlook_address
-      WHERE t.subprocess = $1
-        AND e.supervisor = $2
-      ORDER BY t.target_id
+SELECT t.*
+FROM public.targets t
+INNER JOIN public.users u
+    ON t.user_name = u.user_name
+INNER JOIN public.employees e
+    ON u.mail_address = e.outlook_address
+WHERE
+    u.user_name = $1
+    OR (
+        u.subprocess = $2
+        AND e.supervisor = $3
+    )
+ORDER BY t.target_id;
     `;
 
-      values = [subprocess, supervisor];
+      values = [user_id, subprocess, supervisor];
 
     } else if (position === "VP" || position === "CHF") {
 
       query = `
-      SELECT t.*
-      FROM public.targets t
-      INNER JOIN public.users u
-        ON t.user_name = u.user_name
-      INNER JOIN public.employees e
-        ON u.mail_address = e.outlook_address
-      WHERE t.process = $1
-        AND e.supervisor = $2
-      ORDER BY t.target_id
+SELECT t.*
+FROM public.targets t
+INNER JOIN public.users u
+    ON t.user_name = u.user_name
+INNER JOIN public.employees e
+    ON u.mail_address = e.outlook_address
+WHERE
+    u.user_name = $1
+    OR (
+        u.process = $2
+        AND e.supervisor = $3
+    )
+ORDER BY t.target_id;
     `;
 
-      values = [process, supervisor];
+      values = [user_id, process, supervisor];
 
     } else if (position === "CEO") {
 
       query = `
-      SELECT t.*
-      FROM public.targets t
-      INNER JOIN public.users u
-        ON t.user_name = u.user_name
-      INNER JOIN public.employees e
-        ON u.mail_address = e.outlook_address
-      WHERE e.supervisor = $1
-      ORDER BY t.target_id
+SELECT t.*
+FROM public.targets t
+INNER JOIN public.users u
+    ON t.user_name = u.user_name
+INNER JOIN public.employees e
+    ON u.mail_address = e.outlook_address
+WHERE
+    u.user_name = $1
+    OR e.supervisor = $1
+ORDER BY t.target_id;
     `;
 
-      values = [supervisor];
+      values = [user_id, supervisor];
     }
 
     const result = await pool.query(query, values);

@@ -35,6 +35,7 @@ import loanAccountMappingRoutes from "./routes/loanAccountMappingRoutes.js";
 import districtMappingRoutes from "./routes/districtMappingRoutes.js";
 import fcyDepositRoutes from "./routes/fcyDepositRoutes.js";
 import engagementRoutes from "./routes/engagementRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
 
 const app = express();
 // Enable CORS
@@ -64,6 +65,7 @@ app.use("/api/loanaccountmapping", loanAccountMappingRoutes);
 app.use("/api/districtmapping", districtMappingRoutes);
 app.use("/api/fcy-deposit", fcyDepositRoutes);
 app.use("/api/engagement", engagementRoutes);
+app.use("/api/reports", reportRoutes);
 app.use("/api/bau", bauRoutes);
 
 app.use("/api/fcy", fcyRoutes);

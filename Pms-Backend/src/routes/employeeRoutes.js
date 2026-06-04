@@ -11,12 +11,14 @@ import {
   downloadEmployeeTemplate,
   getEmployeeTitleByEmail,
   getMyTeamBySupervisor,
+  searchEmployees,
 } from "../controllers/employeeController.js";
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" }); // temp folder for uploads
 
 router.get("/template", downloadEmployeeTemplate);
+router.get("/search", searchEmployees);
 router.get("/", getAllEmployees);
 router.get("/:id", getEmployeeById);
 router.post("/createEmployee", createEmployee);

@@ -26,6 +26,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  TablePagination,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -55,7 +56,7 @@ const UserList = () => {
   const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
@@ -77,22 +78,36 @@ const UserList = () => {
   const [subprocesses, setSubProcesses] = useState([]);
   const [teams, setTeams] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const fetchUsers = async () => {
+  const handleSearch = async () => {
+    setPage(0);
+    if (!searchTerm) {
+      setUsers([]);
+      return;
+    }
     try {
       setLoading(true);
-      const res = await axios.get(`${baseUrl}/users`);
+      const res = await axios.get(`${baseUrl}/users/search?q=${searchTerm}`);
       setUsers(res.data);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to fetch users");
+      toast.error("Failed to search users");
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchUsers = async () => {
+    if (searchTerm) {
+      handleSearch();
+    } else {
+      setUsers([]);
+    }
+  };
+
   useEffect(() => {
-    fetchUsers();
     const loadDropdownData = async () => {
       try {
         const [procRes, subRes, branchRes] = await Promise.all([
@@ -196,17 +211,7 @@ const UserList = () => {
     }
   };
 
-  const filteredUsers = users.filter((u) => {
-    const term = searchTerm.toLowerCase();
-    return (
-      u.user_name?.toLowerCase().includes(term) ||
-      u.full_name?.toLowerCase().includes(term) ||
-      u.mail_address?.toLowerCase().includes(term) ||
-      u.department?.toLowerCase().includes(term) ||
-      u.process?.toLowerCase().includes(term) ||
-      u.organization?.toLowerCase().includes(term)
-    );
-  });
+  const filteredUsers = users;
 
   return (
     <Box sx={{ p: 3 }}>
@@ -254,15 +259,19 @@ const UserList = () => {
       </Stack>
 
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
-        <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end" }}>
+        <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
           <TextField
             placeholder="Search users..."
             variant="outlined"
             size="small"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             sx={{ width: { xs: "100%", sm: 300 } }}
           />
+          <Button variant="contained" onClick={handleSearch} color="primary" size="small">
+            Search
+          </Button>
         </Box>
         <TableContainer sx={{ minWidth: 800 }}>
           <Table hover>
@@ -280,8 +289,10 @@ const UserList = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredUsers.map((u) => (
-                <TableRow key={u.id} hover>
+              {filteredUsers
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((u) => (
+                  <TableRow key={u.id} hover>
                   <TableCell>{u.user_name}</TableCell>
                   <TableCell>{u.full_name}</TableCell>
                   <TableCell>{u.mail_address}</TableCell>
@@ -307,6 +318,18 @@ const UserList = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[10, 25, 50]}
+          component="div"
+          count={filteredUsers.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={(event, newPage) => setPage(newPage)}
+          onRowsPerPageChange={(event) => {
+            setRowsPerPage(parseInt(event.target.value, 10));
+            setPage(0);
+          }}
+        />
       </Paper>
 
       {/* Form Modal */}

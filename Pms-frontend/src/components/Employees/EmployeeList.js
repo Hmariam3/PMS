@@ -55,12 +55,13 @@ const modalStyle = {
 const EmployeeList = () => {
   const tableRef = useRef();
   const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [tableKey, setTableKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
 
 
   const [employeeForm, setEmployeeForm] = useState({
@@ -130,26 +131,37 @@ const EmployeeList = () => {
     }
   };
 
-  const fetchEmployees = async () => {
+  const handleSearch = async () => {
+    if (!searchQuery) {
+      setEmployees([]);
+      setTableKey((prev) => prev + 1);
+      return;
+    }
     try {
       setLoading(true);
-      const res = await axios.get(`${baseUrl}/employees`);
-      // Show all employees instead of filtering
+      const res = await axios.get(`${baseUrl}/employees/search?q=${searchQuery}`);
       setEmployees(res.data.employees);
       setTableKey((prev) => prev + 1);
     } catch (err) {
-
       console.error(err);
-      toast.error("Failed to fetch employees");
+      toast.error("Failed to search employees");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchEmployees = async () => {
+    if (searchQuery) {
+      handleSearch();
+    } else {
+      setEmployees([]);
+      setTableKey((prev) => prev + 1);
     }
   };
 
 
   useEffect(() => {
     fetchDropdowns();
-    fetchEmployees();
   }, []);
 
   useEffect(() => {
@@ -401,6 +413,20 @@ const EmployeeList = () => {
       </Stack>
 
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end", gap: 1 }}>
+          <TextField
+            placeholder="Search employees..."
+            variant="outlined"
+            size="small"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            sx={{ width: { xs: "100%", sm: 300 } }}
+          />
+          <Button variant="contained" onClick={handleSearch} color="primary" size="small">
+            Search
+          </Button>
+        </Box>
         <TableContainer key={tableKey} sx={{ maxHeight: "calc(100vh - 250px)", p: 2 }}>
           <table
             ref={tableRef}

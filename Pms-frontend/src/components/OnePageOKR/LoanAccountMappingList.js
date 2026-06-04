@@ -120,7 +120,7 @@ const LoanAccountMappingList = () => {
       setMapping((prev) => ({
         ...prev,
         account_holder: data.customerName,
-        collected_balance: parseFloat(String(data.outstandingBalance).replace(/,/g, "")) || 0,
+        collected_balance: 0,
         outstanding_balance: parseFloat(String(data.outstandingBalance).replace(/,/g, "")) || 0,
         status: data.status,
         customer_id: data.customer,
@@ -291,7 +291,7 @@ const LoanAccountMappingList = () => {
                 <TableCell>ID</TableCell>
                 <TableCell>Account Number</TableCell>
                 <TableCell>Account Holder</TableCell>
-                <TableCell>Collected</TableCell>
+                {/* <TableCell>Collected</TableCell> */}
                 <TableCell>Outstanding</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>District</TableCell>
@@ -305,14 +305,14 @@ const LoanAccountMappingList = () => {
                   <TableCell>{m.map_id}</TableCell>
                   <TableCell>{m.loan_account_number}</TableCell>
                   <TableCell>{m.account_holder}</TableCell>
-                  <TableCell>{m.collected_balance?.toLocaleString()}</TableCell>
+                  {/* <TableCell>{m.collected_balance?.toLocaleString()}</TableCell> */}
                   <TableCell>{m.outstanding_balance?.toLocaleString()}</TableCell>
                   <TableCell>{m.status}</TableCell>
                   <TableCell>{m.district}</TableCell>
                   <TableCell>{m.branch}</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
-                      <IconButton color="primary" onClick={() => handleEdit(m)}><EditIcon fontSize="small" /></IconButton>
+                      {/* <IconButton color="primary" onClick={() => handleEdit(m)}><EditIcon fontSize="small" /></IconButton> */}
                       <IconButton color="error" onClick={() => handleDelete(m.map_id)}><DeleteIcon fontSize="small" /></IconButton>
                     </Stack>
                   </TableCell>

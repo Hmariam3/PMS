@@ -362,84 +362,94 @@ export const importExcelAccountMappingFCY = async (req, res) => {
       errors: [],
     };
 
-    for (const row of limitedData) {
-      const accountNumber = String(row["account_number"] || row["Account Number"] || "").trim();
+    const chunkArray = (arr, size) => {
+      return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
+        arr.slice(i * size, i * size + size)
+      );
+    };
 
-      if (!accountNumber) {
-        results.errors.push({ account: "Unknown", error: "Empty account number" });
-        continue;
-      }
+    const batches = chunkArray(limitedData, 5);
 
-      if (accountNumber.length < 8) {
-        results.errors.push({ account: accountNumber, error: "Account must be at least 8 digits" });
-        continue;
-      }
+    for (const batch of batches) {
+      await Promise.all(batch.map(async (row) => {
+        const accountNumber = String(row["account_number"] || row["Account Number"] || "").trim();
 
-      try {
-        // 1. Check duplicate in DB
-        const check = await pool.query(
-          `SELECT 1 FROM public.accountmappingfcy WHERE account_number = $1 LIMIT 1`,
-          [accountNumber],
-        );
-        if (check.rows.length > 0) {
-          results.skipped.push({ account: accountNumber, reason: "Already registered" });
-          continue;
+        if (!accountNumber) {
+          results.errors.push({ account: "Unknown", error: "Empty account number" });
+          return;
         }
 
-        // 2. Fetch from Temenos
-        const soapData = await fetchAccountBalanceFromSoap(accountNumber);
-
-        // 3. Validation
-        if (soapData.currency === "ETB") {
-          results.errors.push({ account: accountNumber, error: "ETB accounts not allowed for FCY" });
-          continue;
+        if (accountNumber.length < 8) {
+          results.errors.push({ account: accountNumber, error: "Account must be at least 8 digits" });
+          return;
         }
 
-        // 4. Fetch Branch Info
-        let district = "";
-        let branch = "";
-        if (soapData.campany_code) {
-          const branchRes = await pool.query(
-            `SELECT b.branch_name, s.process_name 
-             FROM public.branches b
-             JOIN public.sub_processess s ON b.subprocess_id = s.id
-             WHERE b.branch_code = $1`,
-            [soapData.campany_code],
+        try {
+          // 1. Check duplicate in DB
+          const check = await pool.query(
+            `SELECT 1 FROM public.accountmappingfcy WHERE account_number = $1 LIMIT 1`,
+            [accountNumber]
           );
-          if (branchRes.rows.length > 0) {
-            branch = branchRes.rows[0].branch_name;
-            district = branchRes.rows[0].process_name;
+          if (check.rows.length > 0) {
+            results.skipped.push({ account: accountNumber, reason: "Already registered" });
+            return;
           }
+
+          // 2. Fetch from Temenos
+          const soapData = await fetchAccountBalanceFromSoap(accountNumber);
+
+          // 3. Validation
+          if (soapData.currency === "ETB") {
+            results.errors.push({ account: accountNumber, error: "ETB accounts not allowed for FCY" });
+            return;
+          }
+
+          // 4. Fetch Branch Info
+          let district = "";
+          let branch = "";
+          if (soapData.campany_code) {
+            const branchRes = await pool.query(
+              `SELECT b.branch_name, s.process_name 
+               FROM public.branches b
+               JOIN public.sub_processess s ON b.subprocess_id = s.id
+               WHERE b.branch_code = $1`,
+              [soapData.campany_code]
+            );
+            if (branchRes.rows.length > 0) {
+              branch = branchRes.rows[0].branch_name;
+              district = branchRes.rows[0].process_name;
+            }
+          }
+
+          // 5. Insert to DB
+          await pool.query(
+            `INSERT INTO public.accountmappingfcy 
+             (account_number, account_holder, beginning_balance, current_balance, user_name, created_at,
+              process, subprocess, team, district, branch, customer_id, crm_name)
+             VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, $12)`,
+            [
+              accountNumber,
+              soapData.name,
+              parseFloat(String(soapData.workingBalance).replace(/,/g, "")) || 0,
+              parseFloat(String(soapData.workingBalance).replace(/,/g, "")) || 0,
+              user_name,
+              process || null,
+              subprocess || null,
+              team || null,
+              district,
+              branch,
+              soapData.customer_id,
+              user_name,
+            ]
+          );
+
+          results.success.push({ account: accountNumber, holder: soapData.name });
+
+        } catch (err) {
+          console.error(`Error processing account ${accountNumber}:`, err.message);
+          results.errors.push({ account: accountNumber, error: err.message });
         }
-
-        // 5. Insert to DB
-        await pool.query(
-          `INSERT INTO public.accountmappingfcy 
-           (account_number, account_holder, beginning_balance, current_balance, user_name, created_at,
-            process, subprocess, team, district, branch, customer_id, crm_name)
-           VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9, $10, $11, $12)`,
-          [
-            accountNumber,
-            soapData.name,
-            parseFloat(String(soapData.workingBalance).replace(/,/g, "")) || 0,
-            parseFloat(String(soapData.workingBalance).replace(/,/g, "")) || 0,
-            user_name,
-            process || null,
-            subprocess || null,
-            team || null,
-            district,
-            branch,
-            soapData.customer_id,
-            user_name,
-          ],
-        );
-
-        results.success.push({ account: accountNumber, holder: soapData.name });
-
-      } catch (err) {
-        console.error(`Error processing account ${accountNumber}:`, err.message);
-        results.errors.push({ account: accountNumber, error: err.message });
-      }
+      }));
     }
 
     res.status(200).json({

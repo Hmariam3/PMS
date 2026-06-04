@@ -49,6 +49,7 @@ import LoanAccountMappingList from "./components/OnePageOKR/LoanAccountMappingLi
 import DistrictMappingList from "./components/OnePageOKR/DistrictMappingList";
 import FCYDepositList from "./components/OnePageOKR/FCYDepositList";
 import EngagementList from "./components/OnePageOKR/EngagementList";
+import UserTargetsReport from "./components/Reports/UserTargetsReport";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./AuthContext";
@@ -471,6 +472,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <QuarterOKRList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/user-targets"
+              element={
+                <ProtectedRoute>
+                  <UserTargetsReport />
                 </ProtectedRoute>
               }
             />

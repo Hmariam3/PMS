@@ -84,7 +84,7 @@ export const createEmployee = async (req, res) => {
       // and from request might be string or number
       const isIdConflict = String(existing.rows[0].employee_id) === String(employee_id);
       const conflictField = isIdConflict ? "Employee ID" : "Outlook Address";
-      
+
       return res.status(400).json({
         message: `Employee with this ${conflictField} already exists.`,
       });
@@ -130,9 +130,9 @@ export const createEmployee = async (req, res) => {
     });
   } catch (err) {
     console.error("Error creating employee:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Server error occurred while creating employee",
-      error: err.message 
+      error: err.message
     });
   }
 };
@@ -433,6 +433,29 @@ export const getMyTeamBySupervisor = async (req, res) => {
     res.status(200).json(result.rows);
   } catch (err) {
     console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const searchEmployees = async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: "Search query is required" });
+  }
+  try {
+    const result = await pool.query(
+      `SELECT * FROM public.employees 
+       WHERE employee_id::text ILIKE $1 
+          OR display_name ILIKE $1 
+          OR title ILIKE $1 
+          OR branch_name ILIKE $1 
+          OR supervisor ILIKE $1 
+       LIMIT 100`,
+      [`%${q}%`]
+    );
+    res.json({ employees: result.rows });
+  } catch (err) {
+    console.error("Error searching employees:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 };

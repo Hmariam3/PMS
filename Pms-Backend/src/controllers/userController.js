@@ -508,15 +508,16 @@ export const getAllActiveUsers = async (req, res) => {
 // ================= SEARCH USERS =================
 export const searchUsers = async (req, res) => {
   const { q } = req.query;
-  if (!q || q.length < 3) {
-    return res.status(400).json({ error: "Search query must be at least 3 characters" });
+  if (!q) {
+    return res.status(400).json({ error: "Search query is required" });
   }
 
   try {
     const result = await pool.query(
-      `SELECT user_name, full_name, process, subprocess, team FROM public.users 
-       WHERE user_name ILIKE $1 OR full_name ILIKE $1 
-       LIMIT 50`,
+      `SELECT id, user_name, full_name, department, mail_address, title, created_at, created_by, password, process, subprocess, team, "position", reportto, role, organization, cbsusername, departmentid, company_code 
+       FROM public.users 
+       WHERE user_name ILIKE $1 OR full_name ILIKE $1 OR mail_address ILIKE $1 OR department ILIKE $1 OR process ILIKE $1 OR organization ILIKE $1
+       LIMIT 100`,
       [`%${q}%`]
     );
 

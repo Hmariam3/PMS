@@ -97,7 +97,7 @@ const TargetList = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (["deposit_target", "fcy_target", "loan_collection"].includes(name)) {
+    if (["deposit_target", "fcy_target", "loan_collection", "cash_collection", "cash_deposited_crm"].includes(name)) {
       if (!/^\d*\.?\d*$/.test(value)) return;
     }
     setTarget({ ...target, [name]: value });
@@ -154,6 +154,7 @@ const TargetList = () => {
       team: t.team || "",
       cash_collection: t.cash_collection || "",
       cash_deposited_crm: t.cash_deposited_crm || "",
+      created_by: t.created_by || "",
       approved_by: t.approved_by || "",
       approved_at: t.approved_at || "",
       status: t.status || "",
