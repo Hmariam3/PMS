@@ -208,7 +208,7 @@ const NonDepositTargetList = () => {
       setErrors(validationErrors);
       return;
     }
-    console.log("errors", errors);
+    // console.log("errors", errors);
     try {
       setLoading(true);
       if (target.target_id) {

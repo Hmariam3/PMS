@@ -259,7 +259,7 @@ const PerformanceMetricList = ({ member }) => {
         if (type === "Digital Transaction") {
 
           const digtaltsRes = await axios.post(`${baseUrl}/nondeposit/getDigitalTxnPercentageSummaryByUser/`, requestData);
-          console.log("digital_transaction_volume", digtaltsRes);
+          // console.log("digital_transaction_volume", digtaltsRes);
           return { actual: digtaltsRes?.data?.digital_txn_percentage || 0, target: digital_transaction_volumeTarget };
 
         }
