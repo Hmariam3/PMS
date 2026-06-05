@@ -170,9 +170,9 @@ const getNavLinks = (user) => {
     {
       text: "Reports",
       icon: <SummarizeIcon />,
-      show: isHaile,
+      show: true,
       children: [
-        { text: "User Targets Report", path: "/reports/user-targets", icon: <AssessmentIcon />, show: isHaile },
+        { text: "User Targets Report", path: "/reports/user-targets", icon: <AssessmentIcon />, show: true },
       ],
     },
   ];
