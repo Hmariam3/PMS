@@ -5,6 +5,7 @@ import {
   createEngagement,
   updateEngagement,
   deleteEngagement,
+  approveEngagement,
 } from "../controllers/engagementController.js";
 
 const router = express.Router();
@@ -14,5 +15,7 @@ router.post("/getEngagementsByUser", getEngagementsByUser);
 router.post("/", createEngagement);
 router.put("/:id", updateEngagement);
 router.delete("/:id", deleteEngagement);
+router.put("/:id/approve", approveEngagement);
+
 
 export default router;

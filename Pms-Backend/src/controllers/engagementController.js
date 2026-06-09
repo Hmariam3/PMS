@@ -26,12 +26,14 @@ export const getEngagementsByUser = async (req, res) => {
     let values;
 
     if (position === "CRM" || position === "Individual") {
+
       query = `SELECT * FROM public.engagement WHERE user_name = $1 ORDER BY eng_id`;
       values = [user_id];
     } else if (position === "Manager") {
       query = `SELECT * FROM public.engagement WHERE team = $1 ORDER BY eng_id`;
       values = [team];
     } else if (position === "Director" || position === "Senior Director") {
+
       query = `SELECT * FROM public.engagement WHERE subprocess = $1 ORDER BY eng_id`;
       values = [subprocess];
     } else if (position === "VP" || position === "CHF") {
@@ -147,6 +149,35 @@ export const updateEngagement = async (req, res) => {
 
     res.status(200).json({
       message: "Engagement updated",
+      engagement: result.rows[0],
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// Approve engagement
+export const approveEngagement = async (req, res) => {
+  const { id } = req.params;
+  const { approved_by } = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE public.engagement
+       SET status = 'Approved',
+           approved_by = $1
+       WHERE eng_id = $2
+       RETURNING *`,
+      [approved_by, id],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Engagement not found" });
+    }
+
+    res.status(200).json({
+      message: "Engagement approved",
       engagement: result.rows[0],
     });
   } catch (err) {

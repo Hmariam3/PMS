@@ -66,8 +66,11 @@ const Login = () => {
         const MailAdress = res.data.MailAdress;
         try {
           const restitle = await axios.get(
-            `${baseUrl}/employees/title/email/${MailAdress}`,
-            { timeout: 10000 }
+            `${baseUrl}/employees/title/email`,
+            {
+              params: { email: MailAdress },
+              timeout: 10000,
+            }
           );
 
           const userWithTitel = {

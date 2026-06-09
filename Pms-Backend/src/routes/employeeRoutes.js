@@ -24,7 +24,8 @@ router.get("/:id", getEmployeeById);
 router.post("/createEmployee", createEmployee);
 router.put("/:id", updateEmployee);
 router.delete("/:id", deleteEmployee);
-router.get("/title/email/:email", getEmployeeTitleByEmail);
+// router.get("/title/email/:email", getEmployeeTitleByEmail);
+router.get("/title/email", getEmployeeTitleByEmail);
 router.get("/myTeam/:supervisor_email", getMyTeamBySupervisor);
 // New Excel upload endpoint
 router.post("/upload", upload.single("file"), uploadEmployeesFromExcel);

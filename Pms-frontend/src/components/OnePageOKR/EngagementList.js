@@ -29,6 +29,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
+  Check as CheckIcon,
 } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import $ from "jquery";
@@ -147,6 +148,25 @@ const EngagementList = () => {
     setShowForm(true);
   };
 
+  const handleApprove = async (e) => {
+    try {
+      if (e.user_name === user.UserName) {
+        toast.error("You cannot approve your own Engagement");
+        return;
+      }
+      setLoading(true);
+      await axios.put(`${baseUrl}/engagement/${e.eng_id}/approve`, {
+        approved_by: user.UserName,
+      });
+      toast.success("Engagement approved successfully");
+      fetchEngagements();
+    } catch (err) {
+      toast.error("Engagement approval failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure?")) return;
     try {
@@ -209,8 +229,19 @@ const EngagementList = () => {
                   <TableCell>{e.crm_name}</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
-                      <IconButton color="primary" onClick={() => handleEdit(e)}><EditIcon fontSize="small" /></IconButton>
-                      <IconButton color="error" onClick={() => handleDelete(e.eng_id)}><DeleteIcon fontSize="small" /></IconButton>
+                      {(user.position === "Director" && user.process === "Interest Free Banking") &&
+                        e.user_name !== user.UserName &&
+                        e.status !== "Approved" && (
+                          <IconButton color="success" size="small" onClick={() => handleApprove(e)}>
+                            <CheckIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      {e.user_name === user.UserName && e.status === "Pending" && (
+                        <>
+                          <IconButton color="primary" onClick={() => handleEdit(e)}><EditIcon fontSize="small" /></IconButton>
+                          <IconButton color="error" onClick={() => handleDelete(e.eng_id)}><DeleteIcon fontSize="small" /></IconButton>
+                        </>
+                      )}
                     </Stack>
                   </TableCell>
                 </TableRow>

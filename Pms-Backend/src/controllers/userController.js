@@ -296,6 +296,7 @@ export const updateUser = async (req, res) => {
     subprocess,
     team,
     position,
+    title,
     role,
     organization,
   } = req.body;
@@ -307,15 +308,17 @@ export const updateUser = async (req, res) => {
            subprocess=$2,
            team=$3,
            position=$4,
-           role=$5,
-           organization=$6
-       WHERE id=$7
+           title=$5,
+           role=$6,
+           organization=$7
+       WHERE id=$8
        RETURNING *`,
       [
         process,
         subprocess,
         team,
         position,
+        title,
         role,
         organization,
         id,

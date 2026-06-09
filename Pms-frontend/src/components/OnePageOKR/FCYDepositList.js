@@ -149,7 +149,7 @@ const FCYDepositList = () => {
       const res = await axios.post(`${baseUrl}/fcy-deposit/getFcyDepositsByUser`, {
         user_id: user.UserName,
         position: user.position,
-        supervisor: user.mail_address,
+        supervisor: user.MailAdress,
         process: user.process,
         subprocess: user.subprocess,
         team: user.team,
@@ -338,11 +338,14 @@ const FCYDepositList = () => {
                   <TableCell>{d.crm_name}</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
-                      {user.position === "Manager" && d.createdby !== user.UserName && d.status !== "Approved" && (
-                        <IconButton color="success" size="small" onClick={() => handleApprove(d)}>
-                          <CheckIcon fontSize="small" />
-                        </IconButton>
-                      )}
+                      {(user.position === "Manager" ||
+                        (user.position === "Director" && user.process === "Interest Free Banking")) &&
+                        d.createdby !== user.UserName &&
+                        d.status !== "Approved" && (
+                          <IconButton color="success" size="small" onClick={() => handleApprove(d)}>
+                            <CheckIcon fontSize="small" />
+                          </IconButton>
+                        )}
                       {d.createdby === user.UserName && d.status === "Pending" && (
                         <IconButton color="primary" onClick={() => handleEdit(d)}><EditIcon fontSize="small" /></IconButton>)
                       }

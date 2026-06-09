@@ -372,7 +372,8 @@ export const downloadEmployeeTemplate = (req, res) => {
 
 export const getEmployeeTitleByEmail = async (req, res) => {
   try {
-    const { email } = req.params;
+    // const { email } = req.params;
+    const { email } = req.query;
     const result = await pool.query(
       `SELECT e.employee_id,
               e.display_name,

@@ -79,11 +79,18 @@ const Register = () => {
   }, [baseUrl]);
 
   const fetchTitle = async (email) => {
-    const encodedEmail = encodeURIComponent(email);
+    // const encodedEmail = encodeURIComponent(email);
     try {
+      // const restitle = await axios.get(
+      //   `${baseUrl}/employees/title/email/${encodedEmail}`,
+      //   { timeout: 10000 }
+      // );
       const restitle = await axios.get(
-        `${baseUrl}/employees/title/email/${encodedEmail}`,
-        { timeout: 10000 }
+        `${baseUrl}/employees/title/email`,
+        {
+          params: { email },
+          timeout: 10000,
+        }
       );
 
       const data = restitle.data;

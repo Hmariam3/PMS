@@ -77,6 +77,7 @@ const UserList = () => {
   const [processes, setProcesses] = useState([]);
   const [subprocesses, setSubProcesses] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [titles, setTitles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -110,14 +111,16 @@ const UserList = () => {
   useEffect(() => {
     const loadDropdownData = async () => {
       try {
-        const [procRes, subRes, branchRes] = await Promise.all([
+        const [procRes, subRes, branchRes, titlesRes] = await Promise.all([
           axios.get(`${baseUrl}/processes`),
           axios.get(`${baseUrl}/subProcess`),
           axios.get(`${baseUrl}/branches`),
+          axios.get(`${baseUrl}/titles`),
         ]);
         setProcesses(procRes.data);
         setSubProcesses(subRes.data);
         setTeams(branchRes.data);
+        setTitles(titlesRes.data);
       } catch (err) {
         console.error("Failed to load dropdown data:", err);
       }
@@ -293,28 +296,28 @@ const UserList = () => {
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((u) => (
                   <TableRow key={u.id} hover>
-                  <TableCell>{u.user_name}</TableCell>
-                  <TableCell>{u.full_name}</TableCell>
-                  <TableCell>{u.mail_address}</TableCell>
-                  <TableCell>{u.department}</TableCell>
-                  <TableCell>{u.process}</TableCell>
-                  <TableCell>{u.organization}</TableCell>
-                  <TableCell align="center">
-                    <Stack direction="row" spacing={1} justifyContent="center">
-                      <Tooltip title="Edit">
-                        <IconButton color="primary" size="small" onClick={() => handleEdit(u)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      {/* <Tooltip title="Delete">
+                    <TableCell>{u.user_name}</TableCell>
+                    <TableCell>{u.full_name}</TableCell>
+                    <TableCell>{u.mail_address}</TableCell>
+                    <TableCell>{u.department}</TableCell>
+                    <TableCell>{u.process}</TableCell>
+                    <TableCell>{u.organization}</TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={1} justifyContent="center">
+                        <Tooltip title="Edit">
+                          <IconButton color="primary" size="small" onClick={() => handleEdit(u)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        {/* <Tooltip title="Delete">
                         <IconButton color="error" size="small" onClick={() => handleDelete(u.id)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Tooltip> */}
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </TableContainer>
@@ -467,6 +470,22 @@ const UserList = () => {
                       <MenuItem value="Manager">Manager</MenuItem>
                       <MenuItem value="CRM">CRM</MenuItem>
                       <MenuItem value="Individual">Individual</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Title</InputLabel>
+                    <Select
+                      name="title"
+                      value={formData.title}
+                      label="Title"
+                      onChange={handleChange}
+                    >
+                      <MenuItem value=""><em>Select Title</em></MenuItem>
+                      {titles.map((t) => (
+                        <MenuItem key={t.id} value={t.title_name}>{t.title_name}</MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 </Grid>
