@@ -142,7 +142,7 @@ export const createAccountMapping = async (req, res) => {
 
     // Check duplicate account in the same organization
     const check = await pool.query(
-      `SELECT am.user_name, u.organization 
+      `SELECT am.user_name, u.organization, u.full_name, u.team 
        FROM public.accountmapping am
        LEFT JOIN public.users u ON am.user_name = u.user_name
        WHERE am.account_number = $1`,
@@ -155,7 +155,7 @@ export const createAccountMapping = async (req, res) => {
 
     if (alreadyRegisteredInOrg) {
       return res.status(409).json({
-        message: `Account is already registered by a user from the ${organization} organization`,
+        message: `Account is already registered by a user from the ${organization} organization , By ${check.rows[0].full_name} from ${check.rows[0].team} Branch`,
       });
     }
 
@@ -407,10 +407,31 @@ export const importExcelAccountMapping = async (req, res) => {
     }
 
     // Limit to 50 accounts
-    const limitedData = data.slice(0, 50);
+    const limitedDataRaw = data.slice(0, 50);
+    const uniqueAccounts = new Set();
+    const limitedData = [];
+    const duplicatesInExcel = [];
+
+    for (const row of limitedDataRaw) {
+      const accountNumber = String(row["account_number"] || row["Account Number"] || "").trim();
+      if (accountNumber) {
+        if (!uniqueAccounts.has(accountNumber)) {
+          uniqueAccounts.add(accountNumber);
+          limitedData.push(row);
+        } else {
+          duplicatesInExcel.push({
+            account: accountNumber,
+            reason: "Duplicate in the uploaded Excel file",
+          });
+        }
+      } else {
+        limitedData.push(row);
+      }
+    }
+
     const results = {
       success: [],
-      skipped: [],
+      skipped: [...duplicatesInExcel],
       errors: [],
     };
 
@@ -518,7 +539,7 @@ export const importExcelAccountMapping = async (req, res) => {
     res.status(200).json({
       message: "Bulk upload completed",
       summary: {
-        total: limitedData.length,
+        total: limitedDataRaw.length,
         successCount: results.success.length,
         skippedCount: results.skipped.length,
         errorCount: results.errors.length,

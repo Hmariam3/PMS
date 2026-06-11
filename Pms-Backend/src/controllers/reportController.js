@@ -5,8 +5,7 @@ import pool from "../db.js";
 // their financial target and non-financial target rows.
 // Users with no targets still appear with null target columns.
 export const getUserTargetsReport = async (req, res) => {
-  const { user_id, position, role, team, subprocess, process } = req.body;
-
+  const { user_id, position, role, team, subprocess, process, organization } = req.body;
   if (!user_id || !position) {
     return res.status(400).json({ error: "user_id and position are required" });
   }
@@ -90,12 +89,12 @@ export const getUserTargetsReport = async (req, res) => {
     } else if (position === "CRM" || position === "Individual") {
       whereClause = `WHERE u.user_name = $1`;
       values = [user_id];
+    } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
+      whereClause = `WHERE u.subprocess = $1`;
+      values = [subprocess];
     } else if (position === "Manager") {
       whereClause = `WHERE u.team = $1`;
       values = [team];
-    } else if (position === "Director" || position === "Senior Director") {
-      whereClause = `WHERE u.subprocess = $1`;
-      values = [subprocess];
     } else if (position === "VP" || position === "CHF") {
       whereClause = `WHERE u.process = $1`;
       values = [process];

@@ -181,7 +181,7 @@ const exportToExcelStyled = async (rows) => {
     const cell = headerRow.getCell(idx + 1);
     cell.alignment = { horizontal: 'center', vertical: 'middle' };
     cell.border = styles.border;
-    
+
     if (idx < USER_COLS.length) {
       cell.fill = styles.userHead;
       cell.font = styles.darkText;
@@ -203,7 +203,7 @@ const exportToExcelStyled = async (rows) => {
       rowData[c.key] = val;
     });
     const newRow = worksheet.addRow(rowData);
-    
+
     // Add basic borders to data cells
     newRow.eachCell(cell => {
       cell.border = styles.border;
@@ -254,6 +254,7 @@ const UserTargetsReport = () => {
           team: user?.team,
           subprocess: user?.subprocess,
           process: user?.process,
+          organization: user?.organization,
         });
         setRows(res.data);
       } catch (err) {
