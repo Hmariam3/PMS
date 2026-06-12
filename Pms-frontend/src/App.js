@@ -50,6 +50,7 @@ import DistrictMappingList from "./components/OnePageOKR/DistrictMappingList";
 import FCYDepositList from "./components/OnePageOKR/FCYDepositList";
 import EngagementList from "./components/OnePageOKR/EngagementList";
 import UserTargetsReport from "./components/Reports/UserTargetsReport";
+import AccountMappingReport from "./components/Reports/AccountMappingReport";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./AuthContext";
@@ -480,6 +481,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <UserTargetsReport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/account-mapping"
+              element={
+                <ProtectedRoute>
+                  <AccountMappingReport />
                 </ProtectedRoute>
               }
             />

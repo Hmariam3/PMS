@@ -113,3 +113,114 @@ export const getUserTargetsReport = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+// ================= ACCOUNT MAPPING REPORT =================
+// Returns user information with their mapped accounts.
+// Implements server-side pagination due to millions of records in accountmapping table.
+export const getAccountMappingReport = async (req, res) => {
+  try {
+    const { 
+      user_id, position, role, team, subprocess, process, organization,
+      page = 0, limit = 10, searchTerm = "", district = "", isExport = false
+    } = req.body;
+
+    if (!user_id || !position) {
+      return res.status(400).json({ error: "user_id and position are required" });
+    }
+
+    const isAdmin = role === "Admin";
+    
+    if (isExport && !isAdmin) {
+      return res.status(403).json({ error: "Export is only allowed for Admin" });
+    }
+    if (isExport && !district) {
+      return res.status(400).json({ error: "Export requires filtering by a specific district" });
+    }
+
+    const offset = page * limit;
+
+    // Base WHERE conditions
+    let conditions = ["1=1"];
+    let values = [];
+    let paramIndex = 1;
+
+    // 1. Role-based scoping (similar to User Targets)
+    if (!isAdmin) {
+      if (position === "CRM" || position === "Individual") {
+        conditions.push(`u.user_name = $${paramIndex++}`);
+        values.push(user_id);
+      } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
+        conditions.push(`u.subprocess = $${paramIndex++}`);
+        values.push(subprocess);
+      } else if (position === "Manager") {
+        conditions.push(`u.team = $${paramIndex++}`);
+        values.push(team);
+      } else if (position === "VP" || position === "CHF") {
+        conditions.push(`u.process = $${paramIndex++}`);
+        values.push(process);
+      } else if (position === "CEO") {
+        // CEO sees all
+      } else {
+        return res.status(400).json({ error: "Invalid position" });
+      }
+    }
+
+    // 2. Additional filters
+    if (searchTerm) {
+      conditions.push(`(u.user_name ILIKE $${paramIndex} OR u.full_name ILIKE $${paramIndex} OR am.account_number ILIKE $${paramIndex})`);
+      values.push(`%${searchTerm}%`);
+      paramIndex++;
+    }
+
+    if (district) {
+      conditions.push(`u.subprocess ILIKE $${paramIndex++}`);
+      values.push(`%${district}%`);
+    }
+
+    const whereClause = `WHERE ${conditions.join(" AND ")}`;
+
+    // Query 1: Get Total Count for Pagination
+    const countQuery = `
+      SELECT COUNT(*) 
+      FROM public.accountmapping am
+      LEFT JOIN public.users u ON am.user_name = u.user_name
+      ${whereClause}
+    `;
+    const countResult = await pool.query(countQuery, values);
+    const totalCount = parseInt(countResult.rows[0].count, 10);
+
+    // Query 2: Get Paginated Data
+    const dataQuery = `
+      SELECT 
+        u.user_name,
+        u.full_name,
+        u.department,
+        u.position,
+        u.title,
+        u.team,
+        u.subprocess,
+        u.process,
+        u.organization,
+        am.account_number,
+        am.created_at
+      FROM public.accountmapping am
+      LEFT JOIN public.users u ON am.user_name = u.user_name
+      ${whereClause}
+      ORDER BY u.subprocess ASC, u.user_name ASC, am.created_at DESC
+      ${isExport ? "" : `LIMIT $${paramIndex++} OFFSET $${paramIndex++}`}
+    `;
+    
+    // Create a copy of values for the data query and add limit/offset
+    const dataValues = isExport ? [...values] : [...values, limit, offset];
+    const dataResult = await pool.query(dataQuery, dataValues);
+
+    res.status(200).json({
+      data: dataResult.rows,
+      totalCount
+    });
+
+  } catch (err) {
+    console.error("getAccountMappingReport error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};

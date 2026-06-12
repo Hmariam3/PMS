@@ -173,6 +173,7 @@ const getNavLinks = (user) => {
       show: true,
       children: [
         { text: "User Targets Report", path: "/reports/user-targets", icon: <AssessmentIcon />, show: true },
+        { text: "Account Mapping Report", path: "/reports/account-mapping", icon: <AssessmentIcon />, show: isAdmin },
       ],
     },
   ];

@@ -445,8 +445,8 @@ const AccountMappingList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Account Number</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Account Holder</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Beg. Balance</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Cur. Balance</TableCell>
+                {/* <TableCell sx={{ fontWeight: 600 }}>Beg. Balance</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Cur. Balance</TableCell> */}
                 <TableCell sx={{ fontWeight: 600 }}>Created By</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
@@ -460,8 +460,8 @@ const AccountMappingList = () => {
                   <TableCell>{m.map_id}</TableCell>
                   <TableCell>{m.account_number}</TableCell>
                   <TableCell>{m.account_holder}</TableCell>
-                  <TableCell>{m.beginning_balance?.toLocaleString()}</TableCell>
-                  <TableCell>{m.current_balance?.toLocaleString()}</TableCell>
+                  {/* <TableCell>{m.beginning_balance?.toLocaleString()}</TableCell>
+                  <TableCell>{m.current_balance?.toLocaleString()}</TableCell> */}
                   <TableCell>{m.user_name}</TableCell>
                   <TableCell>{new Date(m.created_at).toLocaleDateString()}</TableCell>
                   <TableCell align="center">

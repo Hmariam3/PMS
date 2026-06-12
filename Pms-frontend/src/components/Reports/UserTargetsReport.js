@@ -36,7 +36,6 @@ const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 const USER_COLS = [
   { key: "user_name", label: "Username" },
   { key: "full_name", label: "Full Name" },
-  { key: "department", label: "Department" },
   { key: "position", label: "Position" },
   { key: "title", label: "Title" },
   { key: "team", label: "Team" },
@@ -305,7 +304,6 @@ const UserTargetsReport = () => {
             </Typography>
           </Stack>
           <Breadcrumbs sx={{ mt: 0.5 }}>
-            <Link underline="hover" color="inherit" href="/">Dashboard</Link>
             <Typography color="text.primary">Reports</Typography>
             <Typography color="text.primary">User Targets</Typography>
           </Breadcrumbs>

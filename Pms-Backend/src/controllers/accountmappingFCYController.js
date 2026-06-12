@@ -108,13 +108,24 @@ export const createAccountMapping = async (req, res) => {
   try {
     //  Check duplicate
     const check = await pool.query(
-      `SELECT 1 FROM public.accountmappingfcy WHERE account_number = $1 LIMIT 1`,
+      `SELECT 
+      am.user_name,
+      u.full_name,
+      u.team
+   FROM public.accountmappingfcy am
+   LEFT JOIN public.users u
+     ON am.user_name = u.user_name
+   WHERE am.account_number = $1
+   LIMIT 1`,
       [cleaned_account_number],
     );
 
     if (check.rows.length > 0) {
+      const { full_name, team } = check.rows[0];
+
       return res.status(409).json({
-        message: "Account is already registered",
+        message: `This account number is already registered by ${full_name}${team ? ` from ${team} Branch` : ""
+          }`,
       });
     }
 
