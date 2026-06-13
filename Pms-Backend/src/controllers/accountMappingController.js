@@ -149,16 +149,24 @@ export const createAccountMapping = async (req, res) => {
       [cleaned_account_number]
     );
 
-    const alreadyRegisteredInOrg = check.rows.some(
+    // const alreadyRegisteredInOrg = check.rows.some(
+    //   row => (row.organization || "").toLowerCase() === orgLower
+    // );
+
+    // if (alreadyRegisteredInOrg) {
+    //   return res.status(409).json({
+    //     message: `Account is already registered by a user from the ${organization} organization , By ${check.rows[0].full_name} from ${check.rows[0].team} Branch`,
+    //   });
+    // }
+    const existingUser = check.rows.find(
       row => (row.organization || "").toLowerCase() === orgLower
     );
-
-    if (alreadyRegisteredInOrg) {
+    
+    if (existingUser) {
       return res.status(409).json({
-        message: `Account is already registered by a user from the ${organization} organization , By ${check.rows[0].full_name} from ${check.rows[0].team} Branch`,
+        message: `Account is already registered by ${existingUser.full_name} from ${existingUser.team}, in ${existingUser.organization} Organ.`,
       });
     }
-
     // Insert
     const result = await pool.query(
       `INSERT INTO public.accountmapping 

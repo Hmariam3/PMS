@@ -105,29 +105,75 @@ export const createAccountMapping = async (req, res) => {
     });
   }
 
+  if (!user_name) {
+    return res.status(400).json({
+      message: "user_name is required",
+    });
+  }
+
   try {
+
+    // Fetch current user details
+    const userRes = await pool.query(
+      "SELECT organization, position FROM public.users WHERE user_name = $1",
+      [user_name]
+    );
+
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({
+        message: `User '${user_name}' not found`,
+      });
+    }
+
+    const { organization, position } = userRes.rows[0];
+    const orgLower = (organization || "").toLowerCase();
+    const posLower = (position || "").toLowerCase();
+
+    // Check organization eligibility
+    if (orgLower !== "branch" && orgLower !== "do" && orgLower !== "ho") {
+      return res.status(403).json({
+        message: "FCY Account mapping is only allowed for users from Branch, District, or Ho organizations.",
+      });
+    }
+
+
+    // Check position eligibility
+    if ((orgLower === "do" || orgLower === "ho") && posLower !== "crm") {
+      return res.status(403).json({
+        message: `Users from ${organization} organization must have CRM position to register accounts.`,
+      });
+    }
+    console.log("userRes", userRes.rows);
+
     //  Check duplicate
     const check = await pool.query(
-      `SELECT 
-      am.user_name,
-      u.full_name,
-      u.team
+      `SELECT  am.user_name, u.organization, u.full_name, u.team
    FROM public.accountmappingfcy am
    LEFT JOIN public.users u
      ON am.user_name = u.user_name
-   WHERE am.account_number = $1
-   LIMIT 1`,
+   WHERE am.account_number = $1`,
       [cleaned_account_number],
     );
 
-    if (check.rows.length > 0) {
-      const { full_name, team } = check.rows[0];
 
+    const existingUser = check.rows.find(
+      row => (row.organization || "").toLowerCase() === orgLower
+    );
+
+    if (existingUser) {
       return res.status(409).json({
-        message: `This account number is already registered by ${full_name}${team ? ` from ${team} Branch` : ""
-          }`,
+        message: `Account is already registered by ${existingUser.full_name} from ${existingUser.team}, in ${existingUser.organization} Organ.`,
       });
     }
+
+    // if (check.rows.length > 0) {
+    //   const { full_name, team } = check.rows[0];
+
+    //   return res.status(409).json({
+    //     message: `This account number is already registered by ${full_name}${team ? ` from ${team} Branch` : ""
+    //       }`,
+    //   });
+    // }
 
     //  Insert
     const result = await pool.query(
