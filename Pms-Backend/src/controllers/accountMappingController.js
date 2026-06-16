@@ -140,7 +140,7 @@ export const createAccountMapping = async (req, res) => {
       });
     }
 
-    // Check duplicate account
+    // Check duplicate account in the same organization
     const check = await pool.query(
       `SELECT am.user_name, u.organization, u.full_name, u.team 
        FROM public.accountmapping am
@@ -149,6 +149,16 @@ export const createAccountMapping = async (req, res) => {
       [cleaned_account_number]
     );
 
+    // const alreadyRegisteredInOrg = check.rows.some(
+    //   row => (row.organization || "").toLowerCase() === orgLower
+    // );
+
+    // if (alreadyRegisteredInOrg) {
+    //   return res.status(409).json({
+    //     message: `Account is already registered by a user from the ${organization} organization , By ${check.rows[0].full_name} from ${check.rows[0].team} Branch`,
+    //   });
+    // }
+
     if (req.body.is_mm) {
       if (check.rows.length > 0) {
         return res.status(409).json({
@@ -156,13 +166,13 @@ export const createAccountMapping = async (req, res) => {
         });
       }
     } else {
-      const alreadyRegisteredInOrg = check.rows.some(
+      const existingUser = check.rows.find(
         row => (row.organization || "").toLowerCase() === orgLower
       );
 
-      if (alreadyRegisteredInOrg) {
+      if (existingUser) {
         return res.status(409).json({
-          message: `Account is already registered by a user from the ${organization} organization , By ${check.rows[0].full_name} from ${check.rows[0].team} Branch`,
+          message: `Account is already registered by ${existingUser.full_name} from ${existingUser.team}, in ${existingUser.organization} Organ.`,
         });
       }
     }
@@ -585,7 +595,7 @@ export const searchAccountMappingsByUser = async (req, res) => {
     `;
 
     const values = searchTerm ? [user_id, `%${searchTerm}%`] : [user_id];
-    
+
     const result = await pool.query(query, values);
 
     res.status(200).json(result.rows);
