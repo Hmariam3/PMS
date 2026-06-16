@@ -140,7 +140,7 @@ export const createAccountMapping = async (req, res) => {
       });
     }
 
-    // Check duplicate account in the same organization
+    // Check duplicate account
     const check = await pool.query(
       `SELECT am.user_name, u.organization, u.full_name, u.team 
        FROM public.accountmapping am
@@ -149,14 +149,22 @@ export const createAccountMapping = async (req, res) => {
       [cleaned_account_number]
     );
 
-    const alreadyRegisteredInOrg = check.rows.some(
-      row => (row.organization || "").toLowerCase() === orgLower
-    );
+    if (req.body.is_mm) {
+      if (check.rows.length > 0) {
+        return res.status(409).json({
+          message: `MM Reference is already registered by ${check.rows[0].full_name} from ${check.rows[0].team} Branch`,
+        });
+      }
+    } else {
+      const alreadyRegisteredInOrg = check.rows.some(
+        row => (row.organization || "").toLowerCase() === orgLower
+      );
 
-    if (alreadyRegisteredInOrg) {
-      return res.status(409).json({
-        message: `Account is already registered by a user from the ${organization} organization , By ${check.rows[0].full_name} from ${check.rows[0].team} Branch`,
-      });
+      if (alreadyRegisteredInOrg) {
+        return res.status(409).json({
+          message: `Account is already registered by a user from the ${organization} organization , By ${check.rows[0].full_name} from ${check.rows[0].team} Branch`,
+        });
+      }
     }
 
     // Insert
@@ -550,5 +558,39 @@ export const importExcelAccountMapping = async (req, res) => {
   } catch (err) {
     console.error("Bulk upload error:", err.message);
     res.status(500).json({ error: "Failed to process bulk upload" });
+  }
+};
+
+// Search account mappings by user
+export const searchAccountMappingsByUser = async (req, res) => {
+  const { user_id, searchTerm } = req.body;
+
+  if (!user_id) {
+    return res.status(400).json({ error: "user_id is required" });
+  }
+
+  try {
+    const query = `
+      SELECT 
+        map_id, account_number, account_holder, 
+        beginning_balance, current_balance, 
+        user_name, created_at,
+        process, subprocess, team,
+        district, branch, customer_id, crm_name
+      FROM public.accountmapping
+      WHERE user_name = $1
+      ${searchTerm ? "AND (account_number ILIKE $2 OR account_holder ILIKE $2)" : ""}
+      ORDER BY map_id
+      LIMIT 50
+    `;
+
+    const values = searchTerm ? [user_id, `%${searchTerm}%`] : [user_id];
+    
+    const result = await pool.query(query, values);
+
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
   }
 };

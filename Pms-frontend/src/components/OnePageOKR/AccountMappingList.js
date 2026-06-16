@@ -25,6 +25,7 @@ import {
   TextField,
   Divider,
   Alert,
+  Autocomplete,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -64,6 +65,15 @@ const AccountMappingList = () => {
   const [errors, setErrors] = useState({});
   const [isDisabled, setIsDisabled] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+
+  // MM Modal State
+  const [showMMModal, setShowMMModal] = useState(false);
+  const [mmSearchTerm, setMmSearchTerm] = useState("");
+  const [mmAccountOptions, setMmAccountOptions] = useState([]);
+  const [selectedMMAccount, setSelectedMMAccount] = useState(null);
+  const [mmReference, setMmReference] = useState("");
+  const [mmAmount, setMmAmount] = useState("");
+  const [mmIsValidated, setMmIsValidated] = useState(false);
 
   const [mapping, setMapping] = useState({
     account_number: "",
@@ -181,6 +191,103 @@ const AccountMappingList = () => {
       };
     }
   }, [mappings]);
+
+  // Handle Autocomplete Search for MM Accounts
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (mmSearchTerm && mmSearchTerm.length >= 3) {
+        try {
+          const res = await axios.post(`${baseUrl}/accountmapping/searchByUser`, {
+            user_id: user.UserName,
+            searchTerm: mmSearchTerm,
+          });
+          setMmAccountOptions(res.data);
+        } catch (err) {
+          console.error("Failed to search accounts", err);
+        }
+      } else {
+        setMmAccountOptions([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [mmSearchTerm, user.UserName, baseUrl]);
+
+  const handleShowMM = () => {
+    setMmSearchTerm("");
+    setMmAccountOptions([]);
+    setSelectedMMAccount(null);
+    setMmReference("");
+    setMmAmount("");
+    setMmIsValidated(false);
+    setShowMMModal(true);
+  };
+
+  const handleCloseMM = () => setShowMMModal(false);
+
+  const handleValidateMM = async () => {
+    if (!selectedMMAccount || !mmReference) {
+      toast.error("Please select an account and enter MM Reference");
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await axios.post(`${baseUrl}/cbs/mm-reference-detail`, {
+        referenceNumber: mmReference,
+        accountNumber: selectedMMAccount.account_number,
+      });
+
+      if (res.data.success) {
+        setMmAmount(res.data.amount);
+        setMmIsValidated(true);
+        toast.success("MM Reference validated successfully");
+      } else {
+        toast.error(res.data.message || "Failed to validate MM reference");
+        setMmIsValidated(false);
+        setMmAmount("");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Validation failed");
+      setMmIsValidated(false);
+      setMmAmount("");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveMM = async () => {
+    if (!mmIsValidated || !selectedMMAccount || !mmReference) {
+      toast.error("Please validate MM Reference first");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const payload = {
+        ...selectedMMAccount,
+        account_number: mmReference,
+        account_holder: selectedMMAccount.account_holder,
+        beginning_balance: 0,
+        current_balance: parseFloat(mmAmount),
+        user_name: user?.UserName,
+        created_at: new Date().toISOString(),
+        is_mm: true,
+      };
+      // remove map_id so it creates a new entry
+      delete payload.map_id;
+
+      await axios.post(`${baseUrl}/accountmapping`, payload);
+      toast.success("MM Reference mapped successfully");
+      fetchMappings();
+      handleCloseMM();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to save MM Reference");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleShow = () => {
     setMapping({
@@ -429,6 +536,14 @@ const AccountMappingList = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
+            onClick={handleShowMM}
+            color="success"
+          >
+            ADD MM
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
             onClick={handleShow}
             Color="info"
           >
@@ -608,6 +723,97 @@ const AccountMappingList = () => {
                 </Button>
               </Box>
             </form>
+          </Box>
+        </Fade>
+      </Modal>
+
+      {/* ADD MM Modal */}
+      <Modal
+        open={showMMModal}
+        onClose={handleCloseMM}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{ timeout: 500 }}
+      >
+        <Fade in={showMMModal}>
+          <Box sx={modalStyle}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+              Add MM Reference
+            </Typography>
+            <Divider sx={{ mb: 3 }} />
+            <Grid container spacing={2}>
+              <Grid item xs={12} >
+                <Autocomplete sx={{ width: 580 }}
+                  options={mmAccountOptions}
+                  getOptionLabel={(option) => `${option.account_number} - ${option.account_holder}`}
+                  onInputChange={(event, newInputValue) => {
+                    setMmSearchTerm(newInputValue);
+                  }}
+                  onChange={(event, newValue) => {
+                    setSelectedMMAccount(newValue);
+                    setMmIsValidated(false);
+                    setMmAmount("");
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Account"
+                      size="small"
+                      required
+                      placeholder="Type at least 3 characters to search..."
+                    />
+                  )}
+                  isOptionEqualToValue={(option, value) => option.map_id === value.map_id}
+                />
+              </Grid>
+              <Grid item xs={12} sm={8}>
+                <TextField
+                  fullWidth
+                  label="MM Reference"
+                  value={mmReference}
+                  onChange={(e) => {
+                    setMmReference(e.target.value);
+                    setMmIsValidated(false);
+                    setMmAmount("");
+                  }}
+                  required
+                  size="small"
+                  placeholder="e.g. MM1000085896"
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Button
+                  variant="outlined"
+                  onClick={handleValidateMM}
+                  disabled={loading || !selectedMMAccount || !mmReference}
+                  fullWidth
+                  sx={{ height: '100%' }}
+                >
+                  Validate
+                </Button>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Amount"
+                  value={mmAmount}
+                  InputProps={{ readOnly: true }}
+                  size="small"
+                  disabled={!mmIsValidated}
+                />
+              </Grid>
+            </Grid>
+            <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+              <Button onClick={handleCloseMM}>Cancel</Button>
+              <Button
+                onClick={handleSaveMM}
+                variant="contained"
+                color="info"
+                disabled={!mmIsValidated || loading}
+              >
+                Save
+              </Button>
+            </Box>
           </Box>
         </Fade>
       </Modal>

@@ -281,3 +281,109 @@ export const getLoanDetail = async (req, res) => {
     });
   }
 };
+
+export const fetchMMReferenceFromSoap = async (referenceNumber) => {
+  if (!referenceNumber) {
+    throw new Error("Reference number is required");
+  }
+
+  const xmlRequest = `
+  <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tws="http://temenos.com/TWSTXNDETAIL">
+    <soapenv:Header/>
+    <soapenv:Body>
+      <tws:CBOTXNDETAIL>
+        <WebRequestCommon>
+          <company></company>
+          <password>${process.env.SOAP_PASSWORD}</password>
+          <userName>${process.env.SOAP_USERNAME}</userName>
+        </WebRequestCommon>
+        <FTTTTXNDETAILType>
+          <enquiryInputCollection>
+            <columnName>TXN.REF</columnName>
+            <criteriaValue>${referenceNumber}</criteriaValue>
+            <operand>EQ</operand>
+          </enquiryInputCollection>
+        </FTTTTXNDETAILType>
+      </tws:CBOTXNDETAIL>
+    </soapenv:Body>
+  </soapenv:Envelope>
+  `;
+
+  const response = await axiosInstance.post(process.env.SOAP_URL, xmlRequest, {
+    headers: {
+      "Content-Type": "text/xml;charset=UTF-8",
+    },
+    timeout: 10000,
+  });
+
+  const parsed = await xml2js.parseStringPromise(response.data, {
+    explicitArray: false,
+    tagNameProcessors: [xml2js.processors.stripPrefix],
+  });
+
+  const body = parsed.Envelope?.Body;
+
+  if (!body) {
+    throw new Error("Invalid SOAP response: Body not found");
+  }
+
+  // C#'s equivalent: //S:Body/ns4:CBOTXNDETAILResponse/FTTTTXNDETAILType/ns3:gFTTTTXNDETAILDetailType/ns3:mFTTTTXNDETAILDetailType
+  const txnNode =
+    body.CBOTXNDETAILResponse?.FTTTTXNDETAILType
+      ?.gFTTTTXNDETAILDetailType
+      ?.mFTTTTXNDETAILDetailType;
+
+  if (!txnNode) {
+    throw new Error("MM transaction details not found");
+  }
+
+  const account = txnNode.Account || "";
+  const amtRaw = txnNode.Amount || "";
+  const txnDate = txnNode.TXNDATE || "";
+  const amtClean = amtRaw.replace(/^[A-Za-z]+/, "").trim();
+
+  return {
+    account: account,
+    amount: amtClean,
+    txnDate: txnDate,
+  };
+};
+
+export const getMMReferenceDetail = async (req, res) => {
+  try {
+    const { referenceNumber, accountNumber } = req.body;
+    const result = await fetchMMReferenceFromSoap(referenceNumber);
+
+    // Cross-check account
+    if (result.account !== accountNumber) {
+       return res.status(400).json({
+         success: false,
+         message: "MM reference account doesn't match selected account."
+       });
+    }
+
+    // Check transaction date is not before April 1st of the current year
+    const currentYear = new Date().getFullYear();
+    const cutoffDateStr = `${currentYear}0401`;
+    if (result.txnDate && result.txnDate < cutoffDateStr) {
+       return res.status(400).json({
+         success: false,
+         message: `MM reference date (${result.txnDate}) is before April 1st, ${currentYear} and cannot be registered.`
+       });
+    }
+
+    res.status(200).json({
+      success: true,
+      amount: result.amount,
+      data: result,
+    });
+
+  } catch (error) {
+    console.error("SOAP MM REF ERROR:", error.message);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+

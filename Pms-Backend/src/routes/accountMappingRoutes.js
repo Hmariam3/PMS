@@ -8,6 +8,7 @@ import {
   getBalanceDifferenceByUser,
   getAccountMappingsByUser,
   importExcelAccountMapping,
+  searchAccountMappingsByUser,
 } from "../controllers/accountMappingController.js";
 import { upload } from "../middleware/upload.js";
 const router = express.Router();
@@ -16,6 +17,7 @@ router.get("/:id", getAccountMappingById);
 router.post("/", createAccountMapping);
 router.post("/getBalanceDifference/", getBalanceDifferenceByUser);
 router.post("/getAccountMappingsByUser/", getAccountMappingsByUser);
+router.post("/searchByUser", searchAccountMappingsByUser);
 router.put("/:id", updateAccountMapping);
 router.delete("/:id", deleteAccountMapping);
 
