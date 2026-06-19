@@ -63,6 +63,7 @@ const getNavLinks = (user) => {
   const position = user?.position || "";
   const orgUnit = user?.organization || "";
   const process = user?.process || "";
+  const subprocess = user?.subprocess || "";
 
   const isHaile = user?.UserName === "hailemariamk";
   const isAdmin = role === "Admin";
@@ -75,6 +76,7 @@ const getNavLinks = (user) => {
   const isIndividual = position === "Individual";
   const isVPOrCHF = position.includes("VP") || position.includes("CHF");
   const isIFB = process === "Interest Free Banking";
+  const isCorporate = subprocess === "Corporate Banking" || subprocess === "NGO and Institutional Banking" || subprocess === "Cooperative Business" || subprocess === "Agri Business" || subprocess === "Product Director by Division";
 
 
   return [
@@ -90,27 +92,13 @@ const getNavLinks = (user) => {
       icon: <GroupWorkIcon />,
       show: true,
     },
-    // {
-    //   text: "Employees",
-    //   path: "/employees",
-    //   icon: <BadgeIcon />,
-    //   show: isAdmin,
-    // },
-    // {
-    //   text: "Users",
-    //   icon: <ManageAccountsIcon />,
-    //   show: isAdmin,
-    //   children: [
-    //     { text: "All Users", path: "/users", icon: <PeopleIcon />, show: isAdmin },
-    //     { text: "Admins", path: "/admins", icon: <AdminPanelSettingsIcon />, show: isAdmin },
-    //   ],
-    // },
     {
       text: "Settings",
       icon: <SettingsIcon />,
       show: isAdmin,
       children: [
         { text: "Manage Users", path: "/users", icon: <PeopleIcon />, show: isAdmin },
+        { text: "User Transfer", path: "/users/transfer", icon: <ManageAccountsIcon />, show: isAdmin },
         { text: "Employee Master", path: "/employees", icon: <BadgeIcon />, show: isAdmin },
         { text: "Proceses", path: "/proceses", icon: <WorkIcon />, show: isAdmin },
         { text: "Sub Process", path: "/subprocess", icon: <AccountTreeIcon />, show: isAdmin },
@@ -139,15 +127,15 @@ const getNavLinks = (user) => {
     {
       text: "Set Target",
       icon: <GpsFixedIcon />,
-      show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo,
+      show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate,
       children: [
-        { text: "Local Account Mapping", path: "/accountmapping", icon: <LinkIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
-        { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <CurrencyExchangeIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
-        { text: "FCY Generation", path: "/fcy-deposit", icon: <SavingsIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
-        { text: "Loan Account Mapping", path: "/loanaccountmapping", icon: <AccountBalanceWalletIcon />, show: isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
-        { text: "District Mapping", path: "/districtmapping", icon: <MapIcon />, show: isCRM || isAdmin || isIFB },
-        { text: "Financial Target", path: "/target", icon: <AccountBalanceIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
-        { text: "Non Financial Target", path: "/nondeposittarget", icon: <TrackChangesIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo },
+        { text: "Local Account Mapping", path: "/accountmapping", icon: <LinkIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
+        { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <CurrencyExchangeIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
+        { text: "FCY Generation", path: "/fcy-deposit", icon: <SavingsIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
+        { text: "Loan Account Mapping", path: "/loanaccountmapping", icon: <AccountBalanceWalletIcon />, show: isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
+        { text: "District Mapping", path: "/districtmapping", icon: <MapIcon />, show: (isCRM && isIFB) || isAdmin || isIFB },
+        { text: "Financial Target", path: "/target", icon: <AccountBalanceIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
+        { text: "Non Financial Target", path: "/nondeposittarget", icon: <TrackChangesIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
       ],
     },
     {

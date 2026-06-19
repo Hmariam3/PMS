@@ -162,7 +162,7 @@ export const createAccountMapping = async (req, res) => {
     if (req.body.is_mm) {
       if (check.rows.length > 0) {
         return res.status(409).json({
-          message: `MM Reference is already registered by ${check.rows[0].full_name} from ${check.rows[0].team} Branch`,
+          message: `MM Reference is already registered by ${check.rows[0].full_name} from ${check.rows[0].team}.`,
         });
       }
     } else {

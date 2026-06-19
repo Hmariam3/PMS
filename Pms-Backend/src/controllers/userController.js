@@ -302,8 +302,19 @@ export const updateUser = async (req, res) => {
   } = req.body;
 
   try {
-    const result = await pool.query(
-      `UPDATE public.users
+    let company_code = null;
+
+    if (team) {
+      const branchResult = await pool.query(
+        "SELECT branch_code FROM public.branches WHERE branch_name = $1",
+        [team]
+      );
+      if (branchResult.rows.length > 0) {
+        company_code = branchResult.rows[0].branch_code;
+      }
+    }
+
+    let queryStr = `UPDATE public.users
        SET process=$1,
            subprocess=$2,
            team=$3,
@@ -312,8 +323,31 @@ export const updateUser = async (req, res) => {
            role=$6,
            organization=$7
        WHERE id=$8
-       RETURNING *`,
-      [
+       RETURNING *`;
+    let queryParams = [
+      process,
+      subprocess,
+      team,
+      position,
+      title,
+      role,
+      organization,
+      id,
+    ];
+
+    if (company_code) {
+      queryStr = `UPDATE public.users
+       SET process=$1,
+           subprocess=$2,
+           team=$3,
+           position=$4,
+           title=$5,
+           role=$6,
+           organization=$7,
+           company_code=$8
+       WHERE id=$9
+       RETURNING *`;
+      queryParams = [
         process,
         subprocess,
         team,
@@ -321,9 +355,12 @@ export const updateUser = async (req, res) => {
         title,
         role,
         organization,
+        company_code,
         id,
-      ],
-    );
+      ];
+    }
+
+    const result = await pool.query(queryStr, queryParams);
 
     if (result.rows.length === 0)
       return res.status(404).json({ error: "User not found" });
@@ -525,6 +562,101 @@ export const searchUsers = async (req, res) => {
     );
 
     res.json(result.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// ================= TRANSFER USER BRANCH =================
+export const transferUserBranch = async (req, res) => {
+  const { username } = req.params;
+  const { process, subprocess, team } = req.body;
+
+  try {
+    let company_code = null;
+    if (team) {
+      const branchResult = await pool.query(
+        "SELECT branch_code FROM public.branches WHERE branch_name = $1",
+        [team]
+      );
+      if (branchResult.rows.length > 0) {
+        company_code = branchResult.rows[0].branch_code;
+      }
+    }
+
+    let userQuery = `UPDATE public.users SET process=$1, subprocess=$2, team=$3`;
+    let userParams = [process, subprocess, team];
+    
+    if (company_code) {
+      userQuery += `, company_code=$4 WHERE user_name=$5 RETURNING *`;
+      userParams.push(company_code, username);
+    } else {
+      userQuery += ` WHERE user_name=$4 RETURNING *`;
+      userParams.push(username);
+    }
+
+    const userResult = await pool.query(userQuery, userParams);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    await pool.query(
+      `UPDATE public.targets SET process=$1, subprocess=$2, team=$3 WHERE user_name=$4`,
+      [process, subprocess, team, username]
+    );
+
+    await pool.query(
+      `UPDATE public.non_deposit_target SET process=$1, subprocess=$2, team=$3 WHERE user_name=$4`,
+      [process, subprocess, team, username]
+    );
+
+    res.json({
+      message: "User branch and targets updated successfully",
+      user: userResult.rows[0],
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// ================= DELETE USER MAPPINGS =================
+export const deleteUserMappings = async (req, res) => {
+  const { username, type } = req.params;
+
+  try {
+    let deletedCounts = {};
+
+    if (type === "local" || type === "all") {
+      const resLocal = await pool.query(
+        "DELETE FROM public.accountmapping WHERE user_name = $1 RETURNING *",
+        [username]
+      );
+      deletedCounts.local = resLocal.rowCount;
+    }
+    
+    if (type === "fcy" || type === "all") {
+      const resFcy = await pool.query(
+        "DELETE FROM public.accountmappingfcy WHERE user_name = $1 RETURNING *",
+        [username]
+      );
+      deletedCounts.fcy = resFcy.rowCount;
+    }
+
+    if (type === "loan" || type === "all") {
+      const resLoan = await pool.query(
+        "DELETE FROM public.loanaccountmapping WHERE user_name = $1 RETURNING *",
+        [username]
+      );
+      deletedCounts.loan = resLoan.rowCount;
+    }
+
+    res.json({
+      message: "Mappings deleted successfully",
+      deletedCounts,
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: "Server error" });

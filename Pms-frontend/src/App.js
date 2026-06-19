@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import DashboardTeam from "./pages/DashboardTeam";
 import Projects from "./pages/Projects";
 import Users from "./components/Users/UserList";
+import UserTransfer from "./components/Users/UserTransfer";
 import EmployeeList from "./components/Employees/EmployeeList";
 import ProcessList from "./components/Config/ProcessList";
 import SubProcessList from "./components/Config/SubProcessList";
@@ -191,6 +192,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Users />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users/transfer"
+              element={
+                <ProtectedRoute>
+                  <UserTransfer />
                 </ProtectedRoute>
               }
             />

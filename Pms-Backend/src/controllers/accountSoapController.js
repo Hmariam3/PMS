@@ -356,20 +356,20 @@ export const getMMReferenceDetail = async (req, res) => {
 
     // Cross-check account
     if (result.account !== accountNumber) {
-       return res.status(400).json({
-         success: false,
-         message: "MM reference account doesn't match selected account."
-       });
+      return res.status(400).json({
+        success: false,
+        message: "MM reference account doesn't match selected account."
+      });
     }
 
     // Check transaction date is not before April 1st of the current year
     const currentYear = new Date().getFullYear();
     const cutoffDateStr = `${currentYear}0401`;
     if (result.txnDate && result.txnDate < cutoffDateStr) {
-       return res.status(400).json({
-         success: false,
-         message: `MM reference date (${result.txnDate}) is before April 1st, ${currentYear} and cannot be registered.`
-       });
+      return res.status(400).json({
+        success: false,
+        message: `MM reference date (${result.txnDate}) is before April 1st, ${currentYear} and cannot be registered.`
+      });
     }
 
     res.status(200).json({

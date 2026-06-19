@@ -7,7 +7,9 @@ import {
   getUserByEmail,
   getUserByPostion,
   searchUsers,
-  updateUser
+  updateUser,
+  transferUserBranch,
+  deleteUserMappings
 } from "../controllers/userController.js";
 import { apiKeyMiddleware } from "../middleware/apiKeyMiddleware.js";
 const router = express.Router();
@@ -18,5 +20,7 @@ router.post("/getUserByPostion/", getUserByPostion);
 router.post("/login/", loginUser);
 router.get("/getUserByuserName/:username", getUserByuserName);
 router.get("/byEmail/:email", getUserByEmail);
+router.put("/:username/transfer", transferUserBranch);
+router.delete("/mappings/:username/:type", deleteUserMappings);
 router.put("/:id", updateUser);
 export default router;
