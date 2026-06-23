@@ -224,3 +224,138 @@ export const getAccountMappingReport = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+// ================= ACCOUNT VARIATION REPORT =================
+export const getAccountVariationReport = async (req, res) => {
+  try {
+    const { 
+      user_id, position, role, team, subprocess, process, organization, tabType 
+    } = req.body;
+
+    if (!user_id || !position || !tabType) {
+      return res.status(400).json({ error: "user_id, position, and tabType are required" });
+    }
+
+    const isAdmin = role === "Admin";
+    
+    // Base WHERE conditions for scoping
+    let conditions = ["1=1"];
+    let values = [];
+    let paramIndex = 1;
+
+    // 1. Role-based scoping
+    if (!isAdmin) {
+      if (position === "CRM" || position === "Individual") {
+        conditions.push(`u.user_name = $${paramIndex++}`);
+        values.push(user_id);
+      } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
+        if (subprocess) {
+          conditions.push(`u.subprocess = $${paramIndex++}`);
+          values.push(subprocess);
+        }
+      } else if (position === "Manager") {
+        if (team) {
+          conditions.push(`u.team = $${paramIndex++}`);
+          values.push(team);
+        }
+      } else if (position === "VP" || position === "CHF") {
+        if (process) {
+          conditions.push(`u.process = $${paramIndex++}`);
+          values.push(process);
+        }
+      } else if (position === "CEO") {
+        // CEO sees all
+      } else {
+        return res.status(400).json({ error: "Invalid position" });
+      }
+    }
+
+    const whereClause = `WHERE ${conditions.join(" AND ")}`;
+    let query = "";
+
+    switch (tabType) {
+      case "local":
+        query = `
+          SELECT 
+            u.user_name,
+            u.full_name,
+            u.position,
+            u.process,
+            u.subprocess,
+            u.team as branch,
+            COUNT(am.map_id) as mapped_accounts_count,
+            SUM(am.beginning_balance) as total_beginning_balance,
+            SUM(am.current_balance) as total_current_balance,
+            SUM(am.current_balance) - SUM(am.beginning_balance) as variation
+          FROM public.users u
+          LEFT JOIN public.accountmapping am ON u.user_name = am.user_name
+          ${whereClause}
+          GROUP BY u.user_name, u.full_name, u.position, u.process, u.subprocess, u.team
+        `;
+        break;
+      case "fcy":
+        query = `
+          SELECT 
+            u.user_name,
+            u.full_name,
+            u.position,
+            u.process,
+            u.subprocess,
+            u.team as branch,
+            COUNT(amf.map_id) as mapped_accounts_count,
+            SUM(amf.beginning_balance) as total_beginning_balance,
+            SUM(amf.current_balance) as total_current_balance,
+            SUM(amf."LCY_CLOSING_BALANCE") as total_lcy_closing_balance
+          FROM public.users u
+          LEFT JOIN public.accountmappingfcy amf ON u.user_name = amf.user_name
+          ${whereClause}
+          GROUP BY u.user_name, u.full_name, u.position, u.process, u.subprocess, u.team
+        `;
+        break;
+      case "loan":
+        query = `
+          SELECT 
+            u.user_name,
+            u.full_name,
+            u.position,
+            u.process,
+            u.subprocess,
+            u.team as branch,
+            COUNT(lm.map_id) as loan_accounts_count,
+            SUM(lm.collected_balance) as total_collected_balance,
+            SUM(lm.outstanding_balance) as total_outstanding_balance
+          FROM public.users u
+          LEFT JOIN public.loanaccountmapping lm ON u.user_name = lm.user_name
+          ${whereClause}
+          GROUP BY u.user_name, u.full_name, u.position, u.process, u.subprocess, u.team
+        `;
+        break;
+      case "fcy-gen":
+        query = `
+          SELECT 
+            u.user_name,
+            u.full_name,
+            u.position,
+            u.process,
+            u.subprocess,
+            u.team as branch,
+            COUNT(fd.fcy_id) as fcy_generation_count,
+            SUM(fd.amount) as total_amount
+          FROM public.users u
+          LEFT JOIN public.fcydeposit fd ON u.user_name = fd.user_name AND fd.status = 'Approved'
+          ${whereClause}
+          GROUP BY u.user_name, u.full_name, u.position, u.process, u.subprocess, u.team
+        `;
+        break;
+      default:
+        return res.status(400).json({ error: "Invalid tabType" });
+    }
+
+    const result = await pool.query(query, values);
+    res.status(200).json(result.rows);
+
+  } catch (err) {
+    console.error("getAccountVariationReport error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};

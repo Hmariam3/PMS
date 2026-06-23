@@ -59,6 +59,8 @@ const AccountMappingList = () => {
   const tableRef = useRef();
   const { user } = useContext(AuthContext);
 
+  const isMappingOpen = process.env.REACT_APP_IS_MAPPING_OPEN !== 'false';
+
   const [mappings, setMappings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -214,6 +216,10 @@ const AccountMappingList = () => {
   }, [mmSearchTerm, user.UserName, baseUrl]);
 
   const handleShowMM = () => {
+    // if (!isMappingOpen) {
+    //   toast.error("Account mapping is currently closed.");
+    //   return;
+    // }
     setMmSearchTerm("");
     setMmAccountOptions([]);
     setSelectedMMAccount(null);
@@ -290,6 +296,10 @@ const AccountMappingList = () => {
   };
 
   const handleShow = () => {
+    if (!isMappingOpen) {
+      toast.error("Account mapping is currently closed.");
+      return;
+    }
     setMapping({
       account_number: "",
       account_holder: "",
@@ -411,6 +421,10 @@ const AccountMappingList = () => {
   };
 
   const handleUpload = async () => {
+    if (!isMappingOpen) {
+      toast.error("Account mapping is currently closed.");
+      return;
+    }
     if (!selectedFile) {
       toast.warning("Please select a file first");
       return;
@@ -564,9 +578,9 @@ const AccountMappingList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Cur. Balance</TableCell> */}
                 <TableCell sx={{ fontWeight: 600 }}>Created By</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="center">
+                {/* <TableCell sx={{ fontWeight: 600 }} align="center">
                   Actions
-                </TableCell>
+                </TableCell> */}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -579,17 +593,8 @@ const AccountMappingList = () => {
                   <TableCell>{m.current_balance?.toLocaleString()}</TableCell> */}
                   <TableCell>{m.user_name}</TableCell>
                   <TableCell>{new Date(m.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell align="center">
+                  {/* <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
-                      <Tooltip title="Edit">
-                        <IconButton
-                          color="primary"
-                          size="small"
-                          onClick={() => handleEdit(m)}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
                       <Tooltip title="Delete">
                         <IconButton
                           color="error"
@@ -600,7 +605,7 @@ const AccountMappingList = () => {
                         </IconButton>
                       </Tooltip>
                     </Stack>
-                  </TableCell>
+                  </TableCell> */}
                 </TableRow>
               ))}
             </TableBody>

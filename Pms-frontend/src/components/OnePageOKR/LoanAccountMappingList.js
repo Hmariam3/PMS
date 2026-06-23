@@ -57,6 +57,8 @@ const LoanAccountMappingList = () => {
   const tableRef = useRef();
   const { user } = useContext(AuthContext);
 
+  const isMappingOpen = process.env.REACT_APP_IS_MAPPING_OPEN !== 'false';
+
   const [mappings, setMappings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -168,6 +170,10 @@ const LoanAccountMappingList = () => {
   }, [mappings]);
 
   const handleShow = () => {
+    if (!isMappingOpen) {
+      toast.error("Account mapping is currently closed.");
+      return;
+    }
     setMapping({
       loan_account_number: "",
       account_holder: "",
@@ -238,6 +244,10 @@ const LoanAccountMappingList = () => {
   };
 
   const handleUpload = async () => {
+    if (!isMappingOpen) {
+      toast.error("Account mapping is currently closed.");
+      return;
+    }
     if (!selectedFile) return;
     const formData = new FormData();
     formData.append("file", selectedFile);
@@ -296,7 +306,7 @@ const LoanAccountMappingList = () => {
                 <TableCell>Status</TableCell>
                 <TableCell>District</TableCell>
                 <TableCell>Branch</TableCell>
-                <TableCell align="center">Actions</TableCell>
+                {/* <TableCell align="center">Actions</TableCell> */}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -310,12 +320,12 @@ const LoanAccountMappingList = () => {
                   <TableCell>{m.status}</TableCell>
                   <TableCell>{m.district}</TableCell>
                   <TableCell>{m.branch}</TableCell>
-                  <TableCell align="center">
+                  {/* <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
-                      {/* <IconButton color="primary" onClick={() => handleEdit(m)}><EditIcon fontSize="small" /></IconButton> */}
+                      <IconButton color="primary" onClick={() => handleEdit(m)}><EditIcon fontSize="small" /></IconButton>
                       <IconButton color="error" onClick={() => handleDelete(m.map_id)}><DeleteIcon fontSize="small" /></IconButton>
                     </Stack>
-                  </TableCell>
+                  </TableCell> */}
                 </TableRow>
               ))}
             </TableBody>
