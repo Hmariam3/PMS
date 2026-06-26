@@ -228,7 +228,7 @@ const DashboardTeam = () => {
       const expectedLoan = (daysPassed / 90) * totalLoanTarget;
 
       let totalfcy =
-        Number(fcyRes.data.total_difference || 0) +
+        // Number(fcyRes.data.total_difference || 0) +
         Number(fcyResMapped.data.total_difference || 0);
 
       // calculate current achivement rate
@@ -362,15 +362,16 @@ const DashboardTeam = () => {
   }, [dashboardData]);
 
   return (
-    <Box>
+    <Box sx={{ minHeight: "20vh", p: 3, backgroundColor: "#f9fbffff", fontFamily: "sans-serif" }}>
       {/* HEADER SECTION */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, color: "#1e293b", mb: 1 }}>
+      {/* sx={{ fontWeight: 800, color: "#1e293b", mb: 1, fontFamily: "sans-serif" }} */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" fontWeight="700" >
           Team Dashboard
         </Typography>
-        {/* <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 3 }}>
-          <Typography color="text.primary">Team Oversight</Typography>
-        </Breadcrumbs> */}
+        <Typography variant="body2" color="text.secondary">
+          Real-time tracking of KPIs, and system performance
+        </Typography>
       </Box>
 
       {/* SUMMARY CARDS */}
@@ -404,21 +405,35 @@ const DashboardTeam = () => {
           .map((u) => {
             const data = dashboardData[u.user_name];
             if (!data) return null;
+            const getOrgLabel = (u) => {
+              if (["CRM", "Individual", "Manager"].includes(u.position)) {
+                return u.team;
+              }
 
+              if (["Director", "Senior Director"].includes(u.position)) {
+                return u.subprocess;
+              }
+
+              if (["VP", "CHF"].includes(u.position)) {
+                return u.process;
+              }
+
+              return u.team; // fallback
+            };
             return (
               <Grid item xs={12} key={u.user_name}>
                 <Card elevation={0} sx={{ borderRadius: 4, border: "1px solid #e2e8f0", height: "100%", transition: "0.3s", "&:hover": { boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)" } }}>
                   <CardContent sx={{ p: 4 }}>
                     {/* User Header */}
                     <Stack direction="row" alignItems="center" spacing={3} sx={{ mb: 4 }}>
-                      {/* <Avatar sx={{ width: 80, height: 80, bgcolor: "#f1f5f9", color: "#1e293b", fontWeight: 800, fontSize: "1.5rem" }}>
+                      <Avatar sx={{ width: 80, height: 80, bgcolor: "#f1f5f9", color: "#1e293b", fontWeight: 600, fontSize: "1.5rem" }}>
                         {u.full_name?.split(" ").map(n => n[0]).join("")}
-                      </Avatar> */}
+                      </Avatar>
                       <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 800, color: "#1e293b" }}>{u.full_name}</Typography>
+                        <Typography variant="h5" sx={{ fontWeight: 600, color: "#1e293b" }}>{u.full_name}</Typography>
                         <Stack direction="row" spacing={1.5} sx={{ mt: 1 }}>
                           <Chip label={u.position} size="medium" color="primary" variant="filled" sx={{ fontWeight: 700, borderRadius: 2 }} />
-                          {/* <Chip label={u.branch} size="medium" variant="outlined" sx={{ fontWeight: 600, borderRadius: 2 }} /> */}
+                          <Chip label={getOrgLabel(u)} size="medium" variant="outlined" sx={{ fontWeight: 600, borderRadius: 2 }} />
                         </Stack>
                       </Box>
                     </Stack>
@@ -426,31 +441,7 @@ const DashboardTeam = () => {
                     <Divider sx={{ mb: 4 }} />
 
                     {/* KPI Section */}
-                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, color: "#1e293b", textTransform: "uppercase", letterSpacing: "1.5px" }}>Key Performance Indicators</Typography>
-
-                    {/* {data.districtAchievement?.map((item, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          border: "1px solid #ddd",
-                          padding: "10px",
-                          marginBottom: "10px",
-                          borderRadius: "8px",
-                        }}
-                      >
-                        <h3>{item.district}</h3>
-
-                        <p>
-                          <b>Achievement:</b>{" "}
-                          {Number(item.achievementdistrictDeposit || 0).toFixed(2)} %
-                        </p>
-
-                        <p>
-                          <b>Balance Difference:</b>{" "}
-                          {Number(item.balanceDifference || 0).toLocaleString()}
-                        </p>
-                      </div>
-                    ))} */}
+                    <Typography variant="h6" sx={{ fontWeight: 550, mb: 3, color: "#1e293b", textTransform: "uppercase" }}>Key Performance Indicators</Typography>
                     <Stack
                       direction="row"
                       spacing={1.5}
@@ -463,19 +454,19 @@ const DashboardTeam = () => {
                       }}
                     >
                       {[
-                        ...(user.organization === "Branch" || user.process === "Interest Free Banking" || (user.position === "CRM" && user.organization === "Ho")
+                        ...(user.organization === "Branch" || user.process === "Interest Free Banking" || user.process === "Growth and Operations" || user.process === "Agri and Cooperative Business" || (user.position === "CRM" && user.organization === "Ho")
                           ? [{ label: "Deposit", val: data.achievementDeposit }]
                           : []),
 
-                        ...(user.organization === "Branch" || user.process === "Interest Free Banking" || (user.position === "CRM" && user.organization === "Ho")
-                          ? [{ label: "FCY", val: data.achievementFcy }]
+                        ...(user.organization === "Branch" || user.process === "Interest Free Banking" || user.process === "Growth and Operations" || user.process === "Agri and Cooperative Business" || (user.position === "CRM" && user.organization === "Ho")
+                          ? [{ label: "FCY Generation", val: data.achievementFcy }]
                           : []),
 
-                        ...(user.organization === "Branch" || user.process === "Interest Free Banking" || (user.position === "CRM" && user.organization === "Ho")
-                          ? [{ label: "Loan", val: data.achievementLoan }]
+                        ...(user.organization === "Branch" || user.process === "Interest Free Banking" || user.process === "Growth and Operations" || user.process === "Agri and Cooperative Business" || (user.position === "CRM" && user.organization === "Ho")
+                          ? [{ label: "Loan Collection", val: data.achievementLoan }]
                           : []),
 
-                        ...(user.organization === "Branch"
+                        ...(user.organization === "Branch" || (user.process === "Growth and Operations" && (((user.position === "Director" || user.position === "Senior Director") && user.organization === "Do") || user.position === "VP" || user.position === "CHF"))
                           ? [
                             {
                               label: "New Account",
@@ -484,16 +475,16 @@ const DashboardTeam = () => {
                           ]
                           : []),
 
-                        ...(user.organization === "Branch"
+                        ...(user.organization === "Branch" || (user.process === "Growth and Operations" && (((user.position === "Director" || user.position === "Senior Director") && user.organization === "Do") || user.position === "VP" || user.position === "CHF"))
                           ? [
                             {
-                              label: "Unauthorized",
+                              label: "Unauthorized TXN",
                               val: data.achievementUnauthorized,
                             },
                           ]
                           : []),
 
-                        ...(user.organization === "Branch"
+                        ...(user.organization === "Branch" || (user.process === "Growth and Operations" && (((user.position === "Director" || user.position === "Senior Director") && user.organization === "Do") || user.position === "VP" || user.position === "CHF"))
                           ? [
                             {
                               label: "Active Card",
@@ -502,7 +493,7 @@ const DashboardTeam = () => {
                           ]
                           : []),
 
-                        ...(user.organization === "Branch"
+                        ...(user.organization === "Branch" || (user.process === "Growth and Operations" && (((user.position === "Director" || user.position === "Senior Director") && user.organization === "Do") || user.position === "VP" || user.position === "CHF"))
                           ? [
                             {
                               label: "EEU Account",
@@ -607,11 +598,10 @@ const DashboardTeam = () => {
                           <Typography
                             variant="h6"
                             sx={{
-                              fontWeight: 800,
+                              fontWeight: 550,
                               mb: 4,
                               color: "#1e293b",
                               textTransform: "uppercase",
-                              letterSpacing: "1.5px",
                             }}
                           >
                             Weekly Priorities
@@ -638,7 +628,7 @@ const DashboardTeam = () => {
                                     <Typography
                                       variant="h6"
                                       sx={{
-                                        fontWeight: 800,
+                                        fontWeight: 500,
                                         color: "#1b3fcd",
                                         mb: 2,
                                         borderLeft: "5px solid #1b3fcd",

@@ -314,6 +314,7 @@ export const getBalanceDifferenceByUser = async (req, res) => {
 
   try {
     let query;
+    let fcyQuery;
     let values;
 
     if (position === "CRM" || position === "Individual") {
@@ -322,6 +323,12 @@ export const getBalanceDifferenceByUser = async (req, res) => {
           SUM(COALESCE(current_balance, 0)) - 
           SUM(COALESCE(beginning_balance, 0)) AS total_difference
         FROM public.accountmapping
+        WHERE user_name = $1
+      `;
+      fcyQuery = `
+        SELECT 
+          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) AS total_fcy
+        FROM public.accountmappingfcy
         WHERE user_name = $1
       `;
       values = [user_id];
@@ -334,6 +341,12 @@ export const getBalanceDifferenceByUser = async (req, res) => {
         FROM public.accountmapping
         WHERE team = $1
       `;
+      fcyQuery = `
+        SELECT 
+          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) AS total_fcy
+        FROM public.accountmappingfcy
+        WHERE team = $1
+      `;
       values = [team];
     } else if (position === "Director" || position === "Senior Director") {
       query = `
@@ -341,6 +354,12 @@ export const getBalanceDifferenceByUser = async (req, res) => {
           SUM(COALESCE(current_balance, 0)) - 
           SUM(COALESCE(beginning_balance, 0)) AS total_difference
         FROM public.accountmapping
+        WHERE subprocess = $1
+      `;
+      fcyQuery = `
+        SELECT 
+          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) AS total_fcy
+        FROM public.accountmappingfcy
         WHERE subprocess = $1
       `;
       values = [subprocess];
@@ -352,6 +371,12 @@ export const getBalanceDifferenceByUser = async (req, res) => {
         FROM public.accountmapping
         WHERE process = $1
       `;
+      fcyQuery = `
+        SELECT 
+          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) AS total_fcy
+        FROM public.accountmappingfcy
+        WHERE process = $1
+      `;
       values = [process];
     } else if (position === "CEO") {
       query = `
@@ -360,15 +385,24 @@ export const getBalanceDifferenceByUser = async (req, res) => {
           SUM(COALESCE(beginning_balance, 0)) AS total_difference
         FROM public.accountmapping
       `;
+      fcyQuery = `
+        SELECT 
+          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) AS total_fcy
+        FROM public.accountmappingfcy
+      `;
       values = [];
     } else {
       return res.status(400).json({ error: "Invalid position" });
     }
 
     const result = await pool.query(query, values);
+    const fcyResult = await pool.query(fcyQuery, values);
+
+    const normalDiff = result.rows[0]?.total_difference ? Number(result.rows[0].total_difference) : 0;
+    const fcyTotal = fcyResult.rows[0]?.total_fcy ? Number(fcyResult.rows[0].total_fcy) : 0;
 
     res.status(200).json({
-      total_difference: result.rows[0].total_difference || 0,
+      total_difference: normalDiff + fcyTotal,
     });
   } catch (err) {
     console.error(err.message);

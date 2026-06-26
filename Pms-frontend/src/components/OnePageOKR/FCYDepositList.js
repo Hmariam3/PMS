@@ -339,10 +339,11 @@ const FCYDepositList = () => {
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
 
-                      {(user.position === "Manager" ||
-                        (user.position === "Director" && user.process === "Interest Free Banking") ||
-                        (user.position === "Director" && user.process === "Agri and Cooperative Business") ||
-                        (user.position === "Director" && user.subprocess === "NGO and Institutional Banking")) &&
+                      {(user.position === "Manager" || user.position === "VP" || user.position === "CHF" ||
+                        ((user.position === "Director" || user.position === "Senior Director") && user.process === "Interest Free Banking") ||
+                        ((user.position === "Director" || user.position === "Senior Director") && user.process === "Agri and Cooperative Business") ||
+                        ((user.position === "Director" || user.position === "Senior Director") && user.process === "Growth and Operations") ||
+                        ((user.position === "Director" || user.position === "Senior Director") && user.subprocess === "NGO and Institutional Banking")) &&
                         d.createdby !== user.UserName &&
                         d.status !== "Approved" && (
                           <IconButton color="success" size="small" onClick={() => handleApprove(d)}>

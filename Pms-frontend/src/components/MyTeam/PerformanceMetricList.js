@@ -148,8 +148,11 @@ const PerformanceMetricList = ({ member }) => {
       }
       if (totalFcyTarget > 0) {
         if (type === "fcy") {
-          const fcyRes = await axios.post(`${baseUrl}/fcy/fcyBalanceDifference`, requestData);
-          return { actual: Number(fcyRes.data.total_difference) || 0, target: totalFcyTarget };
+          // const fcyRes = await axios.post(`${baseUrl}/fcy/fcyBalanceDifference`, requestData);
+          // return { actual: Number(fcyRes.data.total_difference) || 0, target: totalFcyTarget };
+          const fcyResMapped = await axios.post(`${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`, requestData);
+          return { actual: Number(fcyResMapped.data.total_difference) || 0, target: totalFcyTarget };
+
         }
       }
 

@@ -352,6 +352,14 @@ export const fetchMMReferenceFromSoap = async (referenceNumber) => {
 export const getMMReferenceDetail = async (req, res) => {
   try {
     const { referenceNumber, accountNumber } = req.body;
+
+    if (!referenceNumber || !referenceNumber.toUpperCase().startsWith("MM")) {
+      return res.status(400).json({
+        success: false,
+        message: "Only MM references are allowed."
+      });
+    }
+
     const result = await fetchMMReferenceFromSoap(referenceNumber);
 
     // Cross-check account

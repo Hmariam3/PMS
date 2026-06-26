@@ -130,7 +130,7 @@ const getNavLinks = (user) => {
       show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate,
       children: [
         { text: "Local Account Mapping", path: "/accountmapping", icon: <LinkIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
-        { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <CurrencyExchangeIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
+        { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <CurrencyExchangeIcon />, show: isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
         { text: "FCY Generation", path: "/fcy-deposit", icon: <SavingsIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
         { text: "Loan Account Mapping", path: "/loanaccountmapping", icon: <AccountBalanceWalletIcon />, show: isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
         { text: "District Mapping", path: "/districtmapping", icon: <MapIcon />, show: (isCRM && isIFB) || isAdmin || isIFB },
@@ -162,7 +162,7 @@ const getNavLinks = (user) => {
       children: [
         { text: "User Targets Report", path: "/reports/user-targets", icon: <AssessmentIcon />, show: true },
         { text: "Account Mapping Report", path: "/reports/account-mapping", icon: <AssessmentIcon />, show: isAdmin },
-        { text: "Account Variation", path: "/reports/account-variation", icon: <AssessmentIcon />, show: isHaile },
+        { text: "Account Variation", path: "/reports/account-variation", icon: <AssessmentIcon />, show: isAdmin },
       ],
     },
   ];
