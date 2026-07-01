@@ -150,7 +150,7 @@ export const getNauTxnSummaryByUser = async (req, res) => {
   }
 };
 export const getEeuPaymentsSummaryByUser = async (req, res) => {
-  const { cbsusername, user_name, position, subprocess, process } = req.body;
+  const { cbsusername, user_id, position, subprocess, process } = req.body;
 
   try {
     let query = "";
@@ -182,7 +182,7 @@ export const getEeuPaymentsSummaryByUser = async (req, res) => {
       ON u.company_code = p."BRANCH_CODE"
     WHERE u.user_name = $1
   `;
-      values = [user_name];
+      values = [user_id];
       // =========================
       // Director
       // =========================
@@ -196,7 +196,7 @@ export const getEeuPaymentsSummaryByUser = async (req, res) => {
       ON u.company_code = p."BRANCH_CODE"
     WHERE u.user_name = $1
   `;
-      values = [user_name];
+      values = [user_id];
     } else if (position === "Director" || position === "Senior Director") {
       query = `
         SELECT 
@@ -253,27 +253,27 @@ export const getActiveCardUsersSummaryByUser = async (req, res) => {
     // CRM / Individual
     // =========================
     if (position === "CRM" || position === "Individual") {
-      // query = `
+      query = `
+          SELECT 
+              COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
+          FROM public."PMS_ACTIVE_CARD_USERS" a
+          WHERE a."INPUTTER" = (
+              SELECT u."cbsusername"
+              FROM public.users u
+              WHERE u."cbsusername" = $1 AND a."CO_CODE" = u.company_code
+              LIMIT 1
+          );
+      `;
+      values = [cbsusername];
+      //     query = `
       //   SELECT 
       //     COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
       //   FROM public."PMS_ACTIVE_CARD_USERS" a
-      //   WHERE a."CO_CODE" = (
-      //     SELECT u."company_code"
-      //     FROM public.users u
-      //     WHERE u."cbsusername" = $1
-      //     LIMIT 1
-      //   )
+      //   JOIN public.users u 
+      //     ON u.company_code = a."CO_CODE"
+      //   WHERE u.user_name = $1
       // `;
-      // values = [cbsusername];
-      query = `
-    SELECT 
-      COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
-    FROM public."PMS_ACTIVE_CARD_USERS" a
-    JOIN public.users u 
-      ON u.company_code = a."CO_CODE"
-    WHERE u.user_name = $1
-  `;
-      values = [user_name];
+      //     values = [user_name];
     } else if (position === "Manager") {
       query = `
     SELECT 

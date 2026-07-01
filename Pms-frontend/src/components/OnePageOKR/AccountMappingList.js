@@ -216,10 +216,10 @@ const AccountMappingList = () => {
   }, [mmSearchTerm, user.UserName, baseUrl]);
 
   const handleShowMM = () => {
-    // if (!isMappingOpen) {
-    //   toast.error("Account mapping is currently closed.");
-    //   return;
-    // }
+    if (!isMappingOpen) {
+      toast.error("MM Registration is currently closed.");
+      return;
+    }
     setMmSearchTerm("");
     setMmAccountOptions([]);
     setSelectedMMAccount(null);

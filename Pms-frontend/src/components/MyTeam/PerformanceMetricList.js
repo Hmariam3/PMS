@@ -110,14 +110,33 @@ const PerformanceMetricList = ({ member }) => {
         requestData
       );
 
+      const LoantargetRes = await axios.post(
+        `${baseUrl}/targets/loanCollectionTargetByUser/`,
+        requestData
+      );
+
+      // cash collection and crm cash collection target
+      const cashTargetRes = await axios.post(
+        `${baseUrl}/targets/cashCollectionTargetByUser/`,
+        requestData
+      );
 
 
-
+      // console.log("loantarget", LoantargetRes.data);
       const totalDeposit = Number(targetRes.data.total_deposit) || 0;
       const totalFcyTarget = Number(targetRes.data.total_fcy) || 0;
-      const totalLoanTarget = Number(targetRes.data.total_loan) || 0;
-      const cash_collectionTarget = Number(targetRes.data.cash_collection) || 0;
-      const cash_deposited_crmTarget = Number(targetRes.data.cash_deposited_crm) || 0;
+
+      let totalLoanTarget = 0;
+      if (userinfo.process === "Interest Free Banking" || userinfo.process === "Agri and Cooperative Business" || (userinfo.process === "Growth and Operations" && userinfo.organization === "Ho")) {
+        //for crm and Ho
+        totalLoanTarget = Number(targetRes.data.total_loan) || 0;
+      } else {
+        //for branch users 
+        totalLoanTarget = Number(LoantargetRes.data.loan_collection) || 0;
+      }
+
+      const cash_collectionTarget = Number(cashTargetRes.data.cash_collection) || 0;
+      const cash_deposited_crmTarget = Number(cashTargetRes.data.cash_deposited_crm) || 0;
 
       if (totalDeposit > 0) {
         if (type === "deposit") {
@@ -160,7 +179,8 @@ const PerformanceMetricList = ({ member }) => {
         if (type === "loan") {
 
           let loanRes = 0;
-          if (userinfo.process === "Interest Free Banking") {
+
+          if (userinfo.process === "Interest Free Banking" || userinfo.process === "Agri and Cooperative Business" || (userinfo.process === "Growth and Operations" && userinfo.organization === "Ho")) {
             loanRes = await axios.post(
               `${baseUrl}/loan/loanBalanceDifferenceMapped`,
               requestData
@@ -196,12 +216,12 @@ const PerformanceMetricList = ({ member }) => {
 
       //nondeposit target
       const userNonDepositTargetRes = await axios.post(`${baseUrl}/non-deposit-target/summary/`, requestData);
+
       // actual from system
       const newAccountTarget = userNonDepositTargetRes.data.total_new_account || 0;
       const unauthorizeTransTarget = userNonDepositTargetRes.data.total_unauthorized || 0;
       const active_cardTarget = userNonDepositTargetRes.data.active_card || 0;
-      const eeu_transactionTarget = userNonDepositTargetRes.data.eeu_transaction || 0;
-      const digital_transaction_volumeTarget = userNonDepositTargetRes.data.digital_transaction_volume || 0;
+
       const transaction_audit_rateTarget = userNonDepositTargetRes.data.transaction_audit_rate || 0;
 
       // actuall from evaluater or users
@@ -212,9 +232,11 @@ const PerformanceMetricList = ({ member }) => {
       const agent_transaction_volumeTarget = userNonDepositTargetRes.data.agent_transaction_volume || 0;
       const michu_unique_recruitmentTarget = userNonDepositTargetRes.data.michu_unique_recruitment || 0;
 
-      const atm_crm_uptime_rateTarget = userNonDepositTargetRes.data.atm_crm_uptime_rate || 0;
+
       const cash_balance_accuracy_rateTarget = userNonDepositTargetRes.data.cash_balance_accuracy_rate || 0;
       const zero_customer_complaintsTarget = userNonDepositTargetRes.data.zero_customer_complaints || 0;
+
+
       const avg_txn_per_csoTarget = userNonDepositTargetRes.data.avg_txn_per_cso || 0;
       const compliance_rateTarget = userNonDepositTargetRes.data.compliance_rate || 0;
       const reports_3days_rateTarget = userNonDepositTargetRes.data.reports_3days_rate || 0;
@@ -224,6 +246,16 @@ const PerformanceMetricList = ({ member }) => {
       const customer_engagementTarget = userNonDepositTargetRes.data.customer_engagement || 0;
       const new_customer_onboardingTarget = userNonDepositTargetRes.data.new_customer_onboarding || 0;
       const armingc_deposit_proportionTarget = userNonDepositTargetRes.data.armingc_deposit_proportion || 0;
+      // get atm, eeu, digital target
+      const atmEeuDigitalTargetRes = await axios.post(
+        `${baseUrl}/non-deposit-target/atm-eeu-digital/`,
+        requestData
+      );
+
+      const eeu_transactionTarget = atmEeuDigitalTargetRes.data.eeu_transaction || 0;
+      const digital_transaction_volumeTarget = atmEeuDigitalTargetRes.data.digital_transaction_volume || 0;
+      const atm_crm_uptime_rateTarget = atmEeuDigitalTargetRes.data.atm_crm_uptime_rate || 0;
+
 
 
       if (newAccountTarget > 0) {

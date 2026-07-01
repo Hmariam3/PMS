@@ -490,3 +490,325 @@ export const getTargetsSummaryByUser = async (req, res) => {
 
   }
 };
+
+//Only for Loan collection
+export const getLoanCollectionTargetByUser = async (req, res) => {
+  const { user_id, position, subprocess, process } = req.body;
+
+  if (!user_id || !position) {
+    return res.status(400).json({
+      error: "User ID and position are required",
+    });
+  }
+
+  try {
+    let query;
+    let values = [];
+
+    // CRM / Individual
+    if (position === "CRM" || position === "Individual") {
+
+      query = `
+        SELECT
+          COALESCE(SUM(t.loan_collection),0) AS loan_collection
+        FROM public.targets t
+        WHERE t.user_name = $1
+          AND t.status = 'Approved'
+      `;
+
+      values = [user_id];
+
+    }
+
+    // Manager
+    else if (position === "Manager") {
+
+      query = `
+        SELECT
+          COALESCE(SUM(t.loan_collection),0) AS loan_collection
+        FROM public.targets t
+        WHERE t.user_name = $1
+          AND t.status = 'Approved'
+      `;
+
+      values = [user_id];
+
+    }
+
+    // Director / Senior Director
+    else if (
+      position === "Director" ||
+      position === "Senior Director"
+    ) {
+
+      query = `
+        SELECT
+          COALESCE(SUM(t.loan_collection),0) AS loan_collection
+        FROM public.targets t
+        INNER JOIN public.users u
+          ON u.user_name = t.user_name
+        WHERE u.position = 'Manager'
+          AND u.subprocess = $1
+          AND t.status = 'Approved'
+      `;
+
+      values = [subprocess];
+
+    }
+
+    // VP / CHF
+    else if (
+      position === "VP" ||
+      position === "CHF"
+    ) {
+
+      query = `
+        SELECT
+          COALESCE(SUM(t.loan_collection),0) AS loan_collection
+        FROM public.targets t
+        INNER JOIN public.users u
+          ON u.user_name = t.user_name
+        WHERE u.position = 'Manager'
+          AND u.process = $1
+          AND t.status = 'Approved'
+      `;
+
+      values = [process];
+
+    }
+
+    // CEO
+    else if (position === "CEO") {
+
+      query = `
+        SELECT
+          COALESCE(SUM(t.loan_collection),0) AS loan_collection
+        FROM public.targets t
+        INNER JOIN public.users u
+          ON u.user_name = t.user_name
+        WHERE u.position = 'Manager'
+          AND t.status = 'Approved'
+      `;
+
+    }
+
+    else {
+      return res.status(400).json({
+        error: "Invalid position",
+      });
+    }
+
+    const result = await pool.query(query, values);
+
+    return res.status(200).json({
+      loan_collection: result.rows[0]?.loan_collection || 0,
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    return res.status(500).json({
+      error: "Server error",
+    });
+  }
+};
+
+
+export const getCashTargetsByUser = async (req, res) => {
+  const { user_id, position, team, subprocess, process } = req.body;
+
+  if (!user_id || !position) {
+    return res.status(400).json({
+      error: "User ID and position are required",
+    });
+  }
+
+  try {
+    let query;
+    let values = [];
+
+    // CRM / Individual
+    if (position === "CRM" || position === "Individual") {
+
+      query = `
+        SELECT
+          COALESCE(cash_collection, 0) AS cash_collection,
+          COALESCE(cash_deposited_crm, 0) AS cash_deposited_crm
+        FROM public.targets
+        WHERE user_name = $1
+          AND status = 'Approved'
+        LIMIT 1
+      `;
+
+      values = [user_id];
+    }
+
+    // Manager
+    else if (position === "Manager") {
+
+      query = `
+        SELECT
+
+        (
+          SELECT COALESCE(cash_collection, 0)
+          FROM public.targets
+          WHERE team = $1
+            AND status = 'Approved'
+            AND cash_collection > 0
+          ORDER BY created_at ASC
+          LIMIT 1
+        ) AS cash_collection,
+
+        (
+          SELECT COALESCE(cash_deposited_crm, 0)
+          FROM public.targets
+          WHERE team = $1
+            AND status = 'Approved'
+            AND cash_deposited_crm > 0
+          ORDER BY created_at ASC
+          LIMIT 1
+        ) AS cash_deposited_crm
+      `;
+
+      values = [team];
+    }
+
+    // Director / Senior Director
+    else if (
+      position === "Director" ||
+      position === "Senior Director"
+    ) {
+
+      query = `
+        SELECT
+
+        (
+          SELECT COALESCE(SUM(cash_collection), 0)
+          FROM (
+            SELECT DISTINCT ON (team)
+              team,
+              cash_collection
+            FROM public.targets
+            WHERE subprocess = $1
+              AND status = 'Approved'
+              AND cash_collection > 0
+            ORDER BY team, created_at ASC
+          ) x
+        ) AS cash_collection,
+
+        (
+          SELECT COALESCE(SUM(cash_deposited_crm), 0)
+          FROM (
+            SELECT DISTINCT ON (team)
+              team,
+              cash_deposited_crm
+            FROM public.targets
+            WHERE subprocess = $1
+              AND status = 'Approved'
+              AND cash_deposited_crm > 0
+            ORDER BY team, created_at ASC
+          ) x
+        ) AS cash_deposited_crm
+      `;
+
+      values = [subprocess];
+    }
+
+    // VP / CHF
+    else if (position === "VP" || position === "CHF") {
+
+      query = `
+        SELECT
+
+        (
+          SELECT COALESCE(SUM(cash_collection), 0)
+          FROM (
+            SELECT DISTINCT ON (team)
+              team,
+              cash_collection
+            FROM public.targets
+            WHERE process = $1
+              AND status = 'Approved'
+              AND cash_collection > 0
+            ORDER BY team, created_at ASC
+          ) x
+        ) AS cash_collection,
+
+        (
+          SELECT COALESCE(SUM(cash_deposited_crm), 0)
+          FROM (
+            SELECT DISTINCT ON (team)
+              team,
+              cash_deposited_crm
+            FROM public.targets
+            WHERE process = $1
+              AND status = 'Approved'
+              AND cash_deposited_crm > 0
+            ORDER BY team, created_at ASC
+          ) x
+        ) AS cash_deposited_crm
+      `;
+
+      values = [process];
+    }
+
+    // CEO
+    else if (position === "CEO") {
+
+      query = `
+        SELECT
+
+        (
+          SELECT COALESCE(SUM(cash_collection), 0)
+          FROM (
+            SELECT DISTINCT ON (team)
+              team,
+              cash_collection
+            FROM public.targets
+            WHERE status = 'Approved'
+              AND cash_collection > 0
+            ORDER BY team, created_at ASC
+          ) x
+        ) AS cash_collection,
+
+        (
+          SELECT COALESCE(SUM(cash_deposited_crm), 0)
+          FROM (
+            SELECT DISTINCT ON (team)
+              team,
+              cash_deposited_crm
+            FROM public.targets
+            WHERE status = 'Approved'
+              AND cash_deposited_crm > 0
+            ORDER BY team, created_at ASC
+          ) x
+        ) AS cash_deposited_crm
+      `;
+    }
+
+    else {
+      return res.status(400).json({
+        error: "Invalid position",
+      });
+    }
+
+    const result = await pool.query(query, values);
+
+    const row = result.rows[0];
+
+    return res.status(200).json({
+      cash_collection: Number(row.cash_collection || 0),
+      cash_deposited_crm: Number(row.cash_deposited_crm || 0),
+      grand_total:
+        Number(row.cash_collection || 0) +
+        Number(row.cash_deposited_crm || 0),
+    });
+
+  } catch (err) {
+    console.error(err.message);
+
+    return res.status(500).json({
+      error: "Server error",
+    });
+  }
+};

@@ -13,6 +13,7 @@ const Dashboard = () => {
   const [accountBalace, setAccountBalace] = useState([]);
   const [ifbBalace, setifbBalace] = useState([]);
   const [userTarget, setuserTarget] = useState([]);
+  const [userLoanTarget, setuserLoanTarget] = useState([]);
   const [usernondepositTarget, setuserNonDepositTarget] = useState([]);
   const [achievementRateDeposit, setAchievementRateDeposit] = useState(0);
   const [achievmentSpecialMentionLoan, setAchievmentSpecialMentionLoan] = useState(0);
@@ -108,6 +109,21 @@ const Dashboard = () => {
       );
       setuserTarget(userTargetRes.data);
 
+      const LoantargetRes = await axios.post(
+        `${baseUrl}/targets/loanCollectionTargetByUser/`,
+        requestData
+      );
+      setuserLoanTarget(LoantargetRes.data);
+
+      let totalLoanTarget = 0;
+      if (user.process === "Interest Free Banking" || user.process === "Agri and Cooperative Business" || (user.process === "Growth and Operations" && user.organization === "Ho")) {
+        //for crm and Ho
+        totalLoanTarget = Number(userTargetRes.data.total_loan) || 0;
+      } else {
+        //for branch users 
+        totalLoanTarget = Number(LoantargetRes.data.loan_collection) || 0;
+      }
+
       let accountBalaceActual = 0;
       // for deposit
       let achievementRate = 0;
@@ -157,7 +173,7 @@ const Dashboard = () => {
       // for target set bay user iteself
       const totalDepositTarget = userTargetRes.data.total_deposit;
       const totalFcyTarget = userTargetRes.data.total_fcy;
-      const totalLoanTarget = userTargetRes.data.total_loan;
+      // totalLoanTarget = userTargetRes.data.total_loan;
 
       // Dates
       const startDate = new Date("2026-04-01");
@@ -191,7 +207,7 @@ const Dashboard = () => {
 
       // for Loan mapped  for ifb and for branch from  total loan collection 
       let loanRes = 0;
-      if (user.process === "Interest Free Banking") {
+      if (user.process === "Interest Free Banking" || user.process === "Agri and Cooperative Business" || (user.process === "Growth and Operations" && user.organization === "Ho")) {
         loanRes = await axios.post(
           `${baseUrl}/loan/loanBalanceDifferenceMapped`,
           requestData
@@ -254,13 +270,18 @@ const Dashboard = () => {
         `${baseUrl}/non-deposit-target/summary/`,
         requestData,
       );
+
+      // get atm, eeu, digital target
+      const atmEeuDigitalTargetRes = await axios.post(
+        `${baseUrl}/non-deposit-target/atm-eeu-digital/`,
+        requestData
+      );
+
       setuserNonDepositTarget(userNonDepositTargetRes.data);
       const newAccountTarget = userNonDepositTargetRes.data.total_new_account;
-      const unauthorizeTransTarget =
-        userNonDepositTargetRes.data.total_unauthorized;
+      const unauthorizeTransTarget = userNonDepositTargetRes.data.total_unauthorized;
       const activeCardTarget = userNonDepositTargetRes.data.active_card || 0;
-      const eeuTransactionTarget =
-        userNonDepositTargetRes.data.eeu_transaction || 0;
+      const eeuTransactionTarget = atmEeuDigitalTargetRes.data.eeu_transaction || 0;
 
       // for new account
       const newaccountRes = await axios.post(
@@ -315,6 +336,7 @@ const Dashboard = () => {
         `${baseUrl}/nondeposit/eeutransaction/`,
         requestData,
       );
+
       const actualeEEU = eeuRes?.data?.total_txn_count || 0;
       const expectedEEU = (daysPassed / 90) * eeuTransactionTarget;
       const achievementEEU =
@@ -553,7 +575,7 @@ const Dashboard = () => {
                         { sn: "H1", name: "Deposit Target Achievment Rate - from Mapped Customers", icon: "💰", value: achievementRateDeposit },
                         { sn: "H2", name: "Deposit Target Achievment Rate of Assigned District", icon: "🏢", value: achievementdistrictDeposit },
                         { sn: "H3", name: "Target Achievment Rate -FCY", icon: "📊", value: achievementRateFcy },
-                        { sn: "H4", name: "Collection Performance Against the Weeks's Plan", icon: "⚖️", value: achievementRateLoan },
+                        { sn: "H4", name: "Collection Performance Against the Week's Plan", icon: "⚖️", value: achievementRateLoan },
                         { sn: "H5", name: "Special Mention Ratio(Portfolio)", icon: "📉", value: achievmentSpecialMentionLoan },
                       ].map((row, idx) => (
                         <tr key={idx} style={{ backgroundColor: "#f8fafc", transition: "background-color 0.2s", "&:hover": { backgroundColor: "#f1f5f9" } }}>

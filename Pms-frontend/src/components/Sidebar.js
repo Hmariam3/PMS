@@ -121,7 +121,7 @@ const getNavLinks = (user) => {
         { text: "Priority List", path: "/prioritylist", icon: <ListAltIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
         { text: "Business As Usual", path: "/bau", icon: <WorkIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
         { text: "Quarter OKR", path: "/quarter-okr", icon: <PieChartIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
-        { text: "Engagement", path: "/engagement", icon: <PsychologyIcon />, show: isCRM || (isDistrict && isDirector) || isAdmin || isVPOrCHF },
+        { text: "Engagement", path: "/engagement", icon: <PsychologyIcon />, show: isCRM || (isDistrict && isDirector) || isAdmin || isVPOrCHF || isIFB },
       ],
     },
     {

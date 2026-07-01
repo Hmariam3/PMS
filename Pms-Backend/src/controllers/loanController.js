@@ -225,7 +225,7 @@ export const getLoanBalanceDifferenceByUser = async (req, res) => {
     let values;
 
     //  CRM / Individual → filter by user company_code
-    if (position === "CRM" || position === "Individual") {
+    if (position === "Individual") {
       query = `
         SELECT 
           SUM(COALESCE(d."TOTAL_COLLECTION", 0))  AS total_difference

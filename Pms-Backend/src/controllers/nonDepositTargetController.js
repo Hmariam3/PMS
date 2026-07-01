@@ -523,16 +523,14 @@ export const getNonDepositSummaryByUser = async (req, res) => {
         SUM(new_account) AS total_new_account,
         SUM(unauthorized_transaction) AS total_unauthorized,
         SUM(active_card_no) AS active_card,
-        SUM(eeu_transaction_count) AS eeu_transaction,
 
         SUM(merchant_recruitment) AS merchant_recruitment,
         SUM(merchant_transaction_volume) AS merchant_transaction_volume,
         SUM(agent_recruitment) AS agent_recruitment,
         SUM(agent_transaction_volume) AS agent_transaction_volume,
         SUM(michu_unique_recruitment) AS michu_unique_recruitment,
-        SUM(digital_transaction_volume) AS digital_transaction_volume,
         SUM(coopay_ebirr_activation) AS coopay_ebirr_activation,
-        SUM(atm_crm_uptime_rate) AS atm_crm_uptime_rate,
+
 
         SUM(cash_balance_accuracy_rate) AS cash_balance_accuracy_rate,
         SUM(zero_customer_complaints) AS zero_customer_complaints,
@@ -577,15 +575,12 @@ export const getNonDepositSummaryByUser = async (req, res) => {
       total_new_account: row.total_new_account || 0,
       total_unauthorized: row.total_unauthorized || 0,
       active_card: row.active_card || 0,
-      eeu_transaction: row.eeu_transaction || 0,
       merchant_recruitment: row.merchant_recruitment || 0,
       merchant_transaction_volume: row.merchant_transaction_volume || 0,
       agent_recruitment: row.agent_recruitment || 0,
       agent_transaction_volume: row.agent_transaction_volume || 0,
       michu_unique_recruitment: row.michu_unique_recruitment || 0,
-      digital_transaction_volume: row.digital_transaction_volume || 0,
       coopay_ebirr_activation: row.coopay_ebirr_activation || 0,
-      atm_crm_uptime_rate: row.atm_crm_uptime_rate || 0,
       cash_balance_accuracy_rate: row.cash_balance_accuracy_rate || 0,
       zero_customer_complaints: row.zero_customer_complaints || 0,
       avg_txn_per_cso: row.avg_txn_per_cso || 0,
@@ -602,5 +597,250 @@ export const getNonDepositSummaryByUser = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+export const getNonDepositATMEEUDigitalByUser = async (req, res) => {
+  const { user_id, position, team, subprocess, process } = req.body;
+
+  if (!user_id || !position) {
+    return res.status(400).json({
+      error: "User ID and position are required",
+    });
+  }
+
+  try {
+    let query;
+    let values = [];
+
+    // CRM / Individual
+    if (position === "CRM" || position === "Individual") {
+
+      query = `
+        SELECT
+          COALESCE(eeu_transaction_count,0) AS eeu_transaction,
+          COALESCE(digital_transaction_volume,0) AS digital_transaction_volume,
+          COALESCE(atm_crm_uptime_rate,0) AS atm_crm_uptime_rate
+        FROM public.non_deposit_target
+        WHERE user_name = $1
+          AND status = 'Approved'
+        LIMIT 1
+      `;
+
+      values = [user_id];
+    }
+
+    // Manager
+    else if (position === "Manager") {
+
+      query = `
+        SELECT
+
+          (
+            SELECT COALESCE(eeu_transaction_count,0)
+            FROM public.non_deposit_target
+            WHERE team = $1
+              AND status='Approved'
+              AND eeu_transaction_count > 0
+            ORDER BY created_at
+            LIMIT 1
+          ) AS eeu_transaction,
+
+          (
+            SELECT COALESCE(digital_transaction_volume,0)
+            FROM public.non_deposit_target
+            WHERE team = $1
+              AND status='Approved'
+              AND digital_transaction_volume > 0
+            ORDER BY created_at
+            LIMIT 1
+          ) AS digital_transaction_volume,
+
+          (
+            SELECT COALESCE(atm_crm_uptime_rate,0)
+            FROM public.non_deposit_target
+            WHERE team = $1
+              AND status='Approved'
+              AND atm_crm_uptime_rate > 0
+            ORDER BY created_at
+            LIMIT 1
+          ) AS atm_crm_uptime_rate
+      `;
+
+      values = [team];
+    }
+
+    // Director / Senior Director
+    else if (position === "Director" || position === "Senior Director") {
+
+      query = `
+        SELECT
+
+          (
+            SELECT COALESCE(SUM(eeu_transaction_count),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                eeu_transaction_count
+              FROM public.non_deposit_target
+              WHERE subprocess = $1
+                AND status='Approved'
+                AND eeu_transaction_count > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS eeu_transaction,
+
+          (
+            SELECT COALESCE(SUM(digital_transaction_volume),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                digital_transaction_volume
+              FROM public.non_deposit_target
+              WHERE subprocess = $1
+                AND status='Approved'
+                AND digital_transaction_volume > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS digital_transaction_volume,
+
+          (
+            SELECT COALESCE(SUM(atm_crm_uptime_rate),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                atm_crm_uptime_rate
+              FROM public.non_deposit_target
+              WHERE subprocess = $1
+                AND status='Approved'
+                AND atm_crm_uptime_rate > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS atm_crm_uptime_rate
+      `;
+
+      values = [subprocess];
+    }
+
+    // VP / CHF
+    else if (position === "VP" || position === "CHF") {
+
+      query = `
+        SELECT
+
+          (
+            SELECT COALESCE(SUM(eeu_transaction_count),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                eeu_transaction_count
+              FROM public.non_deposit_target
+              WHERE process = $1
+                AND status='Approved'
+                AND eeu_transaction_count > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS eeu_transaction,
+
+          (
+            SELECT COALESCE(SUM(digital_transaction_volume),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                digital_transaction_volume
+              FROM public.non_deposit_target
+              WHERE process = $1
+                AND status='Approved'
+                AND digital_transaction_volume > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS digital_transaction_volume,
+
+          (
+            SELECT COALESCE(SUM(atm_crm_uptime_rate),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                atm_crm_uptime_rate
+              FROM public.non_deposit_target
+              WHERE process = $1
+                AND status='Approved'
+                AND atm_crm_uptime_rate > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS atm_crm_uptime_rate
+      `;
+
+      values = [process];
+    }
+
+    // CEO
+    else if (position === "CEO") {
+
+      query = `
+        SELECT
+
+          (
+            SELECT COALESCE(SUM(eeu_transaction_count),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                eeu_transaction_count
+              FROM public.non_deposit_target
+              WHERE status='Approved'
+                AND eeu_transaction_count > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS eeu_transaction,
+
+          (
+            SELECT COALESCE(SUM(digital_transaction_volume),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                digital_transaction_volume
+              FROM public.non_deposit_target
+              WHERE status='Approved'
+                AND digital_transaction_volume > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS digital_transaction_volume,
+
+          (
+            SELECT COALESCE(SUM(atm_crm_uptime_rate),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                atm_crm_uptime_rate
+              FROM public.non_deposit_target
+              WHERE status='Approved'
+                AND atm_crm_uptime_rate > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS atm_crm_uptime_rate
+      `;
+    }
+
+    else {
+      return res.status(400).json({
+        error: "Invalid position",
+      });
+    }
+
+    const result = await pool.query(query, values);
+
+    const row = result.rows[0];
+
+    return res.status(200).json({
+      eeu_transaction: Number(row.eeu_transaction || 0),
+      digital_transaction_volume: Number(row.digital_transaction_volume || 0),
+      atm_crm_uptime_rate: Number(row.atm_crm_uptime_rate || 0),
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json({
+      error: "Server error",
+    });
   }
 };

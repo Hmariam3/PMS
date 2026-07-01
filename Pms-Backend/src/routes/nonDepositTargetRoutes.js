@@ -7,6 +7,7 @@ import {
   deleteNonDepositTarget,
   getNonDepositTargetByUser,
   getNonDepositSummaryByUser,
+  getNonDepositATMEEUDigitalByUser,
   approveTarget
 } from "../controllers/nonDepositTargetController.js";
 
@@ -21,5 +22,6 @@ router.delete("/:id", deleteNonDepositTarget);
 
 router.post("/by-user", getNonDepositTargetByUser);
 router.post("/summary", getNonDepositSummaryByUser);
+router.post("/atm-eeu-digital", getNonDepositATMEEUDigitalByUser);
 
 export default router;

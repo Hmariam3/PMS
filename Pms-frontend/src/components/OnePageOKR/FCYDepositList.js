@@ -57,6 +57,9 @@ const FCYDepositList = () => {
   const tableRef = useRef();
   const { user } = useContext(AuthContext);
 
+  const isMappingOpen = process.env.REACT_APP_IS_MAPPING_OPEN !== 'false';
+
+
   const [deposits, setDeposits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -179,6 +182,10 @@ const FCYDepositList = () => {
   }, [deposits]);
 
   const handleShow = () => {
+    if (!isMappingOpen) {
+      toast.error("FCY Deposit Registration is currently closed.");
+      return;
+    }
     setDeposit({
       account_number: "",
       account_holder: "",

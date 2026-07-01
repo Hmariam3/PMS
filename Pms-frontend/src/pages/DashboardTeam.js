@@ -104,6 +104,19 @@ const DashboardTeam = () => {
         `${baseUrl}/targets/TargetsSummary`,
         requestData
       );
+      const LoantargetRes = await axios.post(
+        `${baseUrl}/targets/loanCollectionTargetByUser/`,
+        requestData
+      );
+      // console.log("loantarget", LoantargetRes.data);
+      let totalLoanTarget = 0;
+      if (singleUser.process === "Interest Free Banking" || singleUser.process === "Agri and Cooperative Business" || (singleUser.process === "Growth and Operations" && singleUser.organization === "Ho")) {
+        //for crm and Ho
+        totalLoanTarget = Number(targetRes.data.total_loan) || 0;
+      } else {
+        //for branch users 
+        totalLoanTarget = Number(LoantargetRes.data.loan_collection) || 0;
+      }
 
       // for Loan Special Mention
       const specialMentionLoanRes = await axios.post(
@@ -127,6 +140,12 @@ const DashboardTeam = () => {
       // for non financial product
       const userNonDepositTargetRes = await axios.post(
         `${baseUrl}/non-deposit-target/summary/`,
+        requestData
+      );
+
+      // get atm, eeu, digital target
+      const atmEeuDigitalTargetRes = await axios.post(
+        `${baseUrl}/non-deposit-target/atm-eeu-digital/`,
         requestData
       );
 
@@ -166,7 +185,7 @@ const DashboardTeam = () => {
       );
 
       let loanRes = 0;
-      if (singleUser.process === "Interest Free Banking") {
+      if (singleUser.process === "Interest Free Banking" || singleUser.process === "Agri and Cooperative Business" || (singleUser.process === "Growth and Operations" && singleUser.organization === "Ho")) {
         loanRes = await axios.post(
           `${baseUrl}/loan/loanBalanceDifferenceMapped`,
           requestData
@@ -179,6 +198,7 @@ const DashboardTeam = () => {
         );
       }
 
+      // console.log("loanRes", loanRes);
 
 
       // for non financial product
@@ -194,6 +214,7 @@ const DashboardTeam = () => {
         `${baseUrl}/nondeposit/activecard/`,
         requestData
       );
+
       const eeuRes = await axios.post(
         `${baseUrl}/nondeposit/eeutransaction/`,
         requestData
@@ -216,7 +237,11 @@ const DashboardTeam = () => {
       // get targets  and set
       const totalDeposit = targetRes.data.total_deposit || 0;
       const totalFcyTarget = targetRes.data.total_fcy || 0;
-      const totalLoanTarget = targetRes.data.total_loan || 0;
+
+      // totalLoanTarget = totalLoanTarget || 0;
+
+
+
       const totalBalance = accountBalance;
       const startDate = new Date("2026-04-01");
       const today = new Date();
@@ -226,6 +251,7 @@ const DashboardTeam = () => {
       const expectedDeposit = (daysPassed / 90) * totalDeposit;
       const expectedFcy = (daysPassed / 90) * totalFcyTarget;
       const expectedLoan = (daysPassed / 90) * totalLoanTarget;
+
 
       let totalfcy =
         // Number(fcyRes.data.total_difference || 0) +
@@ -237,17 +263,19 @@ const DashboardTeam = () => {
       const achievementLoan = expectedLoan > 0 ? ((loanRes.data.total_difference || 0) / expectedLoan) * 100 : 0;
 
       // get non financial targets
+
+
       const newAccountTarget = userNonDepositTargetRes.data.total_new_account || 0;
       const unauthorizeTransTarget = userNonDepositTargetRes.data.total_unauthorized || 0;
       const activeCardTarget = userNonDepositTargetRes.data.active_card || 0;
-      const eeuTransactionTarget = userNonDepositTargetRes.data.eeu_transaction || 0;
+      const eeuTransactionTarget = atmEeuDigitalTargetRes.data.eeu_transaction || 0;
       const customer_engagementTarget = userNonDepositTargetRes.data.customer_engagement || 0;
       const new_customer_onboardingTarget = userNonDepositTargetRes.data.new_customer_onboarding || 0;
 
 
       // get actual non financial product
       const actualNewAccount = newaccountRes?.data?.total_accounts || 0;
-      const actualUnutorizedTran = unutorizedTranRes?.data?.total_unauthorized || 0;
+      let actualUnutorizedTran = unutorizedTranRes?.data?.total_unauthorized || 0;
       const actualactiveCard = activecardRes?.data?.total_active_card_users || 0;
       const actualeEEU = eeuRes?.data?.total_txn_count || 0;
       const actualcustomerEngagement = customerEngagementRes?.data?.total_customer_engagement || 0;
@@ -261,8 +289,16 @@ const DashboardTeam = () => {
       const expectedCustomerEngagement = (daysPassed / 90) * customer_engagementTarget;
       const expectedNewCustomerOnboarding = (daysPassed / 90) * new_customer_onboardingTarget;
 
+
+
       // calculate current achivement rate for non financial product
       const achievementNewAccount = expectedNewAccount > 0 ? (actualNewAccount / expectedNewAccount) * 100 : 0;
+
+      // if (actualUnutorizedTran === 0) {
+      //   actualUnutorizedTran = 100;
+      // } else {
+      //   actualUnutorizedTran = 0;
+      // }
       const achievementUnauthorized = expectedUnutorized > 0 ? (actualUnutorizedTran / expectedUnutorized) * 100 : 0;
       const achievementActiveCard = expectedActiveCard > 0 ? (actualactiveCard / expectedActiveCard) * 100 : 0;
       const achievementEEU = expectedEEU > 0 ? (actualeEEU / expectedEEU) * 100 : 0;
