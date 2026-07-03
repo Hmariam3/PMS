@@ -459,7 +459,7 @@ const PerformanceMetricList = ({ member }) => {
     else if (lowerCalcFor === "avg txn per cso") type = "Avg Txn Per CSO";
     else if (lowerCalcFor === "compliance rate") type = "Compliance Rate";
     else if (lowerCalcFor === "reports 3 days rate") type = "Reports 3 Days Rate";
-    else if (lowerCalcFor === "employee perf threshold") type = "Employee Perf Threshold";
+    else if (lowerCalcFor === "employee performance") type = "Employee Performance";
     else if (lowerCalcFor === "customer engagement") type = "Customer Engagement";
     else if (lowerCalcFor === "new customer onboarding") type = "New Customer Onboarding";
     else if (lowerCalcFor === "armingc deposit proportion") type = "Armingc Deposit Proportion";
@@ -648,6 +648,37 @@ const PerformanceMetricList = ({ member }) => {
             calculatedWeight = 0;
           }
         }
+        // Arming C for District
+        else if (metric.calculated_for === "Armingc Deposit Proportion") {
+          actualachive = (evaluationValue / targetTo) * 100;
+          if (actualachive >= 86 && actualachive <= 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 71 && actualachive < 86) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 57 && actualachive < 71) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 14 && actualachive < 57) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+        // Employee Performance
+        else if (metric.calculated_for === "Employee Performance") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive >= 90 && actualachive <= 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 75 && actualachive < 95) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 50 && actualachive < 75) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 1 && actualachive < 50) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
 
       } else {
         calculatedWeight = 0;
@@ -824,18 +855,36 @@ const PerformanceMetricList = ({ member }) => {
         else if (metric.calculated_for === "Armingc Deposit Proportion") {
           actualachive = (evaluationValue / targetTo) * 100;
 
-          if (actualachive === 100) {
+          if (actualachive >= 86 && actualachive <= 100) {
             calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 85 && actualachive < 100) {
+          } else if (actualachive >= 71 && actualachive < 86) {
             calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 71 && actualachive < 85) {
+          } else if (actualachive >= 57 && actualachive < 71) {
             calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 14 && actualachive < 71) {
+          } else if (actualachive >= 14 && actualachive < 57) {
             calculatedWeight = 1 * metricWeight;
           } else {
             calculatedWeight = 0;
           }
         }
+
+        // Employee Performance
+        else if (metric.calculated_for === "Employee Performance") {
+          actualachive = (evaluationValue / targetTo) * 100;
+
+          if (actualachive >= 90 && actualachive <= 100) {
+            calculatedWeight = 4 * metricWeight;
+          } else if (actualachive >= 75 && actualachive < 95) {
+            calculatedWeight = 3 * metricWeight;
+          } else if (actualachive >= 50 && actualachive < 75) {
+            calculatedWeight = 2 * metricWeight;
+          } else if (actualachive >= 1 && actualachive < 50) {
+            calculatedWeight = 1 * metricWeight;
+          } else {
+            calculatedWeight = 0;
+          }
+        }
+
       } else if (metric.calculated_with === ">100") {
         const actualachive = (evaluationValue / targetTo) * 100;
         if (actualachive >= 120) {

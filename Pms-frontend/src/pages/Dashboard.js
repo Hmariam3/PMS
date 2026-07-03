@@ -353,24 +353,28 @@ const Dashboard = () => {
         districts: mappedDistricts.data.map((item) => item.district_name)
       };
 
+
       //get district total target and deposit   
       const districtRes = await axios.post(
         `${baseUrl}/districtmapping/getTargetsAndDepositByDistricts`,
         districtsObject
       );
+
+
       const totals = districtRes.data.reduce(
         (sum, item) => ({
           totalDistrictDepositTarget:
-            sum.totalDistrictDepositTarget + item.districtDepositTarget,
+            sum.totalDistrictDepositTarget + Number(item.total_deposit_target || 0),
 
           totalBalanceDiff:
-            sum.totalBalanceDiff + item.balanceDifference,
+            sum.totalBalanceDiff + Number(item.balance_difference || 0),
         }),
         {
           totalDistrictDepositTarget: 0,
           totalBalanceDiff: 0,
         }
       );
+
 
       const expecteddistrictDeposit = (daysPassed / 90) * totals.totalDistrictDepositTarget;
       const achievementdistrictDeposit =
@@ -627,6 +631,8 @@ const Dashboard = () => {
                         { sn: "H1", name: "Target Achievement Rate - Deposit", icon: "💰", value: achievementRateDeposit },
                         { sn: "H2", name: "Target Achievement Rate - FCY", icon: "📊", value: achievementRateFcy },
                         { sn: "H3", name: "Loan Collection Performance Against the Plan", icon: "⚖️", value: achievementRateLoan },
+                        { sn: "H4", name: "Special Mention Ratio(Portfolio)", icon: "📉", value: achievmentSpecialMentionLoan },
+                        { sn: "H5", name: "Deposit Target Achievment Rate of Assigned District", icon: "🏢", value: achievementdistrictDeposit },
                       ].map((row, idx) => (
                         <tr key={idx} style={{ backgroundColor: "#f8fafc", transition: "background-color 0.2s", "&:hover": { backgroundColor: "#f1f5f9" } }}>
                           <td style={{ padding: "10px 12px", borderRadius: "8px 0 0 8px", color: "#64748b", fontWeight: 600, fontSize: "0.85rem" }}>{row.sn}</td>

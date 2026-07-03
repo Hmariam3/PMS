@@ -53,6 +53,7 @@ import EngagementList from "./components/OnePageOKR/EngagementList";
 import UserTargetsReport from "./components/Reports/UserTargetsReport";
 import AccountMappingReport from "./components/Reports/AccountMappingReport";
 import AccountVariationReport from "./components/Reports/AccountVariationReport";
+import FcyDepositReport from "./components/Reports/FcyDepositReport";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./AuthContext";
@@ -507,6 +508,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AccountVariationReport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/fcy-deposit"
+              element={
+                <ProtectedRoute>
+                  <FcyDepositReport />
                 </ProtectedRoute>
               }
             />

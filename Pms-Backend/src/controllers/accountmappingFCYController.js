@@ -143,7 +143,7 @@ export const createAccountMapping = async (req, res) => {
         message: `Users from ${organization} organization must have CRM position to register accounts.`,
       });
     }
-    console.log("userRes", userRes.rows);
+    // console.log("userRes", userRes.rows);
 
     //  Check duplicate
     const check = await pool.query(

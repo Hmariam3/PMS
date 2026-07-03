@@ -187,7 +187,7 @@ export const createAccountMapping = async (req, res) => {
       [
         cleaned_account_number,
         account_holder,
-        beginning_balance || 0,
+        0,
         current_balance || 0,
         user_name || "system",
         process,
@@ -327,7 +327,8 @@ export const getBalanceDifferenceByUser = async (req, res) => {
       `;
       fcyQuery = `
         SELECT 
-          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) AS total_fcy
+          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
+          SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
         FROM public.accountmappingfcy
         WHERE user_name = $1
       `;
@@ -343,7 +344,8 @@ export const getBalanceDifferenceByUser = async (req, res) => {
       `;
       fcyQuery = `
         SELECT 
-          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) AS total_fcy
+          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
+          SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
         FROM public.accountmappingfcy
         WHERE team = $1
       `;
@@ -358,7 +360,8 @@ export const getBalanceDifferenceByUser = async (req, res) => {
       `;
       fcyQuery = `
         SELECT 
-          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) AS total_fcy
+          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
+          SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
         FROM public.accountmappingfcy
         WHERE subprocess = $1
       `;
@@ -373,7 +376,8 @@ export const getBalanceDifferenceByUser = async (req, res) => {
       `;
       fcyQuery = `
         SELECT 
-          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) AS total_fcy
+          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
+          SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
         FROM public.accountmappingfcy
         WHERE process = $1
       `;
@@ -387,7 +391,8 @@ export const getBalanceDifferenceByUser = async (req, res) => {
       `;
       fcyQuery = `
         SELECT 
-          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) AS total_fcy
+          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
+          SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
         FROM public.accountmappingfcy
       `;
       values = [];

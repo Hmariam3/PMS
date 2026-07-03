@@ -538,7 +538,7 @@ const DashboardTeam = () => {
                           ]
                           : []),
 
-                        ...(user.process === "Interest Free Banking"
+                        ...(user.process === "Interest Free Banking" || user.process === "Agri and Cooperative Business" || (user.process === "Growth and Operations" && user.organization === "Ho")
                           ? [
                             {
                               label: "Customer Engagement",
@@ -547,7 +547,7 @@ const DashboardTeam = () => {
                           ]
                           : []),
 
-                        ...(user.process === "Interest Free Banking"
+                        ...(user.process === "Interest Free Banking" || user.process === "Agri and Cooperative Business" || (user.process === "Growth and Operations" && user.organization === "Ho")
                           ? [
                             {
                               label: "New Customer Onboarding",
@@ -556,7 +556,7 @@ const DashboardTeam = () => {
                           ]
                           : []),
 
-                        ...(user.process === "Interest Free Banking"
+                        ...(user.process === "Interest Free Banking" || user.process === "Agri and Cooperative Business" || (user.process === "Growth and Operations" && user.organization === "Ho")
                           ? [
                             {
                               label: "Special Mention Loan Rate",
@@ -564,7 +564,7 @@ const DashboardTeam = () => {
                             },
                           ]
                           : []),
-                        ...(user.process === "Interest Free Banking"
+                        ...(user.process === "Interest Free Banking" || user.process === "Agri and Cooperative Business" || (user.process === "Growth and Operations" && user.organization === "Ho")
                           ? (data.districtAchievement || []).map((item) => ({
                             label: item.district,
                             val: item.achievementdistrictDeposit,

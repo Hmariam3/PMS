@@ -829,7 +829,7 @@ export const getNonDepositATMEEUDigitalByUser = async (req, res) => {
 
     const result = await pool.query(query, values);
 
-    const row = result.rows[0];
+    const row = result.rows[0] || {};
 
     return res.status(200).json({
       eeu_transaction: Number(row.eeu_transaction || 0),

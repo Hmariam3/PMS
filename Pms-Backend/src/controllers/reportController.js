@@ -119,7 +119,7 @@ export const getUserTargetsReport = async (req, res) => {
 // Implements server-side pagination due to millions of records in accountmapping table.
 export const getAccountMappingReport = async (req, res) => {
   try {
-    const { 
+    const {
       user_id, position, role, team, subprocess, process, organization,
       page = 0, limit = 10, searchTerm = "", district = "", isExport = false
     } = req.body;
@@ -129,7 +129,7 @@ export const getAccountMappingReport = async (req, res) => {
     }
 
     const isAdmin = role === "Admin";
-    
+
     if (isExport && !isAdmin) {
       return res.status(403).json({ error: "Export is only allowed for Admin" });
     }
@@ -209,7 +209,7 @@ export const getAccountMappingReport = async (req, res) => {
       ORDER BY u.subprocess ASC, u.user_name ASC, am.created_at DESC
       ${isExport ? "" : `LIMIT $${paramIndex++} OFFSET $${paramIndex++}`}
     `;
-    
+
     // Create a copy of values for the data query and add limit/offset
     const dataValues = isExport ? [...values] : [...values, limit, offset];
     const dataResult = await pool.query(dataQuery, dataValues);
@@ -228,8 +228,8 @@ export const getAccountMappingReport = async (req, res) => {
 // ================= ACCOUNT VARIATION REPORT =================
 export const getAccountVariationReport = async (req, res) => {
   try {
-    const { 
-      user_id, position, role, team, subprocess, process, organization, tabType 
+    const {
+      user_id, position, role, team, subprocess, process, organization, tabType
     } = req.body;
 
     if (!user_id || !position || !tabType) {
@@ -237,7 +237,7 @@ export const getAccountVariationReport = async (req, res) => {
     }
 
     const isAdmin = role === "Admin";
-    
+
     // Base WHERE conditions for scoping
     let conditions = ["1=1"];
     let values = [];
@@ -286,9 +286,11 @@ export const getAccountVariationReport = async (req, res) => {
             COUNT(am.map_id) as mapped_accounts_count,
             SUM(am.beginning_balance) as total_beginning_balance,
             SUM(am.current_balance) as total_current_balance,
-            SUM(am.current_balance) - SUM(am.beginning_balance) as variation
+            SUM(am.current_balance) - SUM(am.beginning_balance) as variation,
+            COALESCE(MAX(t.deposit_target), 0) AS deposit_target
           FROM public.users u
           LEFT JOIN public.accountmapping am ON u.user_name = am.user_name
+          LEFT JOIN public.targets t ON u.user_name = t.user_name
           ${whereClause}
           GROUP BY u.user_name, u.full_name, u.position, u.process, u.subprocess, u.team
         `;
@@ -305,7 +307,7 @@ export const getAccountVariationReport = async (req, res) => {
             COUNT(amf.map_id) as mapped_accounts_count,
             SUM(amf.beginning_balance) as total_beginning_balance,
             SUM(amf.current_balance) as total_current_balance,
-            SUM(amf."LCY_CLOSING_BALANCE") as total_lcy_closing_balance
+            SUM(COALESCE(amf."LCY_CLOSING_BALANCE", 0)) - SUM(COALESCE(amf."LCY_BEGINIG_BALANCE", 0)) as total_lcy_closing_balance
           FROM public.users u
           LEFT JOIN public.accountmappingfcy amf ON u.user_name = amf.user_name
           ${whereClause}
@@ -323,9 +325,11 @@ export const getAccountVariationReport = async (req, res) => {
             u.team as branch,
             COUNT(lm.map_id) as loan_accounts_count,
             SUM(lm.collected_balance) as total_collected_balance,
-            SUM(lm.outstanding_balance) as total_outstanding_balance
+            SUM(lm.outstanding_balance) as total_outstanding_balance,
+            COALESCE(MAX(t.loan_collection), 0) AS loan_collection_target
           FROM public.users u
           LEFT JOIN public.loanaccountmapping lm ON u.user_name = lm.user_name
+          LEFT JOIN public.targets t ON u.user_name = t.user_name
           ${whereClause}
           GROUP BY u.user_name, u.full_name, u.position, u.process, u.subprocess, u.team
         `;
@@ -340,9 +344,11 @@ export const getAccountVariationReport = async (req, res) => {
             u.subprocess,
             u.team as branch,
             COUNT(fd.fcy_id) as fcy_generation_count,
-            SUM(fd.amount) as total_amount
+            SUM(fd.amount) as total_amount,
+            COALESCE(MAX(t.fcy_target), 0) AS fcy_target
           FROM public.users u
           LEFT JOIN public.fcydeposit fd ON u.user_name = fd.user_name AND fd.status = 'Approved'
+          LEFT JOIN public.targets t ON u.user_name = t.user_name
           ${whereClause}
           GROUP BY u.user_name, u.full_name, u.position, u.process, u.subprocess, u.team
         `;
@@ -356,6 +362,111 @@ export const getAccountVariationReport = async (req, res) => {
 
   } catch (err) {
     console.error("getAccountVariationReport error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// ================= FCY DEPOSIT REPORT =================
+export const getFcyDepositReport = async (req, res) => {
+  try {
+    const {
+      user_id, position, role, team, subprocess, process, organization,
+      page = 0, limit = 10, searchTerm = "", filterProcess = "", filterSubprocess = "", filterTeam = "", isExport = false
+    } = req.body;
+
+    if (!user_id || !position) {
+      return res.status(400).json({ error: "user_id and position are required" });
+    }
+
+    const isAdmin = role === "Admin";
+
+    const offset = page * limit;
+
+    // Base WHERE conditions
+    let conditions = ["fcy.status = 'Approved'"];
+    let values = [];
+    let paramIndex = 1;
+
+    // 1. Role-based scoping (similar to User Targets)
+    if (!isAdmin) {
+      if (position === "CRM" || position === "Individual") {
+        conditions.push(`fcy.user_name = $${paramIndex++}`);
+        values.push(user_id);
+      } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
+        conditions.push(`fcy.subprocess = $${paramIndex++}`);
+        values.push(subprocess);
+      } else if (position === "Manager") {
+        conditions.push(`fcy.team = $${paramIndex++}`);
+        values.push(team);
+      } else if (position === "VP" || position === "CHF") {
+        conditions.push(`fcy.process = $${paramIndex++}`);
+        values.push(process);
+      } else if (position === "CEO") {
+        // CEO sees all
+      } else {
+        return res.status(400).json({ error: "Invalid position" });
+      }
+    }
+
+    // 2. Additional filters
+    if (searchTerm) {
+      conditions.push(`(u1.full_name ILIKE $${paramIndex} OR fcy.user_name ILIKE $${paramIndex} OR fcy.account_number ILIKE $${paramIndex} OR fcy.account_holder ILIKE $${paramIndex})`);
+      values.push(`%${searchTerm}%`);
+      paramIndex++;
+    }
+
+    if (filterProcess) {
+      conditions.push(`fcy.process ILIKE $${paramIndex++}`);
+      values.push(`%${filterProcess}%`);
+    }
+
+    if (filterSubprocess) {
+      conditions.push(`fcy.subprocess ILIKE $${paramIndex++}`);
+      values.push(`%${filterSubprocess}%`);
+    }
+
+    if (filterTeam) {
+      conditions.push(`fcy.team ILIKE $${paramIndex++}`);
+      values.push(`%${filterTeam}%`);
+    }
+
+    const whereClause = `WHERE ${conditions.join(" AND ")}`;
+
+    // Query 1: Get Total Count for Pagination
+    const countQuery = `
+      SELECT COUNT(*) 
+      FROM public.fcydeposit fcy
+      LEFT JOIN public.users u1 ON fcy.user_name = u1.user_name
+      LEFT JOIN public.users u2 ON fcy.approvedby = u2.user_name
+      ${whereClause}
+    `;
+    const countResult = await pool.query(countQuery, values);
+    const totalCount = parseInt(countResult.rows[0].count, 10);
+
+    // Query 2: Get Paginated Data
+    const paginationClause = isExport ? "" : `LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    const dataQuery = `
+      SELECT 
+        fcy.fcy_id, u1.full_name, fcy.account_number, fcy.account_holder, fcy.amount, fcy.reference, fcy.user_name, fcy.created_at, fcy.process, fcy.subprocess, fcy.team, fcy.crm_name, fcy.status, fcy.createdby, u2.full_name AS approvedby, fcy.is_shared
+      FROM public.fcydeposit fcy
+      LEFT JOIN public.users u1 ON fcy.user_name = u1.user_name
+      LEFT JOIN public.users u2 ON fcy.approvedby = u2.user_name
+      ${whereClause}
+      ORDER BY fcy.created_at DESC
+      ${paginationClause}
+    `;
+
+    // Create a copy of values for the data query and add limit/offset
+    const dataValues = isExport ? [...values] : [...values, limit, offset];
+    const dataResult = await pool.query(dataQuery, dataValues);
+
+    res.status(200).json({
+      data: dataResult.rows,
+      totalCount
+    });
+
+  } catch (err) {
+    console.error("getFcyDepositReport error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 };

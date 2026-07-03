@@ -69,7 +69,6 @@ const AccountVariationReport = () => {
       };
 
       const res = await axios.post(`${baseUrl}/reports/account-variation`, requestData);
-      
       switch (tabType) {
         case "local": setLocalData(res.data); break;
         case "fcy": setFcyData(res.data); break;
@@ -139,6 +138,7 @@ const AccountVariationReport = () => {
         { key: "mapped_accounts_count", label: "Accounts Count" },
         { key: "total_beginning_balance", label: "Beginning Balance" },
         { key: "total_current_balance", label: "Current Balance" },
+        { key: "deposit_target", label: "Deposit Target" },
         { key: "variation", label: "Variation (Amount)" },
         { key: "variation_percent", label: "Variation (%)" }
       ]
@@ -170,6 +170,7 @@ const AccountVariationReport = () => {
         { key: "subprocess", label: "Subprocess" },
         { key: "branch", label: "Branch" },
         { key: "loan_accounts_count", label: "Accounts Count" },
+        { key: "loan_collection_target", label: "Loan Collection Target" },
         { key: "total_collected_balance", label: "Total Collected (Achievement)" },
         { key: "total_outstanding_balance", label: "Total Outstanding" }
       ]
@@ -185,6 +186,7 @@ const AccountVariationReport = () => {
         { key: "subprocess", label: "Subprocess" },
         { key: "branch", label: "Branch" },
         { key: "fcy_generation_count", label: "FCY Gen Count" },
+        { key: "fcy_target", label: "FCY Target" },
         { key: "total_amount", label: "Total Amount (Achievement)" }
       ]
     }
@@ -324,9 +326,9 @@ const AccountVariationReport = () => {
 
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: '#f8fafc' }}>
-          <Tabs 
-            value={tabValue} 
-            onChange={handleTabChange} 
+          <Tabs
+            value={tabValue}
+            onChange={handleTabChange}
             aria-label="Variation Report Tabs"
             variant="scrollable"
             scrollButtons="auto"
@@ -362,8 +364,8 @@ const AccountVariationReport = () => {
                   </TableRow>
                 ) : (
                   filteredRows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, idx) => (
-                    <TableRow 
-                      key={idx} 
+                    <TableRow
+                      key={idx}
                       hover
                       sx={{
                         bgcolor: idx % 2 === 0 ? "#fff" : "#f8fafc",
@@ -374,7 +376,7 @@ const AccountVariationReport = () => {
                         let val = row[c.key];
                         if (val === null || val === undefined || val === "") val = "—";
                         else if (typeof val === "number") val = val.toLocaleString();
-                        
+
                         let color = "inherit";
                         let fontWeight = 400;
                         if (c.key === "variation") {
@@ -389,11 +391,11 @@ const AccountVariationReport = () => {
                         }
 
                         return (
-                          <TableCell key={c.key} sx={{ 
-                            ...bodyCellSx, 
-                            color, 
+                          <TableCell key={c.key} sx={{
+                            ...bodyCellSx,
+                            color,
                             fontWeight,
-                            borderRight: i === currentConfig.cols.length - 1 ? "none" : bodyCellSx.borderRight 
+                            borderRight: i === currentConfig.cols.length - 1 ? "none" : bodyCellSx.borderRight
                           }}>
                             {val}
                           </TableCell>

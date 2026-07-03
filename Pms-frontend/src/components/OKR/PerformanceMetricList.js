@@ -426,6 +426,8 @@ const PerformanceMetricList = () => {
                       <MenuItem value="Customer Engagement">Customer Engagement</MenuItem>
                       <MenuItem value="New Customer Onboarding">New Customer Onboarding</MenuItem>
                       <MenuItem value="Armingc Deposit Proportion">Armingc Deposit Proportion</MenuItem>
+                      <MenuItem value="Deposit Sustainability">Deposit Sustainability</MenuItem>
+                      <MenuItem value="SPM">SPM</MenuItem>
                       <MenuItem value="Employee Performance">Employee Performance</MenuItem>
                       <MenuItem value="Gl">Gl</MenuItem>
                       <MenuItem value="Cash Book">Cash Book</MenuItem>
@@ -434,6 +436,7 @@ const PerformanceMetricList = () => {
                       <MenuItem value="Audit Report">Audit Report</MenuItem>
                       <MenuItem value="Audit Quality">Audit Quality</MenuItem>
                       <MenuItem value="Transaction Audit">Transaction Audit</MenuItem>
+                      <MenuItem value="Avg Txn Per CSO">Avg Txn Per CSO</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>

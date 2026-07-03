@@ -68,6 +68,16 @@ export const fetchAccountBalanceFromSoap = async (accountNumber) => {
     throw new Error("No account data found");
   }
 
+  const openingDate = accountData.OPENINGDATE;
+  if (!openingDate) {
+    throw new Error("Account opening date is missing. Cannot validate account mapping eligibility.");
+  }
+
+  // Ensure account was opened between April 1, 2026 and June 30, 2026
+  if (openingDate <= "20260401" || openingDate >= "20260630") {
+    throw new Error("Account mapping is only allowed for accounts opened between April 1, 2026 and June 30, 2026.");
+  }
+
   return {
     accountNo: accountData.AcctNo,
     name: accountData.Name,
@@ -77,6 +87,7 @@ export const fetchAccountBalanceFromSoap = async (accountNumber) => {
     usableBalance: accountData.UseableBal,
     customer_id: accountData.CUSTOMERID,
     campany_code: accountData.COMPANYCODE,
+    opening_date: openingDate,
   };
 };
 
