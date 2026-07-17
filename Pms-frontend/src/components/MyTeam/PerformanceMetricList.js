@@ -103,13 +103,16 @@ const PerformanceMetricList = ({ member }) => {
       subprocess: userinfo.subprocess || null,
       team: userinfo.team || null,
       cbsusername: userinfo.cbsusername || null,
+      company_code: userinfo.company_code,
+      organization: userinfo.organization,
     };
+
     try {
       const targetRes = await axios.post(
         `${baseUrl}/targets/TargetsSummary/`,
         requestData
       );
-
+      console.log("targetRes", targetRes.data);
       const LoantargetRes = await axios.post(
         `${baseUrl}/targets/loanCollectionTargetByUser/`,
         requestData
@@ -121,6 +124,13 @@ const PerformanceMetricList = ({ member }) => {
         requestData
       );
 
+      console.log("requestData", requestData);
+      const BranchManageraccountRes = await axios.post(
+        `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
+        requestData
+      );
+
+      console.log("BranchManageraccountRes", BranchManageraccountRes.data);
 
       // console.log("loantarget", LoantargetRes.data);
       const totalDeposit = Number(targetRes.data.total_deposit) || 0;
@@ -161,7 +171,15 @@ const PerformanceMetricList = ({ member }) => {
               console.error("IFB Error:", err);
             }
           }
-          const accountBalance = Number(accountRes.data.total_difference) || 0;
+
+          let accountBalance = 0;
+
+          if (requestData.position === 'Manager' && requestData.organization === 'Branch') {
+            accountBalance = Number(BranchManageraccountRes.data.local_deposit) || 0;
+          } else {
+            accountBalance = Number(accountRes.data.total_difference) || 0;
+          }
+
           return { actual: accountBalance + ifbBalance, target: totalDeposit };
         }
       }
@@ -169,8 +187,14 @@ const PerformanceMetricList = ({ member }) => {
         if (type === "fcy") {
           // const fcyRes = await axios.post(`${baseUrl}/fcy/fcyBalanceDifference`, requestData);
           // return { actual: Number(fcyRes.data.total_difference) || 0, target: totalFcyTarget };
-          const fcyResMapped = await axios.post(`${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`, requestData);
-          return { actual: Number(fcyResMapped.data.total_difference) || 0, target: totalFcyTarget };
+          let fcyBalance = 0;
+          if (requestData.position === 'Manager' && requestData.organization === 'Branch') {
+            fcyBalance = Number(BranchManageraccountRes.data.fcy) || 0;
+          } else {
+            const fcyResMapped = await axios.post(`${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`, requestData);
+            fcyBalance = Number(fcyResMapped.data.total_difference) || 0;
+          }
+          return { actual: fcyBalance, target: totalFcyTarget };
 
         }
       }
@@ -321,6 +345,17 @@ const PerformanceMetricList = ({ member }) => {
         }
       }
 
+      if (merchant_transaction_volumeTarget > 0) {
+        if (type === "Merchant Transaction Volume") {
+          return { actual: Number(BranchManageraccountRes.data.merchant_transaction_volume) || 0, target: merchant_transaction_volumeTarget };
+        }
+      }
+
+      if (agent_transaction_volumeTarget > 0) {
+        if (type === "Agent Transaction Volume") {
+          return { actual: Number(BranchManageraccountRes.data.agent_transaction_volume) || 0, target: agent_transaction_volumeTarget };
+        }
+      }
       // for SPM
       if (type === "SPM") {
 
@@ -352,6 +387,21 @@ const PerformanceMetricList = ({ member }) => {
         };
       }
 
+
+      // Branch Vital
+      if (type === "Branch Vital") {
+
+        const branchVitalRes = await axios.post(
+          `${baseUrl}/branchvital/branch-vital-summary`,
+          requestData,
+        );
+
+        return {
+          actual: branchVitalRes?.data?.OUT_OF_100 || 0,
+          target: 0,
+        };
+      }
+
       // null actual from system 
 
       if (type === "Merchant Recruitment") {
@@ -359,20 +409,12 @@ const PerformanceMetricList = ({ member }) => {
         return { actual: 0, target: merchant_recruitmentTarget };
       }
 
-      if (type === "Merchant Transaction Volume") {
-
-        return { actual: 0, target: merchant_transaction_volumeTarget };
-      }
 
       if (type === "Agent Recruitment") {
 
         return { actual: 0, target: agent_recruitmentTarget };
       }
 
-      if (type === "Agent Transaction Volume") {
-
-        return { actual: 0, target: agent_transaction_volumeTarget };
-      }
 
       if (type === "Michu Unique Recruitment") {
 
@@ -465,6 +507,7 @@ const PerformanceMetricList = ({ member }) => {
     else if (lowerCalcFor === "armingc deposit proportion") type = "Armingc Deposit Proportion";
     else if (lowerCalcFor === "deposit sustainability") type = "Deposit Sustainability";
     else if (lowerCalcFor === "spm") type = "SPM";
+    else if (lowerCalcFor === "branch vital") type = "Branch Vital";
     let evaluationValue = 0;
     let calculatedWeight = 0;
     if (metric.input_by === "System") {
@@ -679,7 +722,10 @@ const PerformanceMetricList = ({ member }) => {
             calculatedWeight = 0;
           }
         }
-
+        // branch Vital
+        else if (metric.calculated_for === "Branch Vital") {
+          calculatedWeight = (evaluationValue * metricWeight);
+        }
       } else {
         calculatedWeight = 0;
       }
@@ -884,7 +930,10 @@ const PerformanceMetricList = ({ member }) => {
             calculatedWeight = 0;
           }
         }
-
+        // branch Vital
+        else if (metric.calculated_for === "Branch Vital") {
+          calculatedWeight = (evaluationValue * metricWeight);
+        }
       } else if (metric.calculated_with === ">100") {
         const actualachive = (evaluationValue / targetTo) * 100;
         if (actualachive >= 120) {

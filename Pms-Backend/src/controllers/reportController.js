@@ -280,6 +280,7 @@ export const getAccountVariationReport = async (req, res) => {
             u.user_name,
             u.full_name,
             u.position,
+            u.title,
             u.process,
             u.subprocess,
             u.team as branch,
@@ -292,7 +293,7 @@ export const getAccountVariationReport = async (req, res) => {
           LEFT JOIN public.accountmapping am ON u.user_name = am.user_name
           LEFT JOIN public.targets t ON u.user_name = t.user_name
           ${whereClause}
-          GROUP BY u.user_name, u.full_name, u.position, u.process, u.subprocess, u.team
+          GROUP BY u.user_name, u.full_name, u.position, u.title, u.process, u.subprocess, u.team
         `;
         break;
       case "fcy":
@@ -301,6 +302,7 @@ export const getAccountVariationReport = async (req, res) => {
             u.user_name,
             u.full_name,
             u.position,
+            u.title,
             u.process,
             u.subprocess,
             u.team as branch,
@@ -311,7 +313,7 @@ export const getAccountVariationReport = async (req, res) => {
           FROM public.users u
           LEFT JOIN public.accountmappingfcy amf ON u.user_name = amf.user_name
           ${whereClause}
-          GROUP BY u.user_name, u.full_name, u.position, u.process, u.subprocess, u.team
+          GROUP BY u.user_name, u.full_name, u.position, u.title, u.process, u.subprocess, u.team
         `;
         break;
       case "loan":
@@ -320,6 +322,7 @@ export const getAccountVariationReport = async (req, res) => {
             u.user_name,
             u.full_name,
             u.position,
+            u.title,
             u.process,
             u.subprocess,
             u.team as branch,
@@ -331,7 +334,7 @@ export const getAccountVariationReport = async (req, res) => {
           LEFT JOIN public.loanaccountmapping lm ON u.user_name = lm.user_name
           LEFT JOIN public.targets t ON u.user_name = t.user_name
           ${whereClause}
-          GROUP BY u.user_name, u.full_name, u.position, u.process, u.subprocess, u.team
+          GROUP BY u.user_name, u.full_name, u.position, u.title, u.process, u.subprocess, u.team
         `;
         break;
       case "fcy-gen":
@@ -340,6 +343,7 @@ export const getAccountVariationReport = async (req, res) => {
             u.user_name,
             u.full_name,
             u.position,
+            u.title,
             u.process,
             u.subprocess,
             u.team as branch,
@@ -350,9 +354,101 @@ export const getAccountVariationReport = async (req, res) => {
           LEFT JOIN public.fcydeposit fd ON u.user_name = fd.user_name AND fd.status = 'Approved'
           LEFT JOIN public.targets t ON u.user_name = t.user_name
           ${whereClause}
-          GROUP BY u.user_name, u.full_name, u.position, u.process, u.subprocess, u.team
+          GROUP BY u.user_name, u.full_name, u.position, u.title, u.process, u.subprocess, u.team
         `;
         break;
+      case "manual-cash": {
+        let mcConds = ["1=1"];
+        let mcVals = [];
+        let pIdx = 1;
+        if (!isAdmin) {
+          if (process && (position === "VP" || position === "CHF")) {
+            mcConds.push(`d."PROCESS" = $${pIdx++}`);
+            mcVals.push(process);
+          } else if (subprocess && (position === "Director" || position === "Senior Director")) {
+            mcConds.push(`d."SUBPROCESS" = $${pIdx++}`);
+            mcVals.push(subprocess);
+          } else if (team && position === "Manager") {
+            mcConds.push(`b.branch_name = $${pIdx++}`);
+            mcVals.push(team);
+          }
+        }
+        query = `
+          SELECT 
+            d."DISTRICT_NAME", 
+            b.branch_name AS "BRANCH_NAME", 
+            d."BRANCH_CODE", 
+            d."TOTAL_CASH_CREDIT", 
+            d."PROCESS", 
+            d."SUBPROCESS"
+          FROM public."DW_CASH_COLLECTION_BY_BRANCH" d
+          LEFT JOIN public.branches b ON d."BRANCH_CODE" = b.branch_code
+          WHERE ${mcConds.join(" AND ")}
+        `;
+        values = mcVals;
+        break;
+      }
+      case "crm-cash": {
+        let ccConds = ["1=1"];
+        let ccVals = [];
+        let pIdx = 1;
+        if (!isAdmin) {
+          if (process && (position === "VP" || position === "CHF")) {
+            ccConds.push(`d."PROCESS" = $${pIdx++}`);
+            ccVals.push(process);
+          } else if (subprocess && (position === "Director" || position === "Senior Director")) {
+            ccConds.push(`d."SUBPROCESS" = $${pIdx++}`);
+            ccVals.push(subprocess);
+          } else if (team && position === "Manager") {
+            ccConds.push(`b.branch_name = $${pIdx++}`);
+            ccVals.push(team);
+          }
+        }
+        query = `
+          SELECT 
+            d."BRANCH_CODE", 
+            b.branch_name AS "BRANCH_NAME", 
+            d."TOTAL_COLLECTED_CASH", 
+            d."PROCESS", 
+            d."SUBPROCESS"
+          FROM public."DW_CASH_COLLECTION_BY_CRM" d
+          LEFT JOIN public.branches b ON d."BRANCH_CODE" = b.branch_code
+          WHERE ${ccConds.join(" AND ")}
+        `;
+        values = ccVals;
+        break;
+      }
+      case "loan-collection-branch": {
+        let lcConds = ["1=1"];
+        let lcVals = [];
+        let pIdx = 1;
+        if (!isAdmin) {
+          if (process && (position === "VP" || position === "CHF")) {
+            lcConds.push(`d."PROCESS" = $${pIdx++}`);
+            lcVals.push(process);
+          } else if (subprocess && (position === "Director" || position === "Senior Director")) {
+            lcConds.push(`d."SUBPROCESS" = $${pIdx++}`);
+            lcVals.push(subprocess);
+          } else if (team && position === "Manager") {
+            lcConds.push(`b.branch_name = $${pIdx++}`);
+            lcVals.push(team);
+          }
+        }
+        query = `
+          SELECT 
+            b.branch_name AS "BRANCH_NAME", 
+            d."CO_CODE", 
+            d."TOTAL_COLLECTION", 
+            d."LOAN_DUE_COLLECTION", 
+            d."PROCESS", 
+            d."SUBPROCESS"
+          FROM public."DW_LOAN_DUE_COLLECTION" d
+          LEFT JOIN public.branches b ON d."CO_CODE" = b.branch_code
+          WHERE ${lcConds.join(" AND ")}
+        `;
+        values = lcVals;
+        break;
+      }
       default:
         return res.status(400).json({ error: "Invalid tabType" });
     }
@@ -447,7 +543,7 @@ export const getFcyDepositReport = async (req, res) => {
     const paginationClause = isExport ? "" : `LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
     const dataQuery = `
       SELECT 
-        fcy.fcy_id, u1.full_name, fcy.account_number, fcy.account_holder, fcy.amount, fcy.reference, fcy.user_name, fcy.created_at, fcy.process, fcy.subprocess, fcy.team, fcy.crm_name, fcy.status, fcy.createdby, u2.full_name AS approvedby, fcy.is_shared
+        fcy.fcy_id, u1.full_name, u1.title, fcy.account_number, fcy.account_holder, fcy.amount, fcy.reference, fcy.user_name, fcy.created_at, fcy.process, fcy.subprocess, fcy.team, fcy.crm_name, fcy.status, fcy.createdby, u2.full_name AS approvedby, fcy.is_shared
       FROM public.fcydeposit fcy
       LEFT JOIN public.users u1 ON fcy.user_name = u1.user_name
       LEFT JOIN public.users u2 ON fcy.approvedby = u2.user_name

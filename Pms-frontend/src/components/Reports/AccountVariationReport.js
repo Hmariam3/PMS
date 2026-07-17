@@ -46,6 +46,9 @@ const AccountVariationReport = () => {
   const [fcyData, setFcyData] = useState([]);
   const [loanData, setLoanData] = useState([]);
   const [fcyGenData, setFcyGenData] = useState([]);
+  const [manualCashData, setManualCashData] = useState([]);
+  const [crmCashData, setCrmCashData] = useState([]);
+  const [loanCollectionBranchData, setLoanCollectionBranchData] = useState([]);
 
   // Pagination & Search
   const [page, setPage] = useState(0);
@@ -74,6 +77,9 @@ const AccountVariationReport = () => {
         case "fcy": setFcyData(res.data); break;
         case "loan": setLoanData(res.data); break;
         case "fcy-gen": setFcyGenData(res.data); break;
+        case "manual-cash": setManualCashData(res.data); break;
+        case "crm-cash": setCrmCashData(res.data); break;
+        case "loan-collection-branch": setLoanCollectionBranchData(res.data); break;
         default: break;
       }
     } catch (err) {
@@ -89,6 +95,9 @@ const AccountVariationReport = () => {
     else if (tabValue === 1 && fcyData.length === 0) fetchReportData("fcy");
     else if (tabValue === 2 && loanData.length === 0) fetchReportData("loan");
     else if (tabValue === 3 && fcyGenData.length === 0) fetchReportData("fcy-gen");
+    else if (tabValue === 4 && manualCashData.length === 0) fetchReportData("manual-cash");
+    else if (tabValue === 5 && crmCashData.length === 0) fetchReportData("crm-cash");
+    else if (tabValue === 6 && loanCollectionBranchData.length === 0) fetchReportData("loan-collection-branch");
   }, [tabValue]);
 
   const handleTabChange = (event, newValue) => {
@@ -132,6 +141,7 @@ const AccountVariationReport = () => {
         { key: "user_name", label: "User Name" },
         { key: "full_name", label: "Full Name" },
         { key: "position", label: "Position" },
+        { key: "title", label: "Title" },
         { key: "process", label: "Process" },
         { key: "subprocess", label: "Subprocess" },
         { key: "branch", label: "Branch" },
@@ -150,6 +160,7 @@ const AccountVariationReport = () => {
         { key: "user_name", label: "User Name" },
         { key: "full_name", label: "Full Name" },
         { key: "position", label: "Position" },
+        { key: "title", label: "Title" },
         { key: "process", label: "Process" },
         { key: "subprocess", label: "Subprocess" },
         { key: "branch", label: "Branch" },
@@ -166,6 +177,7 @@ const AccountVariationReport = () => {
         { key: "user_name", label: "User Name" },
         { key: "full_name", label: "Full Name" },
         { key: "position", label: "Position" },
+        { key: "title", label: "Title" },
         { key: "process", label: "Process" },
         { key: "subprocess", label: "Subprocess" },
         { key: "branch", label: "Branch" },
@@ -182,12 +194,50 @@ const AccountVariationReport = () => {
         { key: "user_name", label: "User Name" },
         { key: "full_name", label: "Full Name" },
         { key: "position", label: "Position" },
+        { key: "title", label: "Title" },
         { key: "process", label: "Process" },
         { key: "subprocess", label: "Subprocess" },
         { key: "branch", label: "Branch" },
         { key: "fcy_generation_count", label: "FCY Gen Count" },
         { key: "fcy_target", label: "FCY Target" },
         { key: "total_amount", label: "Total Amount (Achievement)" }
+      ]
+    },
+    {
+      title: "Manual Cash Collection per Branch",
+      data: manualCashData,
+      cols: [
+        // { key: "DISTRICT_NAME", label: "District Name" },
+        { key: "PROCESS", label: "Process" },
+        { key: "SUBPROCESS", label: "Subprocess" },
+        { key: "BRANCH_NAME", label: "Branch Name" },
+        { key: "BRANCH_CODE", label: "Branch Code" },
+        { key: "TOTAL_CASH_CREDIT", label: "Total Cash Credit" },
+
+      ]
+    },
+    {
+      title: "Cash Collection by CRM per Branch",
+      data: crmCashData,
+      cols: [
+        { key: "PROCESS", label: "Process" },
+        { key: "SUBPROCESS", label: "Subprocess" },
+        { key: "BRANCH_NAME", label: "Branch Name" },
+        { key: "BRANCH_CODE", label: "Branch Code" },
+        { key: "TOTAL_COLLECTED_CASH", label: "Total Collected Cash" }
+
+      ]
+    },
+    {
+      title: "Loan Collection Per Branch",
+      data: loanCollectionBranchData,
+      cols: [
+        { key: "PROCESS", label: "Process" },
+        { key: "SUBPROCESS", label: "Subprocess" },
+        { key: "BRANCH_NAME", label: "Branch Name" },
+        { key: "CO_CODE", label: "CO Code" },
+        { key: "TOTAL_COLLECTION", label: "Total Collection" }
+        // { key: "LOAN_DUE_COLLECTION", label: "Loan Due Collection" },
       ]
     }
   ];
@@ -281,12 +331,12 @@ const AccountVariationReport = () => {
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
             <AssessmentIcon sx={{ color: "#0ea5e9" }} />
             <Typography variant="h5" sx={{ fontWeight: 700, color: "#1e293b" }}>
-              Account Variation Report
+              Financial Achievement Report
             </Typography>
           </Stack>
           <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
             <Typography color="text.primary">Reports</Typography>
-            <Typography color="text.primary">Account Variation</Typography>
+            <Typography color="text.primary">Financial Achievement</Typography>
           </Breadcrumbs>
         </Box>
 
@@ -337,6 +387,9 @@ const AccountVariationReport = () => {
             <Tab label="FCY Account Variation" {...a11yProps(1)} />
             <Tab label="Loan Collection" {...a11yProps(2)} />
             <Tab label="FCY Generation" {...a11yProps(3)} />
+            <Tab label="Manual Cash Collection per Branch" {...a11yProps(4)} />
+            <Tab label="Cash Collection by CRM per Branch" {...a11yProps(5)} />
+            <Tab label="Loan Collection Per Branch" {...a11yProps(6)} />
           </Tabs>
         </Box>
 

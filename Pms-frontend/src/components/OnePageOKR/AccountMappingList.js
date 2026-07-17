@@ -296,10 +296,10 @@ const AccountMappingList = () => {
   };
 
   const handleShow = () => {
-    // if (!isMappingOpen) {
-    //   toast.error("Account mapping is currently closed.");
-    //   return;
-    // }
+    if (!isMappingOpen) {
+      toast.error("Account mapping is currently closed.");
+      return;
+    }
     setMapping({
       account_number: "",
       account_holder: "",

@@ -414,6 +414,53 @@ export const getBalanceDifferenceByUser = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+export const getBalanceDifferenceByUserforManagers = async (req, res) => {
+  const { company_code, organization, position } = req.body;
+
+  if (!position) {
+    return res.status(400).json({ error: "Position is required" });
+  }
+  try {
+    if (!company_code) {
+      return res.status(400).json({ error: "Company code is required for Branch Managers" });
+    }
+
+    const branchVitalQuery = `
+        SELECT 
+          "LOCAL_DEPOSIT", 
+          "FCY", 
+          "MERCHANT_TRANSACTION_VOLUME", 
+          "AGENT_TRANSACTION_VOLUME"
+        FROM public.branch_vital
+        WHERE "COMPANY_CODE" = $1
+      `;
+    const branchVitalResult = await pool.query(branchVitalQuery, [company_code]);
+
+    if (branchVitalResult.rows.length === 0) {
+      return res.status(200).json({
+        local_deposit: 0,
+        fcy: 0,
+        merchant_transaction_volume: 0,
+        agent_transaction_volume: 0,
+        total_difference: 0
+      });
+    }
+
+    const row = branchVitalResult.rows[0];
+    return res.status(200).json({
+      local_deposit: Number(row.LOCAL_DEPOSIT) || 0,
+      fcy: Number(row.FCY) || 0,
+      merchant_transaction_volume: Number(row.MERCHANT_TRANSACTION_VOLUME) || 0,
+      agent_transaction_volume: Number(row.AGENT_TRANSACTION_VOLUME) || 0,
+      total_difference: (Number(row.LOCAL_DEPOSIT) || 0) + (Number(row.FCY) || 0)
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 // ✅ Import Excel for Account Mapping
 export const importExcelAccountMapping = async (req, res) => {
   if (!req.file) {

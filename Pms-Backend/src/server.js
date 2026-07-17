@@ -36,6 +36,7 @@ import districtMappingRoutes from "./routes/districtMappingRoutes.js";
 import fcyDepositRoutes from "./routes/fcyDepositRoutes.js";
 import engagementRoutes from "./routes/engagementRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import branchVitalRoutes from "./routes/branchVitalRoutes.js";
 
 const app = express();
 // Enable CORS
@@ -81,6 +82,9 @@ app.use("/api/feedbacks", feedbackRoutes);
 app.use("/api/nondeposit", NonDepositActualRoutes);
 app.use("/api/quarter-okr", quarterOKRRoutes);
 app.use("/api/metric-upload", metricUploadRoutes);
+
+//branchvital
+app.use("/api/branchvital", branchVitalRoutes);
 
 // Test DB connection
 pool

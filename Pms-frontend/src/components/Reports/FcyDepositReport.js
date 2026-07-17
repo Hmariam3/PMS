@@ -34,6 +34,7 @@ const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 const COLS = [
   // { key: "fcy_id", label: "ID" },
   { key: "full_name", label: "Full Name" },
+  { key: "title", label: "Title" },
   { key: "account_number", label: "Account Number" },
   { key: "account_holder", label: "Account Holder" },
   { key: "amount", label: "Amount" },
