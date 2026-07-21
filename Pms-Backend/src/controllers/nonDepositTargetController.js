@@ -539,7 +539,6 @@ export const getNonDepositSummaryByUser = async (req, res) => {
         SUM(reports_3days_rate) AS reports_3days_rate,
         SUM(audit_report_quality) AS audit_report_quality,
         SUM(cash_surprise_checks) AS cash_surprise_checks,
-        SUM(employee_perf_threshold) AS employee_perf_threshold,
         SUM(transaction_audit_rate) AS transaction_audit_rate,
 
         SUM(customer_engagement) AS customer_engagement,
@@ -555,16 +554,17 @@ export const getNonDepositSummaryByUser = async (req, res) => {
 
       values = [user_id];
     } else if (position === "Manager") {
-      query = baseQuery + ` AND team = $1`;
-      values = [team];
+      query = baseQuery + ` AND user_name = $1`;
+      values = [user_id];
     } else if (position === "Director" || position === "Senior Director") {
-      query = baseQuery + ` AND subprocess = $1`;
-      values = [subprocess];
+      query = baseQuery + ` AND user_name = $1`;
+      values = [user_id];
     } else if (position === "VP" || position === "CHF") {
-      query = baseQuery + ` AND process = $1`;
-      values = [process];
+      query = baseQuery + ` AND user_name = $1`;
+      values = [user_id];
     } else if (position === "CEO") {
-      query = baseQuery;
+      query = baseQuery + ` AND user_name = $1`;
+      values = [user_id];
     }
 
     const result = await pool.query(query, values);
@@ -588,7 +588,6 @@ export const getNonDepositSummaryByUser = async (req, res) => {
       reports_3days_rate: row.reports_3days_rate || 0,
       audit_report_quality: row.audit_report_quality || 0,
       cash_surprise_checks: row.cash_surprise_checks || 0,
-      employee_perf_threshold: row.employee_perf_threshold || 0,
       transaction_audit_rate: row.transaction_audit_rate || 0,
       customer_engagement: row.customer_engagement || 0,
       new_customer_onboarding: row.new_customer_onboarding || 0,
@@ -620,7 +619,8 @@ export const getNonDepositATMEEUDigitalByUser = async (req, res) => {
         SELECT
           COALESCE(eeu_transaction_count,0) AS eeu_transaction,
           COALESCE(digital_transaction_volume,0) AS digital_transaction_volume,
-          COALESCE(atm_crm_uptime_rate,0) AS atm_crm_uptime_rate
+          COALESCE(atm_crm_uptime_rate,0) AS atm_crm_uptime_rate,
+          COALESCE(employee_perf_threshold,0) AS employee_perf_threshold
         FROM public.non_deposit_target
         WHERE user_name = $1
           AND status = 'Approved'
@@ -664,7 +664,18 @@ export const getNonDepositATMEEUDigitalByUser = async (req, res) => {
               AND atm_crm_uptime_rate > 0
             ORDER BY created_at
             LIMIT 1
-          ) AS atm_crm_uptime_rate
+          ) AS atm_crm_uptime_rate,
+
+          (
+            SELECT COALESCE(employee_perf_threshold,0)
+            FROM public.non_deposit_target
+            WHERE team = $1
+              AND status='Approved'
+              AND employee_perf_threshold > 0
+            ORDER BY created_at
+            LIMIT 1
+          ) AS employee_perf_threshold
+
       `;
 
       values = [team];
@@ -716,7 +727,21 @@ export const getNonDepositATMEEUDigitalByUser = async (req, res) => {
                 AND atm_crm_uptime_rate > 0
               ORDER BY team, created_at
             ) x
-          ) AS atm_crm_uptime_rate
+          ) AS atm_crm_uptime_rate,
+
+          (
+            SELECT COALESCE(SUM(employee_perf_threshold),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                employee_perf_threshold
+              FROM public.non_deposit_target
+              WHERE subprocess = $1
+                AND status='Approved'
+                AND employee_perf_threshold > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS employee_perf_threshold
       `;
 
       values = [subprocess];
@@ -768,7 +793,21 @@ export const getNonDepositATMEEUDigitalByUser = async (req, res) => {
                 AND atm_crm_uptime_rate > 0
               ORDER BY team, created_at
             ) x
-          ) AS atm_crm_uptime_rate
+          ) AS atm_crm_uptime_rate, 
+
+          (
+            SELECT COALESCE(SUM(employee_perf_threshold),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                employee_perf_threshold
+              FROM public.non_deposit_target
+              WHERE process = $1
+                AND status='Approved'
+                AND employee_perf_threshold > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS employee_perf_threshold
       `;
 
       values = [process];
@@ -817,7 +856,20 @@ export const getNonDepositATMEEUDigitalByUser = async (req, res) => {
                 AND atm_crm_uptime_rate > 0
               ORDER BY team, created_at
             ) x
-          ) AS atm_crm_uptime_rate
+          ) AS atm_crm_uptime_rate,
+
+          (
+            SELECT COALESCE(SUM(employee_perf_threshold),0)
+            FROM (
+              SELECT DISTINCT ON (team)
+                team,
+                employee_perf_threshold
+              FROM public.non_deposit_target
+              WHERE status='Approved'
+                AND employee_perf_threshold > 0
+              ORDER BY team, created_at
+            ) x
+          ) AS employee_perf_threshold
       `;
     }
 
@@ -835,6 +887,7 @@ export const getNonDepositATMEEUDigitalByUser = async (req, res) => {
       eeu_transaction: Number(row.eeu_transaction || 0),
       digital_transaction_volume: Number(row.digital_transaction_volume || 0),
       atm_crm_uptime_rate: Number(row.atm_crm_uptime_rate || 0),
+      employee_perf_threshold: Number(row.employee_perf_threshold || 0)
     });
 
   } catch (err) {

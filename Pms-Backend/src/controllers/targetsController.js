@@ -398,11 +398,11 @@ export const getTargetsSummaryByUser = async (req, res) => {
     else if (position === "Manager") {
 
       query = baseQuery + `
-        WHERE team = $1
+        WHERE user_name = $1
         AND status = 'Approved'
       `;
 
-      values = [team];
+      values = [user_id];
 
     }
 
@@ -413,22 +413,22 @@ export const getTargetsSummaryByUser = async (req, res) => {
     ) {
 
       query = baseQuery + `
-        WHERE subprocess = $1
+        WHERE user_name = $1
         AND status = 'Approved'
       `;
 
-      values = [subprocess];
+      values = [user_id];
     }
 
     // VP / CHF
     else if (position === "VP" || position === "CHF") {
 
       query = baseQuery + `
-        WHERE process = $1
+        WHERE user_name = $1
         AND status = 'Approved'
       `;
 
-      values = [process];
+      values = [user_id];
 
     }
 
@@ -436,10 +436,11 @@ export const getTargetsSummaryByUser = async (req, res) => {
     else if (position === "CEO") {
 
       query = baseQuery + `
-        WHERE status = 'Approved'
+        WHERE user_name = $1
+        AND status = 'Approved'
       `;
 
-      values = [];
+      values = [user_id];
 
     }
 

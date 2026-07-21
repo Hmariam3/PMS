@@ -124,13 +124,13 @@ const PerformanceMetricList = ({ member }) => {
         requestData
       );
 
-      console.log("requestData", requestData);
+
       const BranchManageraccountRes = await axios.post(
         `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
         requestData
       );
 
-      console.log("BranchManageraccountRes", BranchManageraccountRes.data);
+      // console.log("BranchManageraccountRes", BranchManageraccountRes.data);
 
       // console.log("loantarget", LoantargetRes.data);
       const totalDeposit = Number(targetRes.data.total_deposit) || 0;
@@ -266,7 +266,7 @@ const PerformanceMetricList = ({ member }) => {
       const reports_3days_rateTarget = userNonDepositTargetRes.data.reports_3days_rate || 0;
       const audit_report_qualityTarget = userNonDepositTargetRes.data.audit_report_quality || 0;
       const cash_surprise_checksTarget = userNonDepositTargetRes.data.cash_surprise_checks || 0;
-      const employee_perf_thresholdTarget = userNonDepositTargetRes.data.employee_perf_threshold || 0;
+      // const employee_perf_thresholdTarget = userNonDepositTargetRes.data.employee_perf_threshold || 0;
       const customer_engagementTarget = userNonDepositTargetRes.data.customer_engagement || 0;
       const new_customer_onboardingTarget = userNonDepositTargetRes.data.new_customer_onboarding || 0;
       const armingc_deposit_proportionTarget = userNonDepositTargetRes.data.armingc_deposit_proportion || 0;
@@ -279,6 +279,7 @@ const PerformanceMetricList = ({ member }) => {
       const eeu_transactionTarget = atmEeuDigitalTargetRes.data.eeu_transaction || 0;
       const digital_transaction_volumeTarget = atmEeuDigitalTargetRes.data.digital_transaction_volume || 0;
       const atm_crm_uptime_rateTarget = atmEeuDigitalTargetRes.data.atm_crm_uptime_rate || 0;
+      const employee_perf_thresholdTarget = atmEeuDigitalTargetRes.data.employee_perf_threshold || 0;
 
 
 
@@ -710,13 +711,13 @@ const PerformanceMetricList = ({ member }) => {
         else if (metric.calculated_for === "Employee Performance") {
           actualachive = (evaluationValue / targetTo) * 100;
 
-          if (actualachive >= 90 && actualachive <= 100) {
+          if (actualachive >= 0.9 && actualachive <= 1) {
             calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 75 && actualachive < 95) {
+          } else if (actualachive >= 0.75 && actualachive < 0.9) {
             calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 50 && actualachive < 75) {
+          } else if (actualachive >= 0.50 && actualachive < 0.75) {
             calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 1 && actualachive < 50) {
+          } else if (actualachive >= 0.25 && actualachive < 0.50) {
             calculatedWeight = 1 * metricWeight;
           } else {
             calculatedWeight = 0;
@@ -736,6 +737,8 @@ const PerformanceMetricList = ({ member }) => {
 
       const { actual, target } = await fetchDataforsystemcalculate(type);
 
+
+      // evaluationValue = parseFloat(actual) || 0; // input value
       let actualachive = 0;
       let targetTo = 0;
       evaluationValue = 0; // input value
@@ -917,14 +920,16 @@ const PerformanceMetricList = ({ member }) => {
         // Employee Performance
         else if (metric.calculated_for === "Employee Performance") {
           actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive >= 90 && actualachive <= 100) {
+          console.log("actualachive", actualachive);
+          console.log("targetTo", targetTo);
+          console.log("evaluationValue", evaluationValue);
+          if (actualachive >= 0.9 && actualachive <= 1) {
             calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 75 && actualachive < 95) {
+          } else if (actualachive >= 0.75 && actualachive < 0.9) {
             calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 50 && actualachive < 75) {
+          } else if (actualachive >= 0.50 && actualachive < 0.75) {
             calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 1 && actualachive < 50) {
+          } else if (actualachive >= 0.25 && actualachive < 0.50) {
             calculatedWeight = 1 * metricWeight;
           } else {
             calculatedWeight = 0;
@@ -1006,10 +1011,218 @@ const PerformanceMetricList = ({ member }) => {
 
   const handleEvaluationChange = (e) => {
     const value = parseFloat(e.target.value) || 0;
-    const target = parseFloat(selectedMetric?.target_fy) || 1;
+    let targetTo = parseFloat(selectedMetric?.target_fy);
+    if (isNaN(targetTo) || targetTo === 0) {
+      targetTo = 1;
+    }
     const metricWeight = parseFloat(selectedMetric?.metric_weight) || 0;
-    let calculatedWeight = (value / target) * (parseFloat(selectedMetric?.divider_or_multiplied) || 1) * metricWeight;
-    if (calculatedWeight > metricWeight) calculatedWeight = metricWeight;
+
+    let calculatedWeight = 0;
+    let actualachive = 0;
+    const evaluationValue = value;
+
+    if (selectedMetric?.calculated_with === "100") {
+      //  GL
+      if (selectedMetric.calculated_for === "Gl") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive === 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      //  ATM
+      else if (selectedMetric.calculated_for === "ATM CRM Uptime Rate") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive === 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 92 && actualachive < 100) {
+          calculatedWeight = 3 * metricWeight;
+        } else if (actualachive >= 85 && actualachive < 92) {
+          calculatedWeight = 2 * metricWeight;
+        } else if (actualachive >= 80 && actualachive < 85) {
+          calculatedWeight = 1 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // Transaction
+      else if (selectedMetric.calculated_for === "Transaction") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive === 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // Customer Satisfaction
+      else if (selectedMetric.calculated_for === "Customer Satisfaction") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive === 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 99 && actualachive < 100) {
+          calculatedWeight = 3 * metricWeight;
+        } else if (actualachive >= 98 && actualachive < 99) {
+          calculatedWeight = 2 * metricWeight;
+        } else if (actualachive >= 97 && actualachive < 88) {
+          calculatedWeight = 1 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // Cash Book
+      else if (selectedMetric.calculated_for === "Cash Book") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive === 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 95 && actualachive < 100) {
+          calculatedWeight = 3 * metricWeight;
+        } else if (actualachive >= 90 && actualachive < 95) {
+          calculatedWeight = 2 * metricWeight;
+        } else if (actualachive >= 85 && actualachive < 90) {
+          calculatedWeight = 1 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // Cash Surprise Cheque
+      else if (selectedMetric.calculated_for === "Cash Surprise Cheque") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive === 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 83 && actualachive < 100) {
+          calculatedWeight = 3 * metricWeight;
+        } else if (actualachive >= 67 && actualachive < 83) {
+          calculatedWeight = 2 * metricWeight;
+        } else if (actualachive >= 50 && actualachive < 67) {
+          calculatedWeight = 1 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // Branch Compliance
+      else if (selectedMetric.calculated_for === "Branch Compliance") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive === 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 95 && actualachive < 100) {
+          calculatedWeight = 3 * metricWeight;
+        } else if (actualachive >= 90 && actualachive < 95) {
+          calculatedWeight = 2 * metricWeight;
+        } else if (actualachive >= 85 && actualachive < 90) {
+          calculatedWeight = 1 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // Audit Report
+      else if (selectedMetric.calculated_for === "Audit Report") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive === 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 67 && actualachive < 100) {
+          calculatedWeight = 3 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // Audit Quality
+      else if (selectedMetric.calculated_for === "Audit Quality") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive === 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 95 && actualachive < 100) {
+          calculatedWeight = 3 * metricWeight;
+        } else if (actualachive >= 90 && actualachive < 95) {
+          calculatedWeight = 2 * metricWeight;
+        } else if (actualachive >= 85 && actualachive < 90) {
+          calculatedWeight = 1 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // Transaction Audit
+      else if (selectedMetric.calculated_for === "Transaction Audit") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive === 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // SPM
+      else if (selectedMetric.calculated_for === "SPM") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive < 3) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 3 && actualachive <= 4) {
+          calculatedWeight = 3 * metricWeight;
+        } else if (actualachive > 4 && actualachive <= 5) {
+          calculatedWeight = 2 * metricWeight;
+        } else if (actualachive > 5) {
+          calculatedWeight = 0;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // Arming C for District
+      else if (selectedMetric.calculated_for === "Armingc Deposit Proportion") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive >= 86 && actualachive <= 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 71 && actualachive < 86) {
+          calculatedWeight = 3 * metricWeight;
+        } else if (actualachive >= 57 && actualachive < 71) {
+          calculatedWeight = 2 * metricWeight;
+        } else if (actualachive >= 14 && actualachive < 57) {
+          calculatedWeight = 1 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // Employee Performance
+      else if (selectedMetric.calculated_for === "Employee Performance") {
+        actualachive = (evaluationValue / targetTo) * 100;
+        if (actualachive >= 90 && actualachive <= 100) {
+          calculatedWeight = 4 * metricWeight;
+        } else if (actualachive >= 75 && actualachive < 90) {
+          calculatedWeight = 3 * metricWeight;
+        } else if (actualachive >= 50 && actualachive < 75) {
+          calculatedWeight = 2 * metricWeight;
+        } else if (actualachive >= 25 && actualachive < 50) {
+          calculatedWeight = 1 * metricWeight;
+        } else {
+          calculatedWeight = 0;
+        }
+      }
+      // branch Vital
+      else if (selectedMetric.calculated_for === "Branch Vital") {
+        calculatedWeight = (evaluationValue * metricWeight);
+      } else {
+        // Fallback generic calculation for "100" if no specific rule matches
+        calculatedWeight = (value / targetTo) * (parseFloat(selectedMetric?.divider_or_multiplied) || 1) * metricWeight;
+        if (calculatedWeight > metricWeight) calculatedWeight = metricWeight;
+      }
+    } else if (selectedMetric?.calculated_with === ">100") {
+      actualachive = (evaluationValue / targetTo) * 100;
+      if (actualachive >= 120) {
+        calculatedWeight = 5 * metricWeight;
+      } else if (actualachive >= 100 && actualachive < 120) {
+        calculatedWeight = 4 * metricWeight;
+      } else if (actualachive >= 75 && actualachive < 100) {
+        calculatedWeight = 3 * metricWeight;
+      } else if (actualachive >= 50 && actualachive < 75) {
+        calculatedWeight = 2 * metricWeight;
+      } else if (actualachive > 0 && actualachive < 50) {
+        calculatedWeight = 1 * metricWeight;
+      } else {
+        calculatedWeight = 0;
+      }
+    } else {
+      // Generic calculation when no specific criteria matches
+      calculatedWeight = (value / targetTo) * (parseFloat(selectedMetric?.divider_or_multiplied) || 1) * metricWeight;
+      if (calculatedWeight > metricWeight) calculatedWeight = metricWeight;
+    }
 
     setEvaluationForm((prev) => ({
       ...prev,

@@ -33,6 +33,7 @@ export const getEvaluations = async (req, res) => {
             pe.updated_at,
             pe.created_by,
             pe.updated_by,
+            pe.status,
             pm.metric_name,
             pm.metric_weight,
             u.full_name as evaluated_full_name
@@ -65,6 +66,7 @@ export const getEvaluations = async (req, res) => {
             pe.updated_at,
             pe.created_by,
             pe.updated_by,
+            pe.status,
             pm.metric_name,
             pm.metric_weight,
             u.full_name as evaluated_full_name
@@ -282,7 +284,9 @@ export const getEvaluationsByEvaluator = async (req, res) => {
     const query = `
       SELECT DISTINCT ON (evaluated)
         pe.*,
-        u.full_name as evaluated_full_name
+        u.full_name as evaluated_full_name,
+        u.title,
+        u.position
       FROM public.performance_evaluations pe
       INNER JOIN public.users u ON pe.evaluated = u.mail_address
       WHERE pe.evaluator = $1
@@ -309,7 +313,9 @@ export const getByEvaluatedUser = async (req, res) => {
         pm.metric_weight,
         o.objective_name,
         o.objective_weight,
-        u.full_name as evaluator_full_name
+        u.full_name as evaluator_full_name,
+        u.title,
+        u.position
       FROM public.performance_evaluations pe
       INNER JOIN public.performance_metrics pm
         ON pe.metric_id = pm.metric_id
@@ -321,10 +327,68 @@ export const getByEvaluatedUser = async (req, res) => {
         AND pe.evaluator = $2
     `;
     const result = await pool.query(query, [evaluated, evaluator]);
-
     res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 };
+
+// Agree on evaluation
+export const agreeEvaluation = async (req, res) => {
+  const {
+    username,
+    fullname,
+    mail,
+    employee_id,
+    process,
+    subprocess,
+    branch,
+    performance_result,
+    performance_status,
+    strategic_recommendation,
+    created_by
+  } = req.body;
+
+  try {
+    const userResult = await pool.query(
+      `SELECT title, position FROM public.users WHERE mail_address = $1`,
+      [mail]
+    );
+    const title = userResult.rows[0]?.title || null;
+    const position = userResult.rows[0]?.position || null;
+
+    await pool.query(
+      `INSERT INTO public.employee_evaluation_result (
+        username, fullname, mail, employee_id, process, subprocess, branch, title, "position", 
+        performance_result, performance_status, strategic_recommendation, created_date, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), $13)`,
+      [
+        username || mail,
+        fullname,
+        mail,
+        employee_id,
+        process,
+        subprocess,
+        branch,
+        title,
+        position,
+        performance_result,
+        performance_status,
+        strategic_recommendation,
+        created_by
+      ]
+    );
+
+    await pool.query(
+      `UPDATE public.performance_evaluations SET status = 'agreed' WHERE evaluated = $1`,
+      [mail]
+    );
+
+    res.status(200).json({ message: "Evaluation agreed successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+

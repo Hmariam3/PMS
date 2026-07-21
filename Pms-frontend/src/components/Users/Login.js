@@ -52,7 +52,7 @@ const Login = () => {
             "Content-Type": "application/json",
             "x-api-key": process.env.REACT_APP_API_KEY,
           },
-          timeout: 10000,
+          timeout: 120000,
         }
       );
 
@@ -69,7 +69,7 @@ const Login = () => {
             `${baseUrl}/employees/title/email`,
             {
               params: { email: MailAdress },
-              timeout: 10000,
+              timeout: 120000,
             }
           );
 

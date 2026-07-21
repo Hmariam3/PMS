@@ -95,7 +95,7 @@ const UserObjectiveEvaluations = () => {
                 metrics: [],
               };
             }
-            acc[key].metrics.push({ ...item, score: item.weight || 0 });
+            acc[key].metrics.push({ ...item, score: (item.weight * 100) / 5 || 0 });
             acc[key].total_score += Number(item.weight || 0);
             return acc;
           }, {});
@@ -105,6 +105,7 @@ const UserObjectiveEvaluations = () => {
             //   obj.total_score = obj.objective_weight;
             // }
             obj.total_score = (obj.total_score * 100) / 5;
+
           });
 
           const total_score = Object.values(grouped).reduce((sum, obj) => sum + obj.total_score, 0);
@@ -138,6 +139,36 @@ const UserObjectiveEvaluations = () => {
     } catch (err) {
       console.error("Error loading feedback:", err);
       toast.error("Failed to load feedback details");
+    }
+  };
+
+  const handleAgree = async (userData) => {
+    try {
+      const score = userData.total_score;
+      const performance_status = score >= 80 ? "Excellent" : score >= 50 ? "Good" : "Need Improvement";
+      const recommendation = getInformativeToDo(userData);
+
+      const payload = {
+        username: user.MailAdress,
+        fullname: userData.evaluated.evaluated_full_name,
+        mail: userData.evaluated.evaluated,
+        employee_id: userData.evaluated.employee_id,
+        process: userData.evaluated.process,
+        subprocess: userData.evaluated.subprocess,
+        branch: userData.evaluated.branch,
+        performance_result: score,
+        performance_status: performance_status,
+        strategic_recommendation: recommendation,
+        created_by: user.MailAdress
+      };
+
+      await axios.post(`${baseUrl}/evaluations/agree`, payload);
+      toast.success("Evaluation agreed successfully!");
+      setShowModal(false);
+      fetchEvaluations();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to agree on evaluation");
     }
   };
 
@@ -272,14 +303,60 @@ const UserObjectiveEvaluations = () => {
         BackdropProps={{ timeout: 500 }}
       >
         <Fade in={showModal}>
-          <Box sx={modalStyle}>
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: "primary.main" }}>
-                {selectedUser?.evaluated?.evaluated_full_name || "Performance Review"}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Detailed performance metrics and strategic recommendations
-              </Typography>
+          <Box sx={modalStyle} id="print-modal">
+            <style>
+              {`
+                @media print {
+                  body {
+                    overflow: visible !important;
+                  }
+                  body * {
+                    visibility: hidden;
+                  }
+                  .MuiModal-root {
+                    position: absolute !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    overflow: visible !important;
+                  }
+                  .MuiBackdrop-root {
+                    display: none !important;
+                  }
+                  #print-modal, #print-modal * {
+                    visibility: visible;
+                  }
+                  #print-modal {
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    width: 100% !important;
+                    max-height: none !important;
+                    height: auto !important;
+                    overflow: visible !important;
+                    transform: none !important;
+                    box-shadow: none !important;
+                  }
+                  .no-print {
+                    display: none !important;
+                  }
+                }
+              `}
+            </style>
+            <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: "primary.main" }}>
+                  {selectedUser?.evaluated?.evaluated_full_name || "Performance Review"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Detailed performance metrics and strategic recommendations
+                </Typography>
+              </Box>
+              <Chip 
+                label={selectedUser?.evaluated?.status?.toLowerCase() === 'agreed' ? 'Agreed' : 'Not Agreed Yet'} 
+                color={selectedUser?.evaluated?.status?.toLowerCase() === 'agreed' ? 'success' : 'default'}
+                variant={selectedUser?.evaluated?.status?.toLowerCase() === 'agreed' ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 'bold' }}
+              />
             </Box>
             <Divider sx={{ mb: 3 }} />
 
@@ -325,10 +402,13 @@ const UserObjectiveEvaluations = () => {
                       </Typography>
                       <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: "white" }}>
                         <Stack spacing={1.5}>
+
                           {[
                             { label: "Full Name", value: selectedUser.evaluated?.evaluated_full_name },
-                            { label: "User ID", value: selectedUser.evaluated?.evaluated },
+                            { label: "Email", value: selectedUser.evaluated?.evaluated },
                             { label: "Employee ID", value: selectedUser.evaluated?.employee_id },
+                            { label: "Title", value: selectedUser.evaluated?.title },
+                            { label: "Position", value: selectedUser.evaluated?.position },
                             { label: "Process", value: selectedUser.evaluated?.process },
                             { label: "Sub Process", value: selectedUser.evaluated?.subprocess },
                             { label: "Branch", value: selectedUser.evaluated?.branch },
@@ -432,7 +512,15 @@ const UserObjectiveEvaluations = () => {
               </Grid>
             )}
 
-            <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end" }}>
+            <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }} className="no-print">
+              <Button variant="outlined" color="primary" onClick={() => window.print()}>
+                Print
+              </Button>
+              {selectedUser?.evaluated?.status !== 'agreed' && (
+                <Button variant="contained" color="success" onClick={() => handleAgree(selectedUser)}>
+                  Agree
+                </Button>
+              )}
               <Button variant="contained" onClick={() => setShowModal(false)}>
                 Close
               </Button>

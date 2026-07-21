@@ -54,6 +54,7 @@ import UserTargetsReport from "./components/Reports/UserTargetsReport";
 import AccountMappingReport from "./components/Reports/AccountMappingReport";
 import AccountVariationReport from "./components/Reports/AccountVariationReport";
 import FcyDepositReport from "./components/Reports/FcyDepositReport";
+import EvaluationResultReport from "./components/Reports/EvaluationResultReport";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./AuthContext";
@@ -516,6 +517,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <FcyDepositReport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/evaluation-result"
+              element={
+                <ProtectedRoute>
+                  <EvaluationResultReport />
                 </ProtectedRoute>
               }
             />

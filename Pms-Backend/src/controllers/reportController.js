@@ -566,3 +566,92 @@ export const getFcyDepositReport = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+// ================= EVALUATION RESULT REPORT =================
+export const getEvaluationResultReport = async (req, res) => {
+  try {
+    const {
+      user_id, position, role, team, subprocess, process, organization,
+      page = 0, limit = 10, searchTerm = "", district = "", isExport = false
+    } = req.body;
+
+    if (!user_id || !position) {
+      return res.status(400).json({ error: "user_id and position are required" });
+    }
+
+    const isAdmin = role === "Admin";
+    const offset = page * limit;
+
+    let conditions = ["1=1"];
+    let values = [];
+    let paramIndex = 1;
+
+    // Role-based scoping
+    if (!isAdmin) {
+      if (position === "CRM" || position === "Individual") {
+        // Wait, if user_id is user_name and we have username/mail in table
+        conditions.push(`(e.username = $${paramIndex} OR e.mail = $${paramIndex})`);
+        values.push(user_id);
+        paramIndex++;
+      } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
+        conditions.push(`e.subprocess = $${paramIndex++}`);
+        values.push(subprocess);
+      } else if (position === "Manager") {
+        conditions.push(`e.branch = $${paramIndex++}`);
+        values.push(team);
+      } else if (position === "VP" || position === "CHF") {
+        conditions.push(`e.process = $${paramIndex++}`);
+        values.push(process);
+      } else if (position === "CEO") {
+        // CEO sees all
+      } else {
+        return res.status(400).json({ error: "Invalid position" });
+      }
+    }
+
+    if (searchTerm) {
+      conditions.push(`(e.fullname ILIKE $${paramIndex} OR e.employee_id ILIKE $${paramIndex} OR e.username ILIKE $${paramIndex})`);
+      values.push(`%${searchTerm}%`);
+      paramIndex++;
+    }
+
+    if (district) {
+      conditions.push(`e.branch ILIKE $${paramIndex++}`);
+      values.push(`%${district}%`);
+    }
+
+    const whereClause = `WHERE ${conditions.join(" AND ")}`;
+
+    const countQuery = `
+      SELECT COUNT(*) 
+      FROM public.employee_evaluation_result e
+      ${whereClause}
+    `;
+    const countResult = await pool.query(countQuery, values);
+    const totalCount = parseInt(countResult.rows[0].count, 10);
+
+    const paginationClause = isExport ? "" : `LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    const dataQuery = `
+      SELECT 
+        id, username, fullname, mail, employee_id, process, subprocess, branch, title, "position", 
+        performance_result, performance_status, strategic_recommendation, created_date, created_by
+      FROM public.employee_evaluation_result e
+      ${whereClause}
+      ORDER BY e.created_date DESC
+      ${paginationClause}
+    `;
+
+    const dataValues = isExport ? [...values] : [...values, limit, offset];
+    const dataResult = await pool.query(dataQuery, dataValues);
+
+    res.status(200).json({
+      data: dataResult.rows,
+      totalCount
+    });
+
+  } catch (err) {
+    console.error("getEvaluationResultReport error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+

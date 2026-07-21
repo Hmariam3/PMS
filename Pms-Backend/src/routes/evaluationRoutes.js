@@ -8,6 +8,7 @@ import {
   getEvaluationsByUserObjective,
   getEvaluationsByEvaluator,
   getByEvaluatedUser,
+  agreeEvaluation,
 } from "../controllers/performanceEvaluationController.js";
 
 const router = express.Router();
@@ -19,6 +20,7 @@ router.post("/", getEvaluations);
 router.post("/createEvaluation/", createEvaluation);
 router.post("/getByEvaluator", getEvaluationsByEvaluator);
 router.post("/getByEvaluatedUser", getByEvaluatedUser);
+router.post("/agree", agreeEvaluation);
 // PUT update an evaluation by ID
 router.put("/:id", updateEvaluation);
 

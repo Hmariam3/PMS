@@ -208,10 +208,11 @@ const EvaluationList = () => {
             <TableHead sx={{ backgroundColor: "#f8fafc" }}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Metric ID</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Evaluator</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Value</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Metric</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Weight</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Score</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Evaluated Person</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Value</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
                   Actions
@@ -222,10 +223,12 @@ const EvaluationList = () => {
               {evaluations.map((e) => (
                 <TableRow key={e.evaluation_id} hover>
                   <TableCell>{e.evaluation_id}</TableCell>
-                  <TableCell>{e.metric_id}</TableCell>
-                  <TableCell>{e.evaluator}</TableCell>
+                  <TableCell>{e.metric_name}</TableCell>
+                  <TableCell>{e.metric_weight}</TableCell>
+                  <TableCell>{(e.weight * 100) / 5}</TableCell>
+                  <TableCell>{e.evaluated}</TableCell>
                   <TableCell>{e.evaluation_value}</TableCell>
-                  <TableCell>{e.weight}</TableCell>
+
                   <TableCell>{new Date(e.evaluation_date).toLocaleDateString()}</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
@@ -241,16 +244,17 @@ const EvaluationList = () => {
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-
-                      <Tooltip title="Delete">
-                        <IconButton
-                          color="error"
-                          size="small"
-                          onClick={() => handleDelete(e.evaluation_id)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                      {(e.status !== "agreed") && (
+                        <Tooltip title="Delete">
+                          <IconButton
+                            color="error"
+                            size="small"
+                            onClick={() => handleDelete(e.evaluation_id)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
 
                     </Stack>
                   </TableCell>
