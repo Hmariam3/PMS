@@ -225,7 +225,11 @@ const EvaluationList = () => {
                   <TableCell>{e.evaluation_id}</TableCell>
                   <TableCell>{e.metric_name}</TableCell>
                   <TableCell>{e.metric_weight}</TableCell>
-                  <TableCell>{(e.weight * 100) / 5}</TableCell>
+                  <TableCell>
+                    {e.metric_name === "Branch Vital"
+                      ? Number(e.weight || 0)
+                      : (Number(e.weight || 0) * 100) / 5}
+                  </TableCell>
                   <TableCell>{e.evaluated}</TableCell>
                   <TableCell>{e.evaluation_value}</TableCell>
 

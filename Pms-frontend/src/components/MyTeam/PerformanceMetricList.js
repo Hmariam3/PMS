@@ -112,7 +112,7 @@ const PerformanceMetricList = ({ member }) => {
         `${baseUrl}/targets/TargetsSummary/`,
         requestData
       );
-      console.log("targetRes", targetRes.data);
+      // console.log("targetRes", targetRes.data);
       const LoantargetRes = await axios.post(
         `${baseUrl}/targets/loanCollectionTargetByUser/`,
         requestData
@@ -357,6 +357,15 @@ const PerformanceMetricList = ({ member }) => {
           return { actual: Number(BranchManageraccountRes.data.agent_transaction_volume) || 0, target: agent_transaction_volumeTarget };
         }
       }
+
+      if (avg_txn_per_csoTarget > 0) {
+        if (type === "Avg Txn Per CSO") {
+          const csoTransactionPerformanceRes = await axios.post(`${baseUrl}/nondeposit/getCsoTransactionPerformance/`, requestData);
+          // console.log("csoTransactionPerformanceRes", csoTransactionPerformanceRes);
+          return { actual: csoTransactionPerformanceRes?.data?.total_accomplishment_percentage || 0, target: avg_txn_per_csoTarget };
+        }
+      }
+
       // for SPM
       if (type === "SPM") {
 
@@ -436,9 +445,9 @@ const PerformanceMetricList = ({ member }) => {
       if (type === "Customer Satisfaction") {
         return { actual: 0, target: zero_customer_complaintsTarget };
       }
-      if (type === "Avg Txn Per CSO") {
-        return { actual: 0, target: avg_txn_per_csoTarget };
-      }
+      // if (type === "Avg Txn Per CSO") {
+      //   return { actual: 0, target: avg_txn_per_csoTarget };
+      // }
       if (type === "Branch Compliance") {
         return { actual: 0, target: compliance_rateTarget };
       }
@@ -466,6 +475,7 @@ const PerformanceMetricList = ({ member }) => {
   };
 
   const handleAddEvaluation = async (metric) => {
+    // console.log("metric", metric);
     setSelectedMetric(metric);
     let type = "";
     const lowerCalcFor = metric.calculated_for?.toLowerCase().trim() || "";
@@ -750,6 +760,7 @@ const PerformanceMetricList = ({ member }) => {
         metric.target_fy = target;
       }
       const divider = parseFloat(metric?.divider_or_multiplied) || 1;
+
       const metricWeight = parseFloat(metric?.metric_weight) || 0;
       if (metric.calculated_with === "100") {
         //  GL
@@ -936,7 +947,9 @@ const PerformanceMetricList = ({ member }) => {
           }
         }
         // branch Vital
+
         else if (metric.calculated_for === "Branch Vital") {
+
           calculatedWeight = (evaluationValue * metricWeight);
         }
       } else if (metric.calculated_with === ">100") {

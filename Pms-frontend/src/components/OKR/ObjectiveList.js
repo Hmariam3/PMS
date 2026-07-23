@@ -579,6 +579,7 @@ const ObjectiveList = () => {
                       <MenuItem value="Audit Quality">Audit Quality</MenuItem>
                       <MenuItem value="Transaction Audit">Transaction Audit</MenuItem>
                       <MenuItem value="Avg Txn Per CSO">Avg Txn Per CSO</MenuItem>
+                      <MenuItem value="Branch Vital">Branch Vital</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
@@ -588,6 +589,16 @@ const ObjectiveList = () => {
                     <Select name="calculated_with" value={metricForm.calculated_with} onChange={handleMetricChange} label="Calculated With">
                       <MenuItem value=">100">&gt;100</MenuItem>
                       <MenuItem value="100">100</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth required size="small" sx={{ width: 300 }}>
+                    <InputLabel>Cap</InputLabel>
+                    <Select name="cap" value={metricForm.cap} onChange={handleMetricChange} label="Cap">
+                      <MenuItem value="cap4">4</MenuItem>
+                      <MenuItem value="cap5">5</MenuItem>
+                      <MenuItem value="cap1">1</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>

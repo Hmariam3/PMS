@@ -95,17 +95,35 @@ const UserObjectiveEvaluations = () => {
                 metrics: [],
               };
             }
-            acc[key].metrics.push({ ...item, score: (item.weight * 100) / 5 || 0 });
+            // console.log("item", item);
+
+            acc[key].metrics.push({
+              ...item,
+              score:
+                item.cap === "cap1"
+                  ? Number(item.weight || 0)
+                  : item.cap === "cap4"
+                    ? (Number(item.weight || 0) * 100) / 4
+                    : (item.cap === "cap5" || item.cap === null)
+                      ? (Number(item.weight || 0) * 100) / 5
+                      : 0,
+            });
             acc[key].total_score += Number(item.weight || 0);
             return acc;
           }, {});
 
-          Object.values(grouped).forEach((obj) => {
-            // if (obj.total_score > obj.objective_weight) {
-            //   obj.total_score = obj.objective_weight;
-            // }
-            obj.total_score = (obj.total_score * 100) / 5;
+          // Object.values(grouped).forEach((obj) => {
+          //   // if (obj.total_score > obj.objective_weight) {
+          //   //   obj.total_score = obj.objective_weight;
+          //   // }
+          //   obj.total_score = (obj.total_score * 100) / 5;
+          // });
 
+          Object.values(grouped).forEach((obj) => {
+            obj.total_score = obj.metrics.reduce(
+              (sum, metric) => sum + Number(metric.score || 0),
+              0
+            );
           });
 
           const total_score = Object.values(grouped).reduce((sum, obj) => sum + obj.total_score, 0);
@@ -351,8 +369,8 @@ const UserObjectiveEvaluations = () => {
                   Detailed performance metrics and strategic recommendations
                 </Typography>
               </Box>
-              <Chip 
-                label={selectedUser?.evaluated?.status?.toLowerCase() === 'agreed' ? 'Agreed' : 'Not Agreed Yet'} 
+              <Chip
+                label={selectedUser?.evaluated?.status?.toLowerCase() === 'agreed' ? 'Agreed' : 'Not Agreed Yet'}
                 color={selectedUser?.evaluated?.status?.toLowerCase() === 'agreed' ? 'success' : 'default'}
                 variant={selectedUser?.evaluated?.status?.toLowerCase() === 'agreed' ? 'filled' : 'outlined'}
                 sx={{ fontWeight: 'bold' }}
@@ -516,7 +534,7 @@ const UserObjectiveEvaluations = () => {
               <Button variant="outlined" color="primary" onClick={() => window.print()}>
                 Print
               </Button>
-              {selectedUser?.evaluated?.status !== 'agreed' && (
+              {selectedUser?.evaluated?.status !== 'agreed' && selectedUser?.evaluated?.evaluated === user.MailAdress && (
                 <Button variant="contained" color="success" onClick={() => handleAgree(selectedUser)}>
                   Agree
                 </Button>

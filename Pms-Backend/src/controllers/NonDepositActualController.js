@@ -1028,3 +1028,29 @@ export const getNewCustomerOnboardingSummaryByUser = async (
     });
   }
 };
+
+// =====================================================
+// Get CSO Transaction Performance
+// =====================================================
+export const getCsoTransactionPerformance = async (req, res) => {
+  const { cbsusername } = req.body;
+
+  try {
+    const query = `
+      SELECT "USER_ID", "USER_NAME", "EMPLOYEE_NAME", "DISTRICT_NAME", "BRANCH_NAME", "BRANCH", "BRANCH_TOTAL_TXN", "NO_OF_STAFF", "AVERAGE_TXN_PLAN", "TRANSACTION_DONE_PER_CSO", "ACCOMPLISHMENT_PERCENTAGE"
+      FROM public."DW_CSO_TRANSACTION_PERFORMANCE"
+      WHERE "USER_ID" = $1
+    `;
+    const values = [cbsusername];
+
+    const result = await pool.query(query, values);
+
+    res.status(200).json({
+      data: result.rows,
+      total_accomplishment_percentage: result.rows[0]?.ACCOMPLISHMENT_PERCENTAGE || 0
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+};

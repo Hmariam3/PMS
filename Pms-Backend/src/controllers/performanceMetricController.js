@@ -21,6 +21,7 @@ export const getMetrics = async (req, res) => {
           pm.input_by,
           pm.calculated_for,
           pm.calculated_with,
+          pm.cap,
           o.objective_name,
           t.title_name
        FROM public.performance_metrics pm
@@ -45,7 +46,8 @@ export const getMetricById = async (req, res) => {
     const result = await pool.query(
       `SELECT metric_id, objective_id, metric_name, measurement_formula, metric_weight, 
               unit_of_measure, evaluation_frequency, target_fy, created_date, updated_date,
-              evaluator_input, dividerormultplid, operation,created_by,updated_by
+              evaluator_input, dividerormultplid, operation,created_by,updated_by,
+              input_by,calculated_for,calculated_with,cap
        FROM public.performance_metrics
        WHERE metric_id = $1`,
       [id],
@@ -79,6 +81,7 @@ export const createMetric = async (req, res) => {
     input_by,
     calculated_for,
     calculated_with,
+    cap,
   } = req.body;
 
   if (!objective_id || !metric_name) {
@@ -91,8 +94,8 @@ export const createMetric = async (req, res) => {
     const result = await pool.query(
       `INSERT INTO public.performance_metrics
         (objective_id, metric_name, measurement_formula, metric_weight, unit_of_measure, evaluation_frequency, target_fy, created_date, updated_date, evaluator_input, dividerormultplid, operation,created_by, input_by,
-    calculated_for,calculated_with)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), $8, $9, $10,$11,$12,$13,$14)
+    calculated_for,calculated_with, cap)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), $8, $9, $10,$11,$12,$13,$14, $15)
        RETURNING *`,
       [
         objective_id,
@@ -109,6 +112,7 @@ export const createMetric = async (req, res) => {
         input_by,
         calculated_for,
         calculated_with,
+        cap,
       ],
     );
 
@@ -140,6 +144,7 @@ export const updateMetric = async (req, res) => {
     input_by,
     calculated_for,
     calculated_with,
+    cap,
   } = req.body;
 
   try {
@@ -159,9 +164,10 @@ export const updateMetric = async (req, res) => {
            updated_by = $11,
             input_by=$12,
           calculated_for=$13,
-          calculated_with=$14
+          calculated_with=$14,
+          cap=$15
 
-       WHERE metric_id = $15
+       WHERE metric_id = $16
        RETURNING *`,
       [
         objective_id,
@@ -178,6 +184,7 @@ export const updateMetric = async (req, res) => {
         input_by,
         calculated_for,
         calculated_with,
+        cap,
         id,
       ],
     );

@@ -311,6 +311,7 @@ export const getByEvaluatedUser = async (req, res) => {
         pe.*,
         pm.metric_name,
         pm.metric_weight,
+        pm.cap,
         o.objective_name,
         o.objective_weight,
         u.full_name as evaluator_full_name,

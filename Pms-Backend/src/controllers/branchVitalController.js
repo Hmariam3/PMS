@@ -5,7 +5,7 @@ import pool from "../db.js";
 ========================================================= */
 export const getBranchVitalSummaryByBranch = async (req, res) => {
     const { company_code } = req.body;
-    console.log("requestdata", req.body);
+    // console.log("requestdata", req.body);
     try {
         const query = `
       SELECT
