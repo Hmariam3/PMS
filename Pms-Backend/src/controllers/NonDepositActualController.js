@@ -61,7 +61,7 @@ export const getNewAccountsSummaryByUser = async (req, res) => {
    2. NAU TRANSACTIONS SUMMARY
 ========================================================= */
 export const getNauTxnSummaryByUser = async (req, res) => {
-  const { cbsusername, user_name, position, subprocess, process } = req.body;
+  const { cbsusername, user_id, team, position, subprocess, process } = req.body;
   try {
     let query = "";
     let values = [];
@@ -78,7 +78,7 @@ export const getNauTxnSummaryByUser = async (req, res) => {
           ON u.company_code = a."BRANCH_CODE"
         WHERE u.user_name = $1
       `;
-      values = [user_name];
+      values = [user_id];
 
       // ===============================
       // Manager (Branch mapping via users table)
@@ -92,7 +92,7 @@ export const getNauTxnSummaryByUser = async (req, res) => {
           ON u.company_code = a."BRANCH_CODE"
         WHERE u.user_name = $1
       `;
-      values = [user_name];
+      values = [user_id];
 
       // ===============================
       // Director (Branch Name / Subprocess)
@@ -440,7 +440,7 @@ export const getDigitalTxnPercentageSummaryByUser = async (req, res) => {
 };
 
 export const getAuditedTxnSummaryByUser = async (req, res) => {
-  const { cbsusername, position, user_name, subprocess, process } = req.body;
+  const { cbsusername, position, user_id, subprocess, process } = req.body;
 
   try {
     let query = "";
@@ -458,7 +458,7 @@ export const getAuditedTxnSummaryByUser = async (req, res) => {
           ON u.company_code = a."BRANCH_CODE"
         WHERE u.user_name = $1
       `;
-      values = [user_name];
+      values = [user_id];
 
       // =========================
       // Manager
@@ -472,7 +472,7 @@ export const getAuditedTxnSummaryByUser = async (req, res) => {
           ON u.company_code = a."BRANCH_CODE"
         WHERE u.user_name = $1
       `;
-      values = [user_name];
+      values = [user_id];
 
       // =========================
       // Director
@@ -525,6 +525,7 @@ export const getAuditedTxnSummaryByUser = async (req, res) => {
 
       data: result.rows,
     });
+
   } catch (err) {
     console.error(err.message);
 
@@ -543,7 +544,7 @@ export const getCashDepositbyBranchSummaryByUser = async (
 ) => {
   const {
     position,
-    user_name,
+    user_id,
     team,
     subprocess,
     process,
@@ -569,7 +570,7 @@ export const getCashDepositbyBranchSummaryByUser = async (
         WHERE u.user_name = $1
       `;
 
-      values = [user_name];
+      values = [user_id];
 
       // =========================
       // Manager
@@ -577,17 +578,17 @@ export const getCashDepositbyBranchSummaryByUser = async (
     } else if (position === "Manager") {
       query = `
         SELECT 
-          a."DISTRICT_NAME",
           COALESCE(
             SUM(a."TOTAL_CASH_CREDIT"),
             0
           ) AS total_cash_collection
         FROM public."DW_CASH_COLLECTION_BY_BRANCH" a
-        WHERE a."DISTRICT_NAME" = $1
-        GROUP BY a."DISTRICT_NAME"
+        JOIN public.users u
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
       `;
 
-      values = [team];
+      values = [user_id];
 
       // =========================
       // Director / Senior Director
@@ -658,6 +659,7 @@ export const getCashDepositbyBranchSummaryByUser = async (
 
       data: result.rows,
     });
+
   } catch (err) {
     console.error(err.message);
 
@@ -668,7 +670,7 @@ export const getCashDepositbyBranchSummaryByUser = async (
 };
 
 export const getCRMCashDepositSummaryByUser = async (req, res) => {
-  const { cbsusername, position, user_name, subprocess, process } =
+  const { cbsusername, position, user_id, subprocess, process } =
     req.body;
 
   try {
@@ -681,16 +683,13 @@ export const getCRMCashDepositSummaryByUser = async (req, res) => {
     if (position === "CRM" || position === "Individual") {
       query = `
         SELECT 
-          COALESCE(
-            SUM(a."CURRENT_CASH") - SUM(a."BEGINING_CASH"),
-            0
-          ) AS total_crm_cash
-        FROM public."DW_CRM_CASH_DEPOSIT" a
+          COALESCE(SUM(a."TOTAL_COLLECTED_CASH"), 0) AS total_crm_cash
+        FROM public."DW_CASH_COLLECTION_BY_CRM" a
         JOIN public.users u
           ON u.company_code = a."BRANCH_CODE"
         WHERE u.user_name = $1
       `;
-      values = [user_name];
+      values = [user_id];
 
       // =========================
       // Manager
@@ -698,16 +697,13 @@ export const getCRMCashDepositSummaryByUser = async (req, res) => {
     } else if (position === "Manager") {
       query = `
         SELECT 
-          COALESCE(
-            SUM(a."CURRENT_CASH") - SUM(a."BEGINING_CASH"),
-            0
-          ) AS total_crm_cash
-        FROM public."DW_CRM_CASH_DEPOSIT" a
+          COALESCE(SUM(a."TOTAL_COLLECTED_CASH"), 0) AS total_crm_cash
+        FROM public."DW_CASH_COLLECTION_BY_CRM" a
         JOIN public.users u
           ON u.company_code = a."BRANCH_CODE"
         WHERE u.user_name = $1
       `;
-      values = [user_name];
+      values = [user_id];
 
       // =========================
       // Director
@@ -716,11 +712,8 @@ export const getCRMCashDepositSummaryByUser = async (req, res) => {
       query = `
         SELECT 
           a."SUBPROCESS",
-          COALESCE(
-            SUM(a."CURRENT_CASH") - SUM(a."BEGINING_CASH"),
-            0
-          ) AS total_crm_cash
-        FROM public."DW_CRM_CASH_DEPOSIT" a
+          COALESCE(SUM(a."TOTAL_COLLECTED_CASH"), 0) AS total_crm_cash
+        FROM public."DW_CASH_COLLECTION_BY_CRM" a
         WHERE a."SUBPROCESS" = $1
         GROUP BY a."SUBPROCESS"
       `;
@@ -733,11 +726,8 @@ export const getCRMCashDepositSummaryByUser = async (req, res) => {
       query = `
         SELECT 
           a."BRANCH_NAME",
-          COALESCE(
-            SUM(a."CURRENT_CASH") - SUM(a."BEGINING_CASH"),
-            0
-          ) AS total_crm_cash
-        FROM public."DW_CRM_CASH_DEPOSIT" a
+          COALESCE(SUM(a."TOTAL_COLLECTED_CASH"), 0) AS total_crm_cash
+        FROM public."DW_CASH_COLLECTION_BY_CRM" a
         WHERE a."PROCESS" = $1
         GROUP BY a."BRANCH_NAME"
       `;
@@ -751,11 +741,8 @@ export const getCRMCashDepositSummaryByUser = async (req, res) => {
         SELECT 
           a."PROCESS",
           a."SUBPROCESS",
-          COALESCE(
-            SUM(a."CURRENT_CASH") - SUM(a."BEGINING_CASH"),
-            0
-          ) AS total_crm_cash
-        FROM public."DW_CRM_CASH_DEPOSIT" a
+          COALESCE(SUM(a."TOTAL_COLLECTED_CASH"), 0) AS total_crm_cash
+        FROM public."DW_CASH_COLLECTION_BY_CRM" a
         GROUP BY a."PROCESS", a."SUBPROCESS"
         ORDER BY a."PROCESS"
       `;

@@ -84,7 +84,7 @@ const PerformanceMetricList = ({ member }) => {
     try {
       setLoading(true);
       const res = await axios.get(
-        `${baseUrl}/users/byEmail/${member.outlook_address}`
+        `${baseUrl}/users/byEmail/${encodeURIComponent(member.outlook_address)}`
       );
       setUserinfo(res.data);
     } catch (err) {
@@ -266,6 +266,7 @@ const PerformanceMetricList = ({ member }) => {
       const reports_3days_rateTarget = userNonDepositTargetRes.data.reports_3days_rate || 0;
       const audit_report_qualityTarget = userNonDepositTargetRes.data.audit_report_quality || 0;
       const cash_surprise_checksTarget = userNonDepositTargetRes.data.cash_surprise_checks || 0;
+      const gl = userNonDepositTargetRes.data.gl || 0;
       // const employee_perf_thresholdTarget = userNonDepositTargetRes.data.employee_perf_threshold || 0;
       const customer_engagementTarget = userNonDepositTargetRes.data.customer_engagement || 0;
       const new_customer_onboardingTarget = userNonDepositTargetRes.data.new_customer_onboarding || 0;
@@ -290,7 +291,7 @@ const PerformanceMetricList = ({ member }) => {
         }
       }
       if (unauthorizeTransTarget > 0) {
-        if (type === "transaction") {
+        if (type === "Transaction") {
           const unutorizedTranRes = await axios.post(`${baseUrl}/nondeposit/non-txn-summary/`, requestData);
           return { actual: unutorizedTranRes?.data?.total_unauthorized || 0, target: unauthorizeTransTarget };
         }
@@ -460,6 +461,9 @@ const PerformanceMetricList = ({ member }) => {
       if (type === "Cash Surprise Cheque") {
         return { actual: 0, target: cash_surprise_checksTarget };
       }
+      if (type === "GL") {
+        return { actual: 0, target: gl };
+      }
       if (type === "Employee Performance") {
         return { actual: 0, target: employee_perf_thresholdTarget };
       }
@@ -484,13 +488,13 @@ const PerformanceMetricList = ({ member }) => {
     else if (lowerCalcFor === "fcy") type = "fcy";
     else if (lowerCalcFor === "loan") type = "loan";
     else if (lowerCalcFor === "card") type = "card";
-    else if (lowerCalcFor === "transaction") type = "transaction";
+    else if (lowerCalcFor === "transaction") type = "Transaction";
     else if (lowerCalcFor === "account") type = "account";
     else if (lowerCalcFor === "eeu") type = "EEU";
     else if (lowerCalcFor === "transaction audit") type = "Transaction Audit";
     else if (lowerCalcFor === "digital transaction") type = "Digital Transaction";
     else if (lowerCalcFor === "cash collection") type = "Cash Collection";
-    else if (lowerCalcFor === "crm") type = "CRM";
+    else if (lowerCalcFor === "crm deposit") type = "CRM Deposit";
     else if (lowerCalcFor === "merchant recruitment") type = "Merchant Recruitment";
     else if (lowerCalcFor === "merchant transaction volume") type = "Merchant Transaction Volume";
     else if (lowerCalcFor === "agent recruitment") type = "Agent Recruitment";
@@ -500,7 +504,7 @@ const PerformanceMetricList = ({ member }) => {
     else if (lowerCalcFor === "atm crm uptime rate") type = "ATM CRM Uptime Rate";
     else if (lowerCalcFor === "customer") type = "Customer";
     else if (lowerCalcFor === "product") type = "Product";
-    else if (lowerCalcFor === "gl") type = "Gl";
+    else if (lowerCalcFor === "gl") type = "GL";
     else if (lowerCalcFor === "customer satisfaction") type = "Customer Satisfaction";
     else if (lowerCalcFor === "cash book") type = "Cash Book";
     else if (lowerCalcFor === "cash surprise cheque") type = "Cash Surprise Cheque";
@@ -511,7 +515,7 @@ const PerformanceMetricList = ({ member }) => {
     else if (lowerCalcFor === "zero customer complaints") type = "Zero Customer Complaints";
     else if (lowerCalcFor === "avg txn per cso") type = "Avg Txn Per CSO";
     else if (lowerCalcFor === "compliance rate") type = "Compliance Rate";
-    else if (lowerCalcFor === "reports 3 days rate") type = "Reports 3 Days Rate";
+    else if (lowerCalcFor === "audit report") type = "Audit Report";
     else if (lowerCalcFor === "employee performance") type = "Employee Performance";
     else if (lowerCalcFor === "customer engagement") type = "Customer Engagement";
     else if (lowerCalcFor === "new customer onboarding") type = "New Customer Onboarding";
@@ -562,7 +566,7 @@ const PerformanceMetricList = ({ member }) => {
         //  ATM
         else if (metric.calculated_for === "ATM CRM Uptime Rate") {
           actualachive = (evaluationValue / targetTo) * 100;
-          if (actualachive === 100) {
+          if (actualachive >= 100) {
             calculatedWeight = 4 * metricWeight;
           } else if (actualachive >= 92 && actualachive < 100) {
             calculatedWeight = 3 * metricWeight;
@@ -593,7 +597,7 @@ const PerformanceMetricList = ({ member }) => {
             calculatedWeight = 3 * metricWeight;
           } else if (actualachive >= 98 && actualachive < 99) {
             calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 97 && actualachive < 88) {
+          } else if (actualachive >= 97 && actualachive < 98) {
             calculatedWeight = 1 * metricWeight;
           } else {
             calculatedWeight = 0;
@@ -778,7 +782,7 @@ const PerformanceMetricList = ({ member }) => {
         else if (metric.calculated_for === "ATM CRM Uptime Rate") {
           actualachive = (evaluationValue / targetTo) * 100;
 
-          if (actualachive === 100) {
+          if (actualachive >= 100) {
             calculatedWeight = 4 * metricWeight;
           } else if (actualachive >= 92 && actualachive < 100) {
             calculatedWeight = 3 * metricWeight;
@@ -1047,7 +1051,7 @@ const PerformanceMetricList = ({ member }) => {
       //  ATM
       else if (selectedMetric.calculated_for === "ATM CRM Uptime Rate") {
         actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive === 100) {
+        if (actualachive >= 100) {
           calculatedWeight = 4 * metricWeight;
         } else if (actualachive >= 92 && actualachive < 100) {
           calculatedWeight = 3 * metricWeight;
@@ -1077,7 +1081,7 @@ const PerformanceMetricList = ({ member }) => {
           calculatedWeight = 3 * metricWeight;
         } else if (actualachive >= 98 && actualachive < 99) {
           calculatedWeight = 2 * metricWeight;
-        } else if (actualachive >= 97 && actualachive < 88) {
+        } else if (actualachive >= 97 && actualachive < 98) {
           calculatedWeight = 1 * metricWeight;
         } else {
           calculatedWeight = 0;
@@ -1233,8 +1237,9 @@ const PerformanceMetricList = ({ member }) => {
       }
     } else {
       // Generic calculation when no specific criteria matches
-      calculatedWeight = (value / targetTo) * (parseFloat(selectedMetric?.divider_or_multiplied) || 1) * metricWeight;
-      if (calculatedWeight > metricWeight) calculatedWeight = metricWeight;
+      // calculatedWeight = (value / targetTo) * (parseFloat(selectedMetric?.divider_or_multiplied) || 1) * metricWeight;
+      // if (calculatedWeight > metricWeight) calculatedWeight = metricWeight;
+      console.error("No specific criteria matched for metric: ", selectedMetric.metric_name);
     }
 
     setEvaluationForm((prev) => ({
@@ -1287,6 +1292,8 @@ const PerformanceMetricList = ({ member }) => {
           </TableBody>
         </Table>
       </TableContainer>
+      {/* {console.log('selectedMetric', selectedMetric)}
+      {console.log('evaluationForm', evaluationForm)} */}
 
       {/* Evaluation Modal */}
       <Modal

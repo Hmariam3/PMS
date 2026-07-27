@@ -90,6 +90,7 @@ const DashboardTeam = () => {
       subprocess: singleUser.subprocess || null,
       team: singleUser.team || null,
       cbsusername: singleUser.cbsusername || null,
+      company_code: singleUser.company_code || null,
     };
     // console.log("requestData", requestData);
     try {
@@ -172,7 +173,17 @@ const DashboardTeam = () => {
           `${baseUrl}/accountmapping/getBalanceDifference`,
           requestData
         );
-        accountBalance = accountRes.data.total_difference || 0;
+        const BranchManageraccountRes = await axios.post(
+          `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
+          requestData
+        );
+
+        if (singleUser.position === 'Manager' && singleUser.organization === 'Branch') {
+          accountBalance = Number(BranchManageraccountRes.data.local_deposit) || 0;
+        } else {
+          accountBalance = Number(accountRes.data.total_difference) || 0;
+        }
+
       }
 
       const fcyRes = await axios.post(

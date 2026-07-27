@@ -74,9 +74,11 @@ const getNavLinks = (user) => {
   const isDirector = position.includes("Director");
   const isCRM = position === "CRM";
   const isIndividual = position === "Individual";
+  const isManager = position === "Manager";
   const isVPOrCHF = position.includes("VP") || position.includes("CHF");
   const isIFB = process === "Interest Free Banking";
   const isCorporate = subprocess === "Corporate Banking" || subprocess === "NGO and Institutional Banking" || subprocess === "Cooperative Business" || subprocess === "Agri Business" || subprocess === "Product Director by Division";
+
 
 
   return [
@@ -146,13 +148,14 @@ const getNavLinks = (user) => {
         { text: "Strategic Pillars", path: "/pillars", icon: <AccountTreeIcon />, show: isAdmin },
         { text: "Objectives", path: "/objective", icon: <FlagIcon />, show: isAdmin },
         { text: "Performance Metrics", path: "/performancemetrics", icon: <BarChartIcon />, show: isAdmin },
-        { text: "My Team", path: "/myteam", icon: <PeopleIcon />, show: !isIndividual || isAdmin },
-        { text: "Team Feedback", path: "/feedback", icon: <ThumbsUpDownIcon />, show: !isIndividual },
-        { text: "Evaluation", path: "/evaluation", icon: <AssignmentTurnedInIcon />, show: isAdmin },
-        { text: "Team Score", path: "/score", icon: <ScoreboardIcon />, show: !isIndividual },
         { text: "My Performance Metrics", path: "/yourperformance", icon: <AutoGraphIcon />, show: true },
-        { text: "My Feedback", path: "/myfeedback", icon: <ThumbsUpDownIcon />, show: isIndividual },
-        { text: "My Score", path: "/myscore", icon: <ScoreboardIcon />, show: isIndividual },
+        { text: "My Team", path: "/myteam", icon: <PeopleIcon />, show: !isIndividual || isAdmin },
+        { text: "Evaluation", path: "/evaluation", icon: <AssignmentTurnedInIcon />, show: !isIndividual },
+        { text: "Team Score", path: "/score", icon: <ScoreboardIcon />, show: !isIndividual },
+        { text: "My Score", path: "/myscore", icon: <ScoreboardIcon />, show: isIndividual || isAdmin },
+        { text: "Team Feedback", path: "/feedback", icon: <ThumbsUpDownIcon />, show: !isIndividual },
+        { text: "My Feedback", path: "/myfeedback", icon: <ThumbsUpDownIcon />, show: isIndividual || isAdmin },
+
       ],
     },
     {
@@ -164,7 +167,7 @@ const getNavLinks = (user) => {
         { text: "Account Mapping Report", path: "/reports/account-mapping", icon: <AssessmentIcon />, show: isAdmin },
         { text: "Financial Achievement", path: "/reports/account-variation", icon: <AssessmentIcon />, show: isAdmin },
         { text: "FCY Deposit", path: "/reports/fcy-deposit", icon: <AssessmentIcon />, show: isAdmin },
-        { text: "Evaluation Result Report", path: "/reports/evaluation-result", icon: <AssessmentIcon />, show: isAdmin },
+        { text: "Evaluation Result Report", path: "/reports/evaluation-result", icon: <AssessmentIcon />, show: true },
       ],
     },
   ];

@@ -306,7 +306,7 @@ export const getByEvaluatedUser = async (req, res) => {
   const { evaluated, evaluator } = req.body;
 
   try {
-    const query = `
+    let query = `
       SELECT 
         pe.*,
         pm.metric_name,
@@ -322,12 +322,18 @@ export const getByEvaluatedUser = async (req, res) => {
         ON pe.metric_id = pm.metric_id
       INNER JOIN public.objectives o
         ON pm.objective_id = o.objective_id
-      INNER JOIN public.users u
+      LEFT JOIN public.users u
         ON pe.evaluator = u.mail_address
-      WHERE pe.evaluated = $1 
-        AND pe.evaluator = $2
+      WHERE pe.evaluated = $1
     `;
-    const result = await pool.query(query, [evaluated, evaluator]);
+    const params = [evaluated];
+
+    if (evaluator) {
+      query += ` AND pe.evaluator = $2`;
+      params.push(evaluator);
+    }
+
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error(err);

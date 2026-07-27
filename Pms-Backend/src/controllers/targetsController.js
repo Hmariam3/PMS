@@ -363,21 +363,22 @@ export const getTargetsSummaryByUser = async (req, res) => {
     let values;
 
     const baseQuery = `
-      SELECT 
-        SUM(COALESCE(deposit_target, 0)) AS total_deposit,
-        SUM(COALESCE(fcy_target, 0)) AS total_fcy,
-        SUM(COALESCE(loan_collection, 0)) AS total_loan,
+      SELECT
+          COUNT(*) AS record_count,
 
-        SUM(COALESCE(cash_collection, 0)) AS total_cash_collection,
-        SUM(COALESCE(cash_deposited_crm, 0)) AS cash_deposited_crm,
+          SUM(COALESCE(deposit_target,0)) AS total_deposit,
+          SUM(COALESCE(fcy_target,0)) AS total_fcy,
+          SUM(COALESCE(loan_collection,0)) AS total_loan,
+          SUM(COALESCE(cash_collection,0)) AS total_cash_collection,
+          SUM(COALESCE(cash_deposited_crm,0)) AS cash_deposited_crm,
 
-        SUM(
-          COALESCE(deposit_target, 0) +
-          COALESCE(fcy_target, 0) +
-          COALESCE(loan_collection, 0) +
-          COALESCE(cash_collection, 0) +
-          COALESCE(cash_deposited_crm, 0)
-        ) AS grand_total
+          SUM(
+              COALESCE(deposit_target,0) +
+              COALESCE(fcy_target,0) +
+              COALESCE(loan_collection,0) +
+              COALESCE(cash_collection,0) +
+              COALESCE(cash_deposited_crm,0)
+          ) AS grand_total
 
       FROM public.targets
     `;
@@ -455,16 +456,7 @@ export const getTargetsSummaryByUser = async (req, res) => {
     const row = result.rows[0];
 
     // if no approved records found
-    if (
-      !row ||
-      (
-        Number(row.total_deposit || 0) === 0 &&
-        Number(row.total_fcy || 0) === 0 &&
-        Number(row.total_loan || 0) === 0 &&
-        Number(row.total_cash_collection || 0) === 0 &&
-        Number(row.cash_deposited_crm || 0) === 0
-      )
-    ) {
+    if (!row || Number(row.record_count) === 0) {
       return res.status(404).json({
         message: "No approved targets found",
       });

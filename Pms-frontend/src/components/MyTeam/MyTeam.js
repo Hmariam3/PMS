@@ -66,7 +66,7 @@ const MyTeam = () => {
     try {
       setLoading(true);
       const res = await axios.get(
-        `${baseUrl}/employees/myTeam/${user.MailAdress}`
+        `${baseUrl}/employees/myTeam/${encodeURIComponent(user.MailAdress)}`
       );
       setTeam(res.data);
     } catch (err) {
