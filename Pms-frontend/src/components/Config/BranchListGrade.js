@@ -163,23 +163,8 @@ const BranchGradeList = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{ mb: 3 }}
-      >
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: "#1e293b" }}>
-            Branch Grades
-          </Typography>
-          <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-
-            <Typography color="text.primary">Configuration</Typography>
-            <Typography color="text.primary">Branch Grades</Typography>
-          </Breadcrumbs>
-        </Box>
+    <Box>
+      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -187,7 +172,7 @@ const BranchGradeList = () => {
             setGradeForm({ id: null, grade: "" });
             setShowForm(true);
           }}
-          Color="info"
+          color="info"
         >
           Add Grade
         </Button>
@@ -272,7 +257,7 @@ const BranchGradeList = () => {
                 <Button onClick={() => setShowForm(false)} color="inherit">
                   Cancel
                 </Button>
-                <Button type="submit" variant="contained" Color="info">
+                <Button type="submit" variant="contained" color="info">
                   {gradeForm.id ? "Update" : "Add"}
                 </Button>
               </Box>

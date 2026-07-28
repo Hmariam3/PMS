@@ -47,16 +47,15 @@ export const getBranchById = async (req, res) => {
   }
 };
 
-// Create a new branch
 export const createBranch = async (req, res) => {
-  const { branch_name } = req.body;
+  const { branch_name, branch_code, subprocess_id } = req.body;
 
   try {
     const result = await pool.query(
-      `INSERT INTO public.branches (branch_name, created_at, updated_at)
-       VALUES ($1, NOW(), NOW())
+      `INSERT INTO public.branches (branch_name, branch_code, subprocess_id, created_at, updated_at)
+       VALUES ($1, $2, $3, NOW(), NOW())
        RETURNING *`,
-      [branch_name],
+      [branch_name, branch_code, subprocess_id],
     );
 
     res.status(201).json({
@@ -72,15 +71,15 @@ export const createBranch = async (req, res) => {
 // Update a branch
 export const updateBranch = async (req, res) => {
   const { id } = req.params;
-  const { branch_name } = req.body;
+  const { branch_name, branch_code, subprocess_id } = req.body;
 
   try {
     const result = await pool.query(
       `UPDATE public.branches
-       SET branch_name = $1, updated_at = NOW()
-       WHERE id = $2
+       SET branch_name = $1, branch_code = $2, subprocess_id = $3, updated_at = NOW()
+       WHERE id = $4
        RETURNING *`,
-      [branch_name, id],
+      [branch_name, branch_code, subprocess_id, id],
     );
 
     if (result.rows.length === 0) {

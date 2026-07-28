@@ -166,23 +166,8 @@ const TitleList = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{ mb: 3 }}
-      >
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: "#1e293b" }}>
-            Titles
-          </Typography>
-          <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-
-            <Typography color="text.primary">Configuration</Typography>
-            <Typography color="text.primary">Titles</Typography>
-          </Breadcrumbs>
-        </Box>
+    <Box>
+      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -190,7 +175,7 @@ const TitleList = () => {
             setTitleForm({ title_name: "" });
             setShowForm(true);
           }}
-          Color="info"
+          color="info"
         >
           Add Title
         </Button>
@@ -333,7 +318,7 @@ const TitleList = () => {
                 <Button onClick={() => setShowForm(false)} color="inherit">
                   Cancel
                 </Button>
-                <Button type="submit" variant="contained" Color="info">
+                <Button type="submit" variant="contained" color="info">
                   {titleForm.id ? "Update" : "Add"}
                 </Button>
               </Box>

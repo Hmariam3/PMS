@@ -97,6 +97,7 @@ const EmployeeList = () => {
   const [titles, setTitles] = useState([]);
   const [jobLevels, setJobLevels] = useState([]);
   const [payGrades, setPayGrades] = useState([]);
+  const [branchGrades, setBranchGrades] = useState([]);
   const [errors, setErrors] = useState({});
 
   const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
@@ -110,6 +111,7 @@ const EmployeeList = () => {
         titleRes,
         jobLevelRes,
         payGradeRes,
+        branchGradeRes,
       ] = await Promise.all([
         axios.get(`${baseUrl}/processes`),
         axios.get(`${baseUrl}/subProcess`),
@@ -117,6 +119,7 @@ const EmployeeList = () => {
         axios.get(`${baseUrl}/titles`),
         axios.get(`${baseUrl}/job-levels`),
         axios.get(`${baseUrl}/pay-grades`),
+        axios.get(`${baseUrl}/branchgrade/branch-grades`),
       ]);
 
       setProcesses(processRes.data);
@@ -125,6 +128,7 @@ const EmployeeList = () => {
       setTitles(titleRes.data);
       setJobLevels(jobLevelRes.data);
       setPayGrades(payGradeRes.data);
+      setBranchGrades(branchGradeRes.data);
     } catch (error) {
       console.error("Error fetching dropdown data", error);
       toast.error("Failed to load dropdown data");
@@ -181,9 +185,32 @@ const EmployeeList = () => {
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setEmployeeForm({ ...employeeForm, [name]: value });
+    if (name === "process_name") {
+      setEmployeeForm({
+        ...employeeForm,
+        process_name: value,
+        sub_process_name: "",
+        branch_name: "",
+      });
+    } else if (name === "sub_process_name") {
+      setEmployeeForm({
+        ...employeeForm,
+        sub_process_name: value,
+        branch_name: "",
+      });
+    } else {
+      setEmployeeForm({ ...employeeForm, [name]: value });
+    }
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
   };
+
+  const filteredSubProcesses = subProcesses.filter(
+    (sp) => sp.process_name === employeeForm.process_name
+  );
+
+  const filteredBranches = branches.filter(
+    (b) => b.sub_proccess === employeeForm.sub_process_name
+  );
 
   const validate = () => {
     const newErrors = {};
@@ -577,18 +604,18 @@ const EmployeeList = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required sx={{ width: "300px" }}>
+                  <FormControl fullWidth required sx={{ width: "300px" }} disabled={!employeeForm.process_name}>
                     <InputLabel>Sub Process Name</InputLabel>
                     <Select name="sub_process_name" value={employeeForm.sub_process_name} onChange={handleFormChange} label="Sub Process Name">
-                      {subProcesses.map((sp) => <MenuItem key={sp.id} value={sp.sub_process_name}>{sp.sub_process_name}</MenuItem>)}
+                      {filteredSubProcesses.map((sp) => <MenuItem key={sp.id} value={sp.sub_process_name}>{sp.sub_process_name}</MenuItem>)}
                     </Select>
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required sx={{ width: "300px" }}>
+                  <FormControl fullWidth required sx={{ width: "300px" }} disabled={!employeeForm.sub_process_name}>
                     <InputLabel>Branch Name</InputLabel>
                     <Select name="branch_name" value={employeeForm.branch_name} onChange={handleFormChange} label="Branch Name">
-                      {branches.map((b) => <MenuItem key={b.id} value={b.branch_name}>{b.branch_name}</MenuItem>)}
+                      {filteredBranches.map((b) => <MenuItem key={b.id} value={b.branch_name}>{b.branch_name}</MenuItem>)}
                     </Select>
                   </FormControl>
                 </Grid>
@@ -631,7 +658,12 @@ const EmployeeList = () => {
                   <TextField fullWidth label="Location" name="location" value={employeeForm.location} onChange={handleFormChange} />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth label="Branch Grade" name="branch_grade" value={employeeForm.branch_grade} onChange={handleFormChange} />
+                  <FormControl fullWidth sx={{ width: "300px" }}>
+                    <InputLabel>Branch Grade</InputLabel>
+                    <Select name="branch_grade" value={employeeForm.branch_grade} onChange={handleFormChange} label="Branch Grade">
+                      {branchGrades.map((bg) => <MenuItem key={bg.id} value={bg.grade}>{bg.grade}</MenuItem>)}
+                    </Select>
+                  </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField fullWidth label="Organization Unit" name="organization_unit" value={employeeForm.organization_unit} onChange={handleFormChange} />

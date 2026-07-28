@@ -12,12 +12,8 @@ import Projects from "./pages/Projects";
 import Users from "./components/Users/UserList";
 import UserTransfer from "./components/Users/UserTransfer";
 import EmployeeList from "./components/Employees/EmployeeList";
-import ProcessList from "./components/Config/ProcessList";
-import SubProcessList from "./components/Config/SubProcessList";
-import BranchList from "./components/Config/BranchList";
-import JobLevelList from "./components/Config/JobLevelList";
-import PayGradeList from "./components/Config/PayGradeList";
-import TitleList from "./components/Config/TitleList";
+import ProcessHierarchy from "./components/Config/ProcessHierarchy";
+import GeneralConfig from "./components/Config/GeneralConfig";
 import Login from "./components/Users/Login";
 import Register from "./components/Users/Register";
 import PillarList from "./components/OKR/PillarList";
@@ -43,7 +39,7 @@ import FCYCollectionList from "./components/OnePageOKR/FCYCollectionList";
 import LoanCollectionList from "./components/OnePageOKR/LoanCollectionList";
 import PriorityList from "./components/OnePageOKR/PriorityList";
 import IFBList from "./components/OnePageOKR/IFBList ";
-import BranchListGrade from "./components/Config/BranchListGrade";
+
 import BusinessAsUsualList from "./components/OnePageOKR/BusinessAsUsualList";
 import QuarterOKRList from "./components/OnePageOKR/QuarterOKRList";
 import LoanAccountMappingList from "./components/OnePageOKR/LoanAccountMappingList";
@@ -224,50 +220,18 @@ function App() {
               }
             />
             <Route
-              path="/proceses"
+              path="/hierarchy"
               element={
                 <ProtectedRoute>
-                  <ProcessList />
+                  <ProcessHierarchy />
                 </ProtectedRoute>
               }
             />
             <Route
-              path="/subprocess"
+              path="/general-config"
               element={
                 <ProtectedRoute>
-                  <SubProcessList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/branch"
-              element={
-                <ProtectedRoute>
-                  <BranchList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/joblevel"
-              element={
-                <ProtectedRoute>
-                  <JobLevelList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/paygrade"
-              element={
-                <ProtectedRoute>
-                  <PayGradeList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/title"
-              element={
-                <ProtectedRoute>
-                  <TitleList />
+                  <GeneralConfig />
                 </ProtectedRoute>
               }
             />
@@ -456,14 +420,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/branchgrade"
-              element={
-                <ProtectedRoute>
-                  <BranchListGrade />
-                </ProtectedRoute>
-              }
-            />
+
             <Route
               path="/fcyaccountmapping"
               element={
