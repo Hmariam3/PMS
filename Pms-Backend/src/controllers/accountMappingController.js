@@ -305,7 +305,7 @@ export const deleteAccountMapping = async (req, res) => {
 
 //  Get balance difference by user role
 export const getBalanceDifferenceByUser = async (req, res) => {
-  const { user_id, position, team, subprocess, process } = req.body;
+  const { user_id, position, team, subprocess, process, organization } = req.body;
   if (!user_id || !position) {
     return res.status(400).json({
       error: "User ID and position are required",
@@ -366,7 +366,36 @@ export const getBalanceDifferenceByUser = async (req, res) => {
         WHERE subprocess = $1
       `;
       values = [subprocess];
-    } else if (position === "VP" || position === "CHF") {
+    }
+    // else if ((position === "Director" || position === "Senior Director") && (organization === "Do")) {
+    //   query = `
+    //       SELECT
+    //         SUM(COALESCE(bv."LOCAL_DEPOSIT", 0)) AS total_difference
+    //       FROM public.branch_vital bv
+    //       INNER JOIN (
+    //         SELECT DISTINCT company_code
+    //         FROM public.users
+    //         WHERE subprocess = $1
+    //           AND company_code IS NOT NULL
+    //       ) u
+    //         ON bv."COMPANY_CODE" = u.company_code
+    //     `;
+
+    //   fcyQuery = `
+    //       SELECT
+    //         SUM(COALESCE(bv."FCY", 0)) AS total_fcy
+    //       FROM public.branch_vital bv
+    //       INNER JOIN (
+    //         SELECT DISTINCT company_code
+    //         FROM public.users
+    //         WHERE subprocess = $1
+    //           AND company_code IS NOT NULL
+    //       ) u
+    //         ON bv."COMPANY_CODE" = u.company_code
+    //     `;
+    //   values = [subprocess];
+    // }
+    else if (position === "VP" || position === "CHF") {
       query = `
         SELECT 
           SUM(COALESCE(current_balance, 0)) - 
@@ -409,6 +438,7 @@ export const getBalanceDifferenceByUser = async (req, res) => {
     res.status(200).json({
       total_difference: normalDiff + fcyTotal,
     });
+
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: "Server error" });
@@ -461,6 +491,64 @@ export const getBalanceDifferenceByUserforManagers = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+export const getBalanceDifferenceByUserforDistrictDirectors = async (req, res) => {
+  const { subprocess, position } = req.body;
+
+
+  if (!position) {
+    return res.status(400).json({ error: "Position is required" });
+  }
+
+  try {
+    if (!subprocess) {
+      return res.status(400).json({ error: "Subprocess is required for District Directors" });
+    }
+
+    const branchVitalQuery = `
+        SELECT 
+          SUM(COALESCE(bv."LOCAL_DEPOSIT", 0)) AS local_deposit,
+          SUM(COALESCE(bv."FCY", 0)) AS fcy,
+          SUM(COALESCE(bv."MERCHANT_TRANSACTION_VOLUME", 0)) AS merchant_transaction_volume,
+          SUM(COALESCE(bv."AGENT_TRANSACTION_VOLUME", 0)) AS agent_transaction_volume
+        FROM public.branch_vital bv
+        INNER JOIN (
+          SELECT DISTINCT company_code
+          FROM public.users
+          WHERE subprocess = $1
+            AND company_code IS NOT NULL
+        ) u
+          ON bv."COMPANY_CODE" = u.company_code
+      `;
+    const branchVitalResult = await pool.query(branchVitalQuery, [subprocess]);
+    // console.log("branchVitalResult", branchVitalResult.rows);
+    if (branchVitalResult.rows.length === 0) {
+      return res.status(200).json({
+        local_deposit: 0,
+        fcy: 0,
+        merchant_transaction_volume: 0,
+        agent_transaction_volume: 0,
+        total_difference: 0
+      });
+    }
+
+    const row = branchVitalResult.rows[0];
+    const local_deposit = Number(row.local_deposit) || 0;
+    const fcy = Number(row.fcy) || 0;
+
+    return res.status(200).json({
+      local_deposit: local_deposit,
+      fcy: fcy,
+      merchant_transaction_volume: Number(row.merchant_transaction_volume) || 0,
+      agent_transaction_volume: Number(row.agent_transaction_volume) || 0,
+      total_difference: local_deposit + fcy
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 // ✅ Import Excel for Account Mapping
 export const importExcelAccountMapping = async (req, res) => {
   if (!req.file) {

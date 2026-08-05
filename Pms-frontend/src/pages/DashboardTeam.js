@@ -91,6 +91,7 @@ const DashboardTeam = () => {
       team: singleUser.team || null,
       cbsusername: singleUser.cbsusername || null,
       company_code: singleUser.company_code || null,
+      organization: singleUser.organization || null,
     };
     // console.log("requestData", requestData);
     try {
@@ -154,36 +155,73 @@ const DashboardTeam = () => {
       // for financial product
       let ifbBalance = 0;
       let accountBalance = 0;
-      const isDirectorOrSenior = singleUser.position === "Director" || singleUser.position === "Senior Director";
-      const isVPOrCHF = singleUser.position === "VP" || singleUser.position === "CHF";
+
+      const isDirectorOrSenior =
+        singleUser.position === "Director" ||
+        singleUser.position === "Senior Director";
+
+      const isVPOrCHF =
+        singleUser.position === "VP" ||
+        singleUser.position === "CHF";
+
       const isCEO = singleUser.position === "CEO";
 
-      if ((isDirectorOrSenior && singleUser.subprocess?.trim() === "Sharia Risk, Investment and Financing") || (isVPOrCHF && singleUser.process?.trim() === "Interest Free Banking") || isCEO) {
+      if (
+        (isDirectorOrSenior &&
+          singleUser.subprocess?.trim() ===
+          "Sharia Risk, Investment and Financing") ||
+        (isVPOrCHF &&
+          singleUser.process?.trim() === "Interest Free Banking") ||
+        isCEO
+      ) {
         try {
-          const ifbRes = await axios.post(`${baseUrl}/ifb/ifbBalanceDifference`, requestData);
+          const ifbRes = await axios.post(
+            `${baseUrl}/ifb/ifbBalanceDifference`,
+            requestData
+          );
+
           ifbBalance = ifbRes.data?.total_difference || 0;
           accountBalance = ifbBalance;
-
         } catch (err) {
           console.error("IFB Error:", err);
         }
-      }
-      else {
-        const accountRes = await axios.post(
-          `${baseUrl}/accountmapping/getBalanceDifference`,
-          requestData
-        );
-        const BranchManageraccountRes = await axios.post(
-          `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
-          requestData
-        );
+      } else {
+        try {
+          if (
+            singleUser.position === "Manager" &&
+            singleUser.organization === "Branch"
+          ) {
+            const BranchManageraccountRes = await axios.post(
+              `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
+              requestData
+            );
 
-        if (singleUser.position === 'Manager' && singleUser.organization === 'Branch') {
-          accountBalance = Number(BranchManageraccountRes.data.local_deposit) || 0;
-        } else {
-          accountBalance = Number(accountRes.data.total_difference) || 0;
+            accountBalance =
+              Number(BranchManageraccountRes.data.local_deposit) || 0;
+          } else if (
+            (singleUser.position === "Director" || singleUser.position === "Senior Director") &&
+            singleUser.organization === "Do"
+          ) {
+            const DistrictDirectoraccountRes = await axios.post(
+              `${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`,
+              requestData
+            );
+
+            accountBalance =
+              Number(DistrictDirectoraccountRes.data.local_deposit) || 0;
+          } else {
+            const accountRes = await axios.post(
+              `${baseUrl}/accountmapping/getBalanceDifference`,
+              requestData
+            );
+
+            accountBalance =
+              Number(accountRes.data.total_difference) || 0;
+          }
+        } catch (err) {
+          console.error("Account Balance Error:", err);
+          accountBalance = 0;
         }
-
       }
 
       const fcyRes = await axios.post(

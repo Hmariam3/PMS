@@ -217,7 +217,7 @@ const EmployeeList = () => {
     if (!employeeForm.employee_id) newErrors.employee_id = "Employee ID is required";
     if (!employeeForm.display_name) newErrors.display_name = "Display Name is required";
     if (!employeeForm.gender) newErrors.gender = "Gender is required";
-    if (!employeeForm.branch_name) newErrors.branch_name = "Branch is required";
+
     if (!employeeForm.title) newErrors.title = "Title is required";
     if (!employeeForm.outlook_address) {
       newErrors.outlook_address = "Outlook Address is required";
@@ -604,17 +604,19 @@ const EmployeeList = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required sx={{ width: "300px" }} disabled={!employeeForm.process_name}>
+                  <FormControl fullWidth sx={{ width: "300px" }} disabled={!employeeForm.process_name}>
                     <InputLabel>Sub Process Name</InputLabel>
                     <Select name="sub_process_name" value={employeeForm.sub_process_name} onChange={handleFormChange} label="Sub Process Name">
+                      <MenuItem value=""><em>None</em></MenuItem>
                       {filteredSubProcesses.map((sp) => <MenuItem key={sp.id} value={sp.sub_process_name}>{sp.sub_process_name}</MenuItem>)}
                     </Select>
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required sx={{ width: "300px" }} disabled={!employeeForm.sub_process_name}>
+                  <FormControl fullWidth sx={{ width: "300px" }} disabled={!employeeForm.sub_process_name}>
                     <InputLabel>Branch Name</InputLabel>
                     <Select name="branch_name" value={employeeForm.branch_name} onChange={handleFormChange} label="Branch Name">
+                      <MenuItem value=""><em>None</em></MenuItem>
                       {filteredBranches.map((b) => <MenuItem key={b.id} value={b.branch_name}>{b.branch_name}</MenuItem>)}
                     </Select>
                   </FormControl>
@@ -666,7 +668,19 @@ const EmployeeList = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField fullWidth label="Organization Unit" name="organization_unit" value={employeeForm.organization_unit} onChange={handleFormChange} />
+                  <TextField
+                    select
+                    fullWidth
+                    label="Organization Unit"
+                    name="organization_unit"
+                    value={employeeForm.organization_unit}
+                    onChange={handleFormChange}
+                  >
+                    <MenuItem value=""><em>None</em></MenuItem>
+                    <MenuItem value="Branch">Branch</MenuItem>
+                    <MenuItem value="Do">Do</MenuItem>
+                    <MenuItem value="Ho">Ho</MenuItem>
+                  </TextField>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField fullWidth label="Outlook Address" name="outlook_address" type="email" value={employeeForm.outlook_address} onChange={handleFormChange} error={!!errors.outlook_address} helperText={errors.outlook_address} required />

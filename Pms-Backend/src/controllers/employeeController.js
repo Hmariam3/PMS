@@ -423,7 +423,9 @@ export const getMyTeamBySupervisor = async (req, res) => {
           location,
           business_phone_number,
           outlook_address,
-          business_email_address
+          business_email_address,
+          branch_grade,
+          organization_unit
        FROM public.employees
        WHERE supervisor = $1
        ORDER BY display_name ASC`,

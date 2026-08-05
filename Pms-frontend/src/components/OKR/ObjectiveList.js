@@ -580,6 +580,7 @@ const ObjectiveList = () => {
                       <MenuItem value="Transaction Audit">Transaction Audit</MenuItem>
                       <MenuItem value="Avg Txn Per CSO">Avg Txn Per CSO</MenuItem>
                       <MenuItem value="Branch Vital">Branch Vital</MenuItem>
+                      <MenuItem value="District Map">District Map</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>

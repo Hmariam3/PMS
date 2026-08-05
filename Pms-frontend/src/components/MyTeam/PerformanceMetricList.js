@@ -64,12 +64,12 @@ const PerformanceMetricList = ({ member }) => {
 
 
 
-  const fetchMetricsByTitle = async (title) => {
+  const fetchMetricsByTitle = async (title, branch_grade) => {
     try {
 
       setLoading(true);
       const res = await axios.get(
-        `${baseUrl}/performances/bytitleName/${encodeURIComponent(title)}/${encodeURIComponent(user.branch_grade)}`
+        `${baseUrl}/performances/bytitleName/${encodeURIComponent(title)}/${encodeURIComponent(branch_grade)}`
       );
       setMetrics(res.data);
     } catch (err) {
@@ -125,10 +125,10 @@ const PerformanceMetricList = ({ member }) => {
       );
 
 
-      const BranchManageraccountRes = await axios.post(
-        `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
-        requestData
-      );
+      // const BranchManageraccountRes = await axios.post(
+      //   `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
+      //   requestData
+      // );
 
       // console.log("BranchManageraccountRes", BranchManageraccountRes.data);
 
@@ -175,21 +175,52 @@ const PerformanceMetricList = ({ member }) => {
           let accountBalance = 0;
 
           if (requestData.position === 'Manager' && requestData.organization === 'Branch') {
-            accountBalance = Number(BranchManageraccountRes.data.local_deposit) || 0;
+            const BranchManageraccountRes = await axios.post(
+              `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
+              requestData
+            );
+            // console.log("BranchManageraccountRes", BranchManageraccountRes.data.local_deposit);
+            accountBalance =
+              Number(BranchManageraccountRes.data.local_deposit) || 0;
+          } else if ((requestData.position === 'Director' || requestData.position === 'Senior Director') && requestData.organization === 'Do') {
+            const DistrictDirectoraccountRes = await axios.post(
+              `${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`,
+              requestData
+            );
+            // console.log("DistrictDirectoraccountRes", DistrictDirectoraccountRes.data.local_deposit);
+            accountBalance =
+              Number(DistrictDirectoraccountRes.data.local_deposit) || 0;
           } else {
+            // console.log("accountRes", accountRes.data.total_difference);
             accountBalance = Number(accountRes.data.total_difference) || 0;
           }
+          // console.log("accountbalance", accountBalance);
 
           return { actual: accountBalance + ifbBalance, target: totalDeposit };
         }
       }
+
       if (totalFcyTarget > 0) {
         if (type === "fcy") {
           // const fcyRes = await axios.post(`${baseUrl}/fcy/fcyBalanceDifference`, requestData);
           // return { actual: Number(fcyRes.data.total_difference) || 0, target: totalFcyTarget };
           let fcyBalance = 0;
           if (requestData.position === 'Manager' && requestData.organization === 'Branch') {
-            fcyBalance = Number(BranchManageraccountRes.data.fcy) || 0;
+            const BranchManageraccountRes = await axios.post(
+              `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
+              requestData
+            );
+
+            fcyBalance =
+              Number(BranchManageraccountRes.data.fcy) || 0;
+          } else if ((requestData.position === 'Director' || requestData.position === 'Senior Director') && requestData.organization === 'Do') {
+            const DistrictDirectoraccountRes = await axios.post(
+              `${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`,
+              requestData
+            );
+
+            fcyBalance =
+              Number(DistrictDirectoraccountRes.data.fcy) || 0;
           } else {
             const fcyResMapped = await axios.post(`${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`, requestData);
             fcyBalance = Number(fcyResMapped.data.total_difference) || 0;
@@ -271,6 +302,7 @@ const PerformanceMetricList = ({ member }) => {
       const customer_engagementTarget = userNonDepositTargetRes.data.customer_engagement || 0;
       const new_customer_onboardingTarget = userNonDepositTargetRes.data.new_customer_onboarding || 0;
       const armingc_deposit_proportionTarget = userNonDepositTargetRes.data.armingc_deposit_proportion || 0;
+
       // get atm, eeu, digital target
       const atmEeuDigitalTargetRes = await axios.post(
         `${baseUrl}/non-deposit-target/atm-eeu-digital/`,
@@ -340,22 +372,51 @@ const PerformanceMetricList = ({ member }) => {
         }
       }
 
-      if (armingc_deposit_proportionTarget > 0) {
-        if (type === "Armingc Deposit Proportion") {
-          const armingcDepositProportionRes = await axios.post(`${baseUrl}/nondeposit/getArmingcDepositProportionSummaryByUser/`, requestData);
-          return { actual: armingcDepositProportionRes?.data?.total_armingc_deposit_proportion || 0, target: armingc_deposit_proportionTarget };
-        }
-      }
+      // if (armingc_deposit_proportionTarget > 0) {
+      //   if (type === "Armingc Deposit Proportion") {
+      //     const armingcDepositProportionRes = await axios.post(`${baseUrl}/nondeposit/getArmingcDepositProportionSummaryByUser/`, requestData);
+      //     return { actual: armingcDepositProportionRes?.data?.total_armingc_deposit_proportion || 0, target: armingc_deposit_proportionTarget };
+      //   }
+      // }
 
       if (merchant_transaction_volumeTarget > 0) {
         if (type === "Merchant Transaction Volume") {
-          return { actual: Number(BranchManageraccountRes.data.merchant_transaction_volume) || 0, target: merchant_transaction_volumeTarget };
+          if ((requestData.position === 'Director' || requestData.position === 'Senior Director') && requestData.organization === 'Do') {
+            const DistrictDirectoraccountRes = await axios.post(
+              `${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`,
+              requestData
+            );
+
+            return { actual: Number(DistrictDirectoraccountRes.data.merchant_transaction_volume) || 0, target: merchant_transaction_volumeTarget };
+          } else {
+
+            const BranchManageraccountRes = await axios.post(
+              `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
+              requestData
+            );
+            return { actual: Number(BranchManageraccountRes.data.merchant_transaction_volume) || 0, target: merchant_transaction_volumeTarget };
+          }
+
+
         }
       }
 
       if (agent_transaction_volumeTarget > 0) {
         if (type === "Agent Transaction Volume") {
-          return { actual: Number(BranchManageraccountRes.data.agent_transaction_volume) || 0, target: agent_transaction_volumeTarget };
+          if ((requestData.position === 'Director' || requestData.position === 'Senior Director') && requestData.organization === 'Do') {
+            const DistrictDirectoraccountRes = await axios.post(
+              `${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`,
+              requestData
+            );
+            return { actual: Number(DistrictDirectoraccountRes.data.agent_transaction_volume) || 0, target: agent_transaction_volumeTarget };
+          } else {
+
+            const BranchManageraccountRes = await axios.post(
+              `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
+              requestData
+            );
+            return { actual: Number(BranchManageraccountRes.data.agent_transaction_volume) || 0, target: agent_transaction_volumeTarget };
+          }
         }
       }
 
@@ -398,6 +459,41 @@ const PerformanceMetricList = ({ member }) => {
         };
       }
 
+
+      // District Map
+      if (type === "District Map") {
+        try {
+          const mappedDistricts = await axios.post(
+            `${baseUrl}/districtmapping/getMappedDistrictsByUser/${requestData.user_id}`
+          );
+
+          if (mappedDistricts.data && mappedDistricts.data.length > 0) {
+            const districtsObject = {
+              districts: mappedDistricts.data.map((item) => item.district_name)
+            };
+
+            const districtRes = await axios.post(
+              `${baseUrl}/districtmapping/getTargetsAndDepositByDistricts`,
+              districtsObject
+            );
+
+            let totalActual = 0;
+            let totalTarget = 0;
+
+            districtRes.data.forEach((item) => {
+              totalTarget += Number(item.total_deposit_target) || 0;
+              totalActual += Number(item.balance_difference) || 0;
+            });
+
+            return { actual: totalActual, target: totalTarget };
+          } else {
+            return { actual: 0, target: 0 };
+          }
+        } catch (error) {
+          console.error("Error fetching district map data:", error);
+          return { actual: 0, target: 0 };
+        }
+      }
 
       // Branch Vital
       if (type === "Branch Vital") {
@@ -523,6 +619,7 @@ const PerformanceMetricList = ({ member }) => {
     else if (lowerCalcFor === "deposit sustainability") type = "Deposit Sustainability";
     else if (lowerCalcFor === "spm") type = "SPM";
     else if (lowerCalcFor === "branch vital") type = "Branch Vital";
+    else if (lowerCalcFor === "district map") type = "District Map";
     let evaluationValue = 0;
     let calculatedWeight = 0;
     if (metric.input_by === "System") {
@@ -722,16 +819,15 @@ const PerformanceMetricList = ({ member }) => {
           }
         }
         // Employee Performance
-        else if (metric.calculated_for === "Employee Performance") {
+        else if (selectedMetric.calculated_for === "Employee Performance") {
           actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive >= 0.9 && actualachive <= 1) {
+          if (actualachive >= 90 && actualachive <= 100) {
             calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 0.75 && actualachive < 0.9) {
+          } else if (actualachive >= 75 && actualachive < 90) {
             calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 0.50 && actualachive < 0.75) {
+          } else if (actualachive >= 50 && actualachive < 75) {
             calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 0.25 && actualachive < 0.50) {
+          } else if (actualachive >= 25 && actualachive < 50) {
             calculatedWeight = 1 * metricWeight;
           } else {
             calculatedWeight = 0;
@@ -933,18 +1029,15 @@ const PerformanceMetricList = ({ member }) => {
         }
 
         // Employee Performance
-        else if (metric.calculated_for === "Employee Performance") {
+        else if (selectedMetric.calculated_for === "Employee Performance") {
           actualachive = (evaluationValue / targetTo) * 100;
-          console.log("actualachive", actualachive);
-          console.log("targetTo", targetTo);
-          console.log("evaluationValue", evaluationValue);
-          if (actualachive >= 0.9 && actualachive <= 1) {
+          if (actualachive >= 90 && actualachive <= 100) {
             calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 0.75 && actualachive < 0.9) {
+          } else if (actualachive >= 75 && actualachive < 90) {
             calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 0.50 && actualachive < 0.75) {
+          } else if (actualachive >= 50 && actualachive < 75) {
             calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 0.25 && actualachive < 0.50) {
+          } else if (actualachive >= 25 && actualachive < 50) {
             calculatedWeight = 1 * metricWeight;
           } else {
             calculatedWeight = 0;
@@ -1023,8 +1116,8 @@ const PerformanceMetricList = ({ member }) => {
 
   useEffect(() => {
     fetchUserInfo();
-    if (member.title) fetchMetricsByTitle(member.title);
-  }, [member.title]);
+    if (member.title) fetchMetricsByTitle(member.title, member.branch_grade);
+  }, [member.title, member.branch_grade]);
 
   const handleEvaluationChange = (e) => {
     const value = parseFloat(e.target.value) || 0;
