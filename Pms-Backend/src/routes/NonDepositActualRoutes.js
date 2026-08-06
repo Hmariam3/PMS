@@ -10,7 +10,8 @@ import {
   getCustomerEngagementSummaryByUser,
   getNewCustomerOnboardingSummaryByUser,
   getCashDepositbyBranchSummaryByUser,
-  getCsoTransactionPerformance
+  getCsoTransactionPerformance,
+  getBranchInternalAccountsSummary
 } from "../controllers/NonDepositActualController.js";
 
 const router = express.Router();
@@ -25,5 +26,6 @@ router.post("/getCustomerEngagementSummaryByUser", getCustomerEngagementSummaryB
 router.post("/getNewCustomerOnboardingSummaryByUser", getNewCustomerOnboardingSummaryByUser);
 router.post("/getCashDepositbyBranchSummaryByUser", getCashDepositbyBranchSummaryByUser);
 router.post("/getCsoTransactionPerformance", getCsoTransactionPerformance);
+router.post("/getBranchInternalAccountsSummary", getBranchInternalAccountsSummary);
 
 export default router;

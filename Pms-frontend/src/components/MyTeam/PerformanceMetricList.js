@@ -423,11 +423,15 @@ const PerformanceMetricList = ({ member }) => {
       if (avg_txn_per_csoTarget > 0) {
         if (type === "Avg Txn Per CSO") {
           const csoTransactionPerformanceRes = await axios.post(`${baseUrl}/nondeposit/getCsoTransactionPerformance/`, requestData);
-          // console.log("csoTransactionPerformanceRes", csoTransactionPerformanceRes);
           return { actual: csoTransactionPerformanceRes?.data?.total_accomplishment_percentage || 0, target: avg_txn_per_csoTarget };
         }
       }
-
+      if (gl > 0) {
+        if (type === "GL") {
+          const glRes = await axios.post(`${baseUrl}/nondeposit/getBranchInternalAccountsSummary/`, requestData);
+          return { actual: glRes?.data?.internal_account_value || 0, target: gl };
+        }
+      }
       // for SPM
       if (type === "SPM") {
 
@@ -557,9 +561,7 @@ const PerformanceMetricList = ({ member }) => {
       if (type === "Cash Surprise Cheque") {
         return { actual: 0, target: cash_surprise_checksTarget };
       }
-      if (type === "GL") {
-        return { actual: 0, target: gl };
-      }
+
       if (type === "Employee Performance") {
         return { actual: 0, target: employee_perf_thresholdTarget };
       }

@@ -1041,3 +1041,53 @@ export const getCsoTransactionPerformance = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// =====================================================
+// Get Branch Internal Accounts Summary
+// =====================================================
+export const getBranchInternalAccountsSummary = async (req, res) => {
+  const { company_code } = req.body;
+
+  try {
+    const query = `
+      SELECT "0502", "0730", "0751", "0771", "0792", "0794", "0802", "0804", "0819", "0820", "0825", "0831", "0845", "0850", "4405", "4410", "4425", "4435", "4440", "4445", "4475", "4485", "4523", "4605", "4616", "4625", "4630", "4636", "4685", "4687", "4689", "4694", "4840", "4866", "4882", "4885", "4887", "4888"
+      FROM public."DW_BRANCH_INTERNAL_ACCOUNTS"
+      WHERE "BRANCH_CODE" = $1
+      LIMIT 1
+    `;
+    const values = [company_code];
+
+    const result = await pool.query(query, values);
+
+    let finalValue = 0;
+
+    if (result.rows.length > 0) {
+      const row = result.rows[0];
+      const columns = [
+        "0502", "0730", "0751", "0771", "0792", "0794", "0802", "0804", 
+        "0819", "0820", "0825", "0831", "0845", "0850", "4405", "4410", 
+        "4425", "4435", "4440", "4445", "4475", "4485", "4523", "4605", 
+        "4616", "4625", "4630", "4636", "4685", "4687", "4689", "4694", 
+        "4840", "4866", "4882", "4885", "4887", "4888"
+      ];
+      
+      let all100 = true;
+      for (const col of columns) {
+        if (Number(row[col]) !== 100) {
+          all100 = false;
+          break;
+        }
+      }
+      
+      finalValue = all100 ? 100 : 0;
+    }
+
+    res.status(200).json({
+      internal_account_value: finalValue,
+      data: result.rows
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+};

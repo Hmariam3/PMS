@@ -242,22 +242,23 @@ const getTargetTotals = async (districts) => {
   const result = await pool.query(
     `
     SELECT
-        LOWER(subprocess) AS district_key,
-        subprocess AS district_name,
+        LOWER(u.subprocess) AS district_key,
+        u.subprocess AS district_name,
 
-        COALESCE(SUM(deposit_target), 0) AS total_deposit_target,
-        COALESCE(SUM(fcy_target), 0) AS total_fcy_target,
-        COALESCE(SUM(loan_collection), 0) AS total_loan_collection,
-        COALESCE(SUM(cash_collection), 0) AS total_cash_collection,
-        COALESCE(SUM(cash_deposited_crm), 0) AS total_cash_deposited_crm
+        COALESCE(t.deposit_target, 0) AS total_deposit_target,
+        COALESCE(t.fcy_target, 0) AS total_fcy_target,
+        COALESCE(t.loan_collection, 0) AS total_loan_collection,
+        COALESCE(t.cash_collection, 0) AS total_cash_collection,
+        COALESCE(t.cash_deposited_crm, 0) AS total_cash_deposited_crm
 
-    FROM public.targets
+    FROM public.users u
+    JOIN public.targets t
+        ON LOWER(u.user_name) = LOWER(t.user_name)
 
-    WHERE LOWER(subprocess) = ANY(
+    WHERE LOWER(u.subprocess) = ANY(
         SELECT LOWER(unnest($1::text[]))
     )
-
-    GROUP BY subprocess
+    AND u.position IN ('Director', 'Senior Director');
     `,
     [districts]
   );

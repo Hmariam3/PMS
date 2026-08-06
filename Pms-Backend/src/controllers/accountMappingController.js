@@ -452,9 +452,9 @@ export const getBalanceDifferenceByUserforManagers = async (req, res) => {
     return res.status(400).json({ error: "Position is required" });
   }
   try {
-    if (!company_code) {
-      return res.status(400).json({ error: "Company code is required for Branch Managers" });
-    }
+    // if (!company_code) {
+    //   return res.status(400).json({ error: "Company code is required for Branch Managers" });
+    // }
 
     const branchVitalQuery = `
         SELECT 
