@@ -571,7 +571,7 @@ export const getFcyDepositReport = async (req, res) => {
 export const getEvaluationResultReport = async (req, res) => {
   try {
     const {
-      user_id, position, role, team, subprocess, process, organization,
+      user_id, fullname, email, position, role, team, subprocess, process, organization,
       page = 0, limit = 10, searchTerm = "", district = "", isExport = false
     } = req.body;
 
@@ -590,8 +590,8 @@ export const getEvaluationResultReport = async (req, res) => {
     if (!isAdmin) {
       if (position === "CRM" || position === "Individual") {
         // Wait, if user_id is user_name and we have username/mail in table
-        conditions.push(`(e.username = $${paramIndex} OR e.mail = $${paramIndex})`);
-        values.push(user_id);
+        conditions.push(`(e.mail = $${paramIndex})`);
+        values.push(email);
         paramIndex++;
       } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
         conditions.push(`e.subprocess = $${paramIndex++}`);

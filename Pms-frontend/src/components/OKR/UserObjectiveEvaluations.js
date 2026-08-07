@@ -509,7 +509,7 @@ const UserObjectiveEvaluations = () => {
                               <TableRow>
                                 <TableCell sx={{ fontSize: "0.7rem", fontWeight: 700, color: "text.secondary" }}>METRIC</TableCell>
                                 <TableCell sx={{ fontSize: "0.7rem", fontWeight: 700, color: "text.secondary" }} align="right">VALUE</TableCell>
-                                <TableCell sx={{ fontSize: "0.7rem", fontWeight: 700, color: "text.secondary" }} align="right">SCORE</TableCell>
+                                <TableCell sx={{ fontSize: "0.7rem", fontWeight: 700, color: "text.secondary" }} align="right">SCORE / WEIGHT</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -517,7 +517,7 @@ const UserObjectiveEvaluations = () => {
                                 <TableRow key={idx} sx={{ "&:last-child td": { border: 0 } }}>
                                   <TableCell sx={{ fontSize: "0.75rem", py: 1.5 }}>{m.metric_name}</TableCell>
                                   <TableCell sx={{ fontSize: "0.75rem" }} align="right">{m.evaluation_value}</TableCell>
-                                  <TableCell sx={{ fontSize: "0.75rem", fontWeight: 600 }} align="right">{Number(m.score || 0).toFixed(2)}</TableCell>
+                                  <TableCell sx={{ fontSize: "0.75rem", fontWeight: 600 }} align="right">{Number(m.score || 0).toFixed(2)} / {m.metric_weight || 0}</TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>

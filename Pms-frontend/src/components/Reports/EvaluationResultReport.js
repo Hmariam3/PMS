@@ -132,6 +132,8 @@ const EvaluationResultReport = () => {
       setError(null);
       const res = await axios.post(`${baseUrl}/reports/evaluation-result`, {
         user_id: user.UserName,
+        fullname: user.FullName,
+        email: user.MailAdress,
         position: user.position,
         role: user.role,
         team: user.team,

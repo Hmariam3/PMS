@@ -821,7 +821,7 @@ const PerformanceMetricList = ({ member }) => {
           }
         }
         // Employee Performance
-        else if (selectedMetric.calculated_for === "Employee Performance") {
+        else if (metric.calculated_for === "Employee Performance") {
           actualachive = (evaluationValue / targetTo) * 100;
           if (actualachive >= 90 && actualachive <= 100) {
             calculatedWeight = 4 * metricWeight;
@@ -1031,7 +1031,7 @@ const PerformanceMetricList = ({ member }) => {
         }
 
         // Employee Performance
-        else if (selectedMetric.calculated_for === "Employee Performance") {
+        else if (metric.calculated_for === "Employee Performance") {
           actualachive = (evaluationValue / targetTo) * 100;
           if (actualachive >= 90 && actualachive <= 100) {
             calculatedWeight = 4 * metricWeight;
@@ -1122,6 +1122,7 @@ const PerformanceMetricList = ({ member }) => {
   }, [member.title, member.branch_grade]);
 
   const handleEvaluationChange = (e) => {
+    if (!selectedMetric) return;
     const value = parseFloat(e.target.value) || 0;
     let targetTo = parseFloat(selectedMetric?.target_fy);
     if (isNaN(targetTo) || targetTo === 0) {

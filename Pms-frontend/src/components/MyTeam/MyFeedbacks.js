@@ -27,6 +27,7 @@ import {
 import {
   Chat as ChatIcon,
   Visibility as ViewIcon,
+  Add as AddIcon,
 } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import $ from "jquery";
@@ -112,6 +113,12 @@ const MyFeedbacks = () => {
     setShowFeedbackModal(true);
   };
 
+  const openNewFeedbackModal = () => {
+    setFeedbackMember(null);
+    setFeedbackForm({ subject: "", message: "" });
+    setShowFeedbackModal(true);
+  };
+
   const sendFeedback = async () => {
     if (!feedbackForm.subject || !feedbackForm.message) {
       toast.warning("Please fill all fields");
@@ -131,6 +138,7 @@ const MyFeedbacks = () => {
       });
       toast.success("Feedback sent successfully");
       setShowFeedbackModal(false);
+      fetchFeedbacks();
     } catch (err) {
       toast.error("Failed to send feedback");
     } finally {
@@ -175,6 +183,14 @@ const MyFeedbacks = () => {
             User: {user?.display_name || user?.FullName}
           </Typography>
         </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={openNewFeedbackModal}
+        >
+          Initiate Feedback
+        </Button>
       </Stack>
 
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
@@ -240,7 +256,7 @@ const MyFeedbacks = () => {
         <Fade in={showFeedbackModal}>
           <Box sx={modalStyle}>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-              Feedback Details
+              {feedbackMember ? "Feedback Details" : "Initiate Feedback"}
             </Typography>
             <Divider sx={{ mb: 3 }} />
 
@@ -262,7 +278,9 @@ const MyFeedbacks = () => {
               </Box>
             )}
 
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Send New Reply / Feedback</Typography>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+              {feedbackMember ? "Send New Reply / Feedback" : "Feedback Details"}
+            </Typography>
             <Stack spacing={2}>
               <TextField
                 fullWidth
