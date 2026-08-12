@@ -83,9 +83,11 @@ const PerformanceMetricList = ({ member }) => {
   const fetchUserInfo = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(
-        `${baseUrl}/users/byEmail/${encodeURIComponent(member.outlook_address)}`
-      );
+      const res = await axios.get(`${baseUrl}/users/byEmail`, {
+        params: {
+          email: member.outlook_address,
+        },
+      });
       setUserinfo(res.data);
     } catch (err) {
       console.error(err);
@@ -111,7 +113,11 @@ const PerformanceMetricList = ({ member }) => {
       const targetRes = await axios.post(
         `${baseUrl}/targets/TargetsSummary/`,
         requestData
+
+
       );
+
+
       // console.log("targetRes", targetRes.data);
       const LoantargetRes = await axios.post(
         `${baseUrl}/targets/loanCollectionTargetByUser/`,
@@ -829,7 +835,7 @@ const PerformanceMetricList = ({ member }) => {
             calculatedWeight = 3 * metricWeight;
           } else if (actualachive >= 50 && actualachive < 75) {
             calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 25 && actualachive < 50) {
+          } else if (actualachive >= 1 && actualachive < 50) {
             calculatedWeight = 1 * metricWeight;
           } else {
             calculatedWeight = 0;
@@ -1039,7 +1045,7 @@ const PerformanceMetricList = ({ member }) => {
             calculatedWeight = 3 * metricWeight;
           } else if (actualachive >= 50 && actualachive < 75) {
             calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 25 && actualachive < 50) {
+          } else if (actualachive >= 1 && actualachive < 50) {
             calculatedWeight = 1 * metricWeight;
           } else {
             calculatedWeight = 0;
@@ -1302,7 +1308,7 @@ const PerformanceMetricList = ({ member }) => {
           calculatedWeight = 3 * metricWeight;
         } else if (actualachive >= 50 && actualachive < 75) {
           calculatedWeight = 2 * metricWeight;
-        } else if (actualachive >= 25 && actualachive < 50) {
+        } else if (actualachive >= 1 && actualachive < 50) {
           calculatedWeight = 1 * metricWeight;
         } else {
           calculatedWeight = 0;

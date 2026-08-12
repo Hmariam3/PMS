@@ -365,27 +365,64 @@ export const agreeEvaluation = async (req, res) => {
     const title = userResult.rows[0]?.title || null;
     const position = userResult.rows[0]?.position || null;
 
-    await pool.query(
-      `INSERT INTO public.employee_evaluation_result (
-        username, fullname, mail, employee_id, process, subprocess, branch, title, "position", 
-        performance_result, performance_status, strategic_recommendation, created_date, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), $13)`,
-      [
-        username || mail,
-        fullname,
-        mail,
-        employee_id,
-        process,
-        subprocess,
-        branch,
-        title,
-        position,
-        performance_result,
-        performance_status,
-        strategic_recommendation,
-        created_by
-      ]
+    // Check if a result already exists for this user
+    const existingResult = await pool.query(
+      `SELECT mail FROM public.employee_evaluation_result WHERE mail = $1`,
+      [mail]
     );
+
+    if (existingResult.rows.length > 0) {
+      // Update existing record to prevent duplicates
+      await pool.query(
+        `UPDATE public.employee_evaluation_result 
+         SET performance_result = $1, 
+             performance_status = $2, 
+             strategic_recommendation = $3, 
+             created_date = NOW(), 
+             created_by = $4,
+             process = $5,
+             subprocess = $6,
+             branch = $7,
+             title = $8,
+             "position" = $9
+         WHERE mail = $10`,
+        [
+          performance_result,
+          performance_status,
+          strategic_recommendation,
+          created_by,
+          process,
+          subprocess,
+          branch,
+          title,
+          position,
+          mail
+        ]
+      );
+    } else {
+      // Insert new record
+      await pool.query(
+        `INSERT INTO public.employee_evaluation_result (
+          username, fullname, mail, employee_id, process, subprocess, branch, title, "position", 
+          performance_result, performance_status, strategic_recommendation, created_date, created_by
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), $13)`,
+        [
+          username || mail,
+          fullname,
+          mail,
+          employee_id,
+          process,
+          subprocess,
+          branch,
+          title,
+          position,
+          performance_result,
+          performance_status,
+          strategic_recommendation,
+          created_by
+        ]
+      );
+    }
 
     await pool.query(
       `UPDATE public.performance_evaluations SET status = 'agreed' WHERE evaluated = $1`,

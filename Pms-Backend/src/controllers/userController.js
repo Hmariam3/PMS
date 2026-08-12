@@ -118,7 +118,7 @@ export const getUserByuserName = async (req, res) => {
 
 // ================= GET USER BY EMAIL =================
 export const getUserByEmail = async (req, res) => {
-  const { email } = req.params;
+  const { email } = req.query;
 
   try {
     const result = await pool.query(
@@ -587,7 +587,7 @@ export const transferUserBranch = async (req, res) => {
 
     let userQuery = `UPDATE public.users SET process=$1, subprocess=$2, team=$3`;
     let userParams = [process, subprocess, team];
-    
+
     if (company_code) {
       userQuery += `, company_code=$4 WHERE user_name=$5 RETURNING *`;
       userParams.push(company_code, username);
@@ -636,7 +636,7 @@ export const deleteUserMappings = async (req, res) => {
       );
       deletedCounts.local = resLocal.rowCount;
     }
-    
+
     if (type === "fcy" || type === "all") {
       const resFcy = await pool.query(
         "DELETE FROM public.accountmappingfcy WHERE user_name = $1 RETURNING *",

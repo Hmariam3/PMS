@@ -19,7 +19,7 @@ router.post("/createUser/", createUser);
 router.post("/getUserByPostion/", getUserByPostion);
 router.post("/login/", loginUser);
 router.get("/getUserByuserName/:username", getUserByuserName);
-router.get("/byEmail/:email", getUserByEmail);
+router.get("/byEmail", getUserByEmail);
 router.put("/:username/transfer", transferUserBranch);
 router.delete("/mappings/:username/:type", deleteUserMappings);
 router.put("/:id", updateUser);

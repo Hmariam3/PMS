@@ -54,6 +54,7 @@ const UserObjectiveEvaluationsMy = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [isAgreeing, setIsAgreeing] = useState(false);
   const [feedbackDetails, setFeedbackDetails] = useState([]);
   const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 
@@ -155,6 +156,8 @@ const UserObjectiveEvaluationsMy = () => {
   };
 
   const handleAgree = async (userData) => {
+    if (isAgreeing) return;
+    setIsAgreeing(true);
     try {
       const score = userData.total_score;
       const performance_status = score >= 80 ? "Excellent" : score >= 50 ? "Good" : "Need Improvement";
@@ -181,6 +184,8 @@ const UserObjectiveEvaluationsMy = () => {
     } catch (err) {
       console.error(err);
       toast.error("Failed to agree on evaluation");
+    } finally {
+      setIsAgreeing(false);
     }
   };
 
@@ -532,9 +537,9 @@ const UserObjectiveEvaluationsMy = () => {
               <Button variant="outlined" color="primary" onClick={() => window.print()}>
                 Print
               </Button>
-              {selectedUser?.evaluated?.status !== 'agreed' && selectedUser?.evaluated?.evaluated === user.MailAdress && (
-                <Button variant="contained" color="success" onClick={() => handleAgree(selectedUser)}>
-                  Agree
+              {selectedUser?.evaluated?.status?.toLowerCase() !== 'agreed' && selectedUser?.evaluated?.evaluated === user.MailAdress && (
+                <Button variant="contained" color="success" onClick={() => handleAgree(selectedUser)} disabled={isAgreeing}>
+                  {isAgreeing ? "Agreeing..." : "Agree"}
                 </Button>
               )}
               <Button variant="contained" onClick={() => setShowModal(false)}>

@@ -456,9 +456,15 @@ export const getTargetsSummaryByUser = async (req, res) => {
     const row = result.rows[0];
 
     // if no approved records found
+    // if no approved records found, return zero values
     if (!row || Number(row.record_count) === 0) {
-      return res.status(404).json({
-        message: "No approved targets found",
+      return res.status(200).json({
+        total_deposit: 0,
+        total_fcy: 0,
+        total_loan: 0,
+        cash_collection: 0,
+        cash_deposited_crm: 0,
+        grand_total: 0,
       });
     }
 
@@ -786,15 +792,24 @@ export const getCashTargetsByUser = async (req, res) => {
     }
 
     const result = await pool.query(query, values);
-
     const row = result.rows[0];
 
+    // No records found
+    if (!row) {
+      return res.status(200).json({
+        cash_collection: 0,
+        cash_deposited_crm: 0,
+        grand_total: 0,
+      });
+    }
+
+    const cashCollection = Number(row.cash_collection) || 0;
+    const cashDepositedCRM = Number(row.cash_deposited_crm) || 0;
+
     return res.status(200).json({
-      cash_collection: Number(row.cash_collection || 0),
-      cash_deposited_crm: Number(row.cash_deposited_crm || 0),
-      grand_total:
-        Number(row.cash_collection || 0) +
-        Number(row.cash_deposited_crm || 0),
+      cash_collection: cashCollection,
+      cash_deposited_crm: cashDepositedCRM,
+      grand_total: cashCollection + cashDepositedCRM,
     });
 
   } catch (err) {
