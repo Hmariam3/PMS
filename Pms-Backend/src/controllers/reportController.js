@@ -655,3 +655,101 @@ export const getEvaluationResultReport = async (req, res) => {
   }
 };
 
+// ================= RAW EVALUATIONS REPORT =================
+export const getRawEvaluationsReport = async (req, res) => {
+  try {
+    const {
+      user_id, position, role, team, subprocess, process, organization,
+      page = 0, limit = 10, searchTerm = "", district = "", isExport = false
+    } = req.body;
+
+    if (!user_id || !position) {
+      return res.status(400).json({ error: "user_id and position are required" });
+    }
+
+    const isAdmin = role === "Admin";
+    const offset = page * limit;
+
+    let conditions = ["1=1"];
+    let values = [];
+    let paramIndex = 1;
+
+    // Role-based scoping
+    if (!isAdmin) {
+      if (position === "CRM" || position === "Individual") {
+        conditions.push(`pe.evaluated = $${paramIndex++}`);
+        values.push(user_id);
+      } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
+        conditions.push(`pe.subprocess = $${paramIndex++}`);
+        values.push(subprocess);
+      } else if (position === "Manager") {
+        conditions.push(`pe.branch = $${paramIndex++}`);
+        values.push(team);
+      } else if (position === "VP" || position === "CHF") {
+        conditions.push(`pe.process = $${paramIndex++}`);
+        values.push(process);
+      } else if (position === "CEO") {
+        // CEO sees all
+      } else {
+        return res.status(400).json({ error: "Invalid position" });
+      }
+    }
+
+    if (searchTerm) {
+      conditions.push(`(u.full_name ILIKE $${paramIndex} OR pe.evaluated ILIKE $${paramIndex} OR pe.employee_id::text ILIKE $${paramIndex} OR pe.evaluator ILIKE $${paramIndex})`);
+      values.push(`%${searchTerm}%`);
+      paramIndex++;
+    }
+
+    if (district) {
+      conditions.push(`pe.branch ILIKE $${paramIndex++}`);
+      values.push(`%${district}%`);
+    }
+
+    const whereClause = `WHERE ${conditions.join(" AND ")}`;
+
+    const countQuery = `
+      SELECT COUNT(*)
+      FROM public.performance_evaluations pe
+      LEFT JOIN public.performance_metrics pm ON pe.metric_id = pm.metric_id
+      LEFT JOIN public.objectives o ON pm.objective_id = o.objective_id
+      LEFT JOIN public.users u ON pe.evaluated = u.mail_address
+      ${whereClause}
+    `;
+    const countResult = await pool.query(countQuery, values);
+    const totalCount = parseInt(countResult.rows[0].count, 10);
+
+    const paginationClause = isExport ? "" : `LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    const dataQuery = `
+      SELECT 
+        pe.evaluation_id, pe.metric_id, pe.weight, pe.evaluator, pe.evaluation_value, pe.evaluation_date, 
+        pe.created_at, pe.updated_at, pe.created_by, pe.updated_by, pe.evaluated, pe.employee_id, 
+        pe.process, pe.subprocess, pe.branch, pe.outlook_address, pe.status,
+        pm.metric_name, pm.metric_weight, pm.cap,
+        o.objective_name, o.objective_weight,
+        u.full_name as evaluated_full_name,
+        u2.full_name as evaluator_full_name
+      FROM public.performance_evaluations pe
+      LEFT JOIN public.performance_metrics pm ON pe.metric_id = pm.metric_id
+      LEFT JOIN public.objectives o ON pm.objective_id = o.objective_id
+      LEFT JOIN public.users u ON pe.evaluated = u.mail_address
+      LEFT JOIN public.users u2 ON pe.evaluator = u2.mail_address
+      ${whereClause}
+      ORDER BY pe.created_at DESC
+      ${paginationClause}
+    `;
+
+    const dataValues = isExport ? [...values] : [...values, limit, offset];
+    const dataResult = await pool.query(dataQuery, dataValues);
+
+    res.status(200).json({
+      data: dataResult.rows,
+      totalCount
+    });
+
+  } catch (err) {
+    console.error("getRawEvaluationsReport error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+

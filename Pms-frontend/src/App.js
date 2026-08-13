@@ -51,6 +51,7 @@ import AccountMappingReport from "./components/Reports/AccountMappingReport";
 import AccountVariationReport from "./components/Reports/AccountVariationReport";
 import FcyDepositReport from "./components/Reports/FcyDepositReport";
 import EvaluationResultReport from "./components/Reports/EvaluationResultReport";
+import RawPerformanceEvaluationsReport from "./components/Reports/RawPerformanceEvaluationsReport";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./AuthContext";
@@ -482,6 +483,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <EvaluationResultReport />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/raw-evaluations"
+              element={
+                <ProtectedRoute>
+                  <RawPerformanceEvaluationsReport />
                 </ProtectedRoute>
               }
             />

@@ -9,6 +9,7 @@ import {
   getEvaluationsByEvaluator,
   getByEvaluatedUser,
   agreeEvaluation,
+  bulkAgreeEvaluations,
 } from "../controllers/performanceEvaluationController.js";
 
 const router = express.Router();
@@ -21,6 +22,7 @@ router.post("/createEvaluation/", createEvaluation);
 router.post("/getByEvaluator", getEvaluationsByEvaluator);
 router.post("/getByEvaluatedUser", getByEvaluatedUser);
 router.post("/agree", agreeEvaluation);
+router.post("/bulk-agree", bulkAgreeEvaluations);
 // PUT update an evaluation by ID
 router.put("/:id", updateEvaluation);
 

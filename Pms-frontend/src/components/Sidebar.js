@@ -163,6 +163,7 @@ const getNavLinks = (user) => {
         { text: "Financial Achievement", path: "/reports/account-variation", icon: <AssessmentIcon />, show: isAdmin },
         { text: "FCY Deposit", path: "/reports/fcy-deposit", icon: <AssessmentIcon />, show: isAdmin },
         { text: "Evaluation Result Report", path: "/reports/evaluation-result", icon: <AssessmentIcon />, show: true },
+        { text: "Raw Evaluation Report", path: "/reports/raw-evaluations", icon: <AssessmentIcon />, show: isHaile },
       ],
     },
   ];

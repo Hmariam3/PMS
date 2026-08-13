@@ -436,3 +436,168 @@ export const agreeEvaluation = async (req, res) => {
   }
 };
 
+// Bulk agree all pending evaluations
+export const bulkAgreeEvaluations = async (req, res) => {
+  const { created_by } = req.body;
+
+  try {
+    // 1. Fetch all un-agreed evaluations with necessary joined fields
+    const query = `
+      SELECT 
+        pe.*,
+        pm.metric_name,
+        pm.metric_weight,
+        pm.cap,
+        o.objective_name,
+        o.objective_weight,
+        u.full_name as evaluated_full_name,
+        u.title as evaluated_title,
+        u.position as evaluated_position
+      FROM public.performance_evaluations pe
+      INNER JOIN public.performance_metrics pm
+        ON pe.metric_id = pm.metric_id
+      INNER JOIN public.objectives o
+        ON pm.objective_id = o.objective_id
+      LEFT JOIN public.users u
+        ON pe.evaluated = u.mail_address
+      -- OPTION 1: Only calculate for employees that have at least one pending metric (Uncomment to use)
+      -- WHERE pe.evaluated IN (
+      --   SELECT evaluated 
+      --   FROM public.performance_evaluations 
+      --   WHERE status IS NULL OR status != 'agreed'
+      -- )
+      
+      -- OPTION 2: Calculate for ALL employees regardless of status (Currently Active)
+      -- No WHERE filter needed to fetch everyone.
+    `;
+    const result = await pool.query(query);
+    const evaluationsData = result.rows;
+
+    if (evaluationsData.length === 0) {
+      return res.status(200).json({ message: "No pending evaluations to agree" });
+    }
+
+    // 2. Group by evaluated (email)
+    const groupedByUser = {};
+    evaluationsData.forEach(item => {
+      const email = item.evaluated;
+      if (!groupedByUser[email]) {
+        groupedByUser[email] = {
+          evaluated: email,
+          fullname: item.evaluated_full_name,
+          employee_id: item.employee_id,
+          process: item.process,
+          subprocess: item.subprocess,
+          branch: item.branch,
+          title: item.evaluated_title,
+          position: item.evaluated_position,
+          username: email,
+          objectives: {}
+        };
+      }
+
+      const objName = item.objective_name;
+      if (!groupedByUser[email].objectives[objName]) {
+        groupedByUser[email].objectives[objName] = {
+          objective_name: objName,
+          objective_weight: Number(item.objective_weight || 100),
+          total_score: 0,
+          metrics: []
+        };
+      }
+
+      const score = item.cap === "cap1" ? Number(item.weight || 0)
+        : item.cap === "cap4" ? (Number(item.weight || 0) * 100) / 4
+        : (item.cap === "cap5" || item.cap === null) ? (Number(item.weight || 0) * 100) / 5
+        : 0;
+
+      groupedByUser[email].objectives[objName].metrics.push({ ...item, score });
+      groupedByUser[email].objectives[objName].total_score += Number(item.weight || 0);
+    });
+
+    // 3. Calculate final scores and recommendations
+    const updates = [];
+    Object.values(groupedByUser).forEach(user => {
+      // Recalculate based on metric scores like frontend
+      Object.values(user.objectives).forEach(obj => {
+        obj.total_score = obj.metrics.reduce((sum, metric) => sum + Number(metric.score || 0), 0);
+      });
+
+      const total_score = Object.values(user.objectives).reduce((sum, obj) => sum + obj.total_score, 0);
+      const performance_status = total_score >= 80 ? "Excellent" : total_score >= 50 ? "Good" : "Need Improvement";
+
+      // Recommendation logic
+      let recommendation = "";
+      if (total_score >= 85) {
+        recommendation = "Sustaining Excellence: You are exceeding expectations. Focus on knowledge sharing and potentially expanding your scope of responsibility.";
+      } else if (total_score >= 75) {
+        recommendation = "High Potential: Great results. To push into the top tier, look for micro-optimizations in your core workflows.";
+      } else {
+        const lowestObj = Object.values(user.objectives).sort((a, b) => {
+          const ratioA = a.total_score / (a.objective_weight || 1);
+          const ratioB = b.total_score / (b.objective_weight || 1);
+          return ratioA - ratioB;
+        })[0];
+        
+        if (total_score >= 50) {
+          recommendation = `Good Progress: Focus your efforts on "${lowestObj?.objective_name || 'core objectives'}" to improve your overall rating. Consistency is key here.`;
+        } else {
+          recommendation = `Action Required: Prioritize a deep dive into "${lowestObj?.objective_name || 'your performance metrics'}" and collaborate with your lead to resolve specific bottlenecks.`;
+        }
+      }
+
+      updates.push({
+        ...user,
+        performance_result: total_score,
+        performance_status,
+        strategic_recommendation: recommendation
+      });
+    });
+
+    // 4. Upsert results
+    for (const u of updates) {
+      const existingResult = await pool.query(
+        `SELECT mail FROM public.employee_evaluation_result WHERE mail = $1`,
+        [u.evaluated]
+      );
+
+      if (existingResult.rows.length > 0) {
+        await pool.query(
+          `UPDATE public.employee_evaluation_result 
+           SET performance_result = $1, 
+               performance_status = $2, 
+               strategic_recommendation = $3, 
+               created_date = NOW(), 
+               created_by = $4,
+               process = $5,
+               subprocess = $6,
+               branch = $7,
+               title = $8,
+               "position" = $9
+           WHERE mail = $10`,
+          [u.performance_result, u.performance_status, u.strategic_recommendation, created_by, u.process, u.subprocess, u.branch, u.title, u.position, u.evaluated]
+        );
+      } else {
+        await pool.query(
+          `INSERT INTO public.employee_evaluation_result (
+            username, fullname, mail, employee_id, process, subprocess, branch, title, "position", 
+            performance_result, performance_status, strategic_recommendation, created_date, created_by
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), $13)`,
+          [u.username || u.evaluated, u.fullname || u.evaluated, u.evaluated, u.employee_id, u.process, u.subprocess, u.branch, u.title, u.position, u.performance_result, u.performance_status, u.strategic_recommendation, created_by]
+        );
+      }
+    }
+
+    // 5. Update status
+    await pool.query(
+      `UPDATE public.performance_evaluations SET status = 'agreed' WHERE status IS NULL OR status != 'agreed'`
+    );
+
+    res.status(200).json({ message: `Bulk evaluation agreed successfully for ${updates.length} employees` });
+  } catch (err) {
+    console.error("Bulk Agree Error:", err);
+    res.status(500).json({ error: "Server error during bulk agree" });
+  }
+};
+
+

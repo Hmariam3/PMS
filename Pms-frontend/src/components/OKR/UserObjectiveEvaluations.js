@@ -129,8 +129,11 @@ const UserObjectiveEvaluations = () => {
 
           const total_score = Object.values(grouped).reduce((sum, obj) => sum + obj.total_score, 0);
 
+          const allAgreed = evaluationsData.length > 0 && evaluationsData.every(item => item.status?.toLowerCase() === 'agreed');
+          const updatedEmp = { ...emp, status: allAgreed ? 'agreed' : null };
+
           return {
-            evaluated: emp,
+            evaluated: updatedEmp,
             data: Object.values(grouped),
             total_score,
           };
@@ -539,6 +542,7 @@ const UserObjectiveEvaluations = () => {
               <Button variant="outlined" color="primary" onClick={() => window.print()}>
                 Print
               </Button>
+
               {selectedUser?.evaluated?.status?.toLowerCase() !== 'agreed' && selectedUser?.evaluated?.evaluated === user.MailAdress && (
                 <Button variant="contained" color="success" onClick={() => handleAgree(selectedUser)} disabled={isAgreeing}>
                   {isAgreeing ? "Agreeing..." : "Agree"}

@@ -107,6 +107,8 @@ const UserObjectiveEvaluationsMy = () => {
       const total_score = Object.values(grouped).reduce((sum, obj) => sum + obj.total_score, 0);
 
       const firstEval = evaluationsData[0] || {};
+      const allAgreed = evaluationsData.length > 0 && evaluationsData.every(item => item.status?.toLowerCase() === 'agreed');
+
       const evaluatedUser = {
         evaluated_full_name: user.FullName,
         evaluated: user.MailAdress,
@@ -116,7 +118,7 @@ const UserObjectiveEvaluationsMy = () => {
         process: firstEval.process || "-",
         subprocess: firstEval.subprocess || "-",
         branch: firstEval.branch || "-",
-        status: firstEval.status,
+        status: allAgreed ? 'agreed' : null,
         outlook_address: user.MailAdress,
       };
 
@@ -537,6 +539,7 @@ const UserObjectiveEvaluationsMy = () => {
               <Button variant="outlined" color="primary" onClick={() => window.print()}>
                 Print
               </Button>
+
               {selectedUser?.evaluated?.status?.toLowerCase() !== 'agreed' && selectedUser?.evaluated?.evaluated === user.MailAdress && (
                 <Button variant="contained" color="success" onClick={() => handleAgree(selectedUser)} disabled={isAgreeing}>
                   {isAgreeing ? "Agreeing..." : "Agree"}

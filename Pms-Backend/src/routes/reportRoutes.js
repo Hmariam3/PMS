@@ -1,5 +1,5 @@
 import express from "express";
-import { getUserTargetsReport, getAccountMappingReport, getAccountVariationReport, getFcyDepositReport, getEvaluationResultReport } from "../controllers/reportController.js";
+import { getUserTargetsReport, getAccountMappingReport, getAccountVariationReport, getFcyDepositReport, getEvaluationResultReport, getRawEvaluationsReport } from "../controllers/reportController.js";
 
 const router = express.Router();
 
@@ -9,5 +9,6 @@ router.post("/account-mapping", getAccountMappingReport);
 router.post("/account-variation", getAccountVariationReport);
 router.post("/fcy-deposit", getFcyDepositReport);
 router.post("/evaluation-result", getEvaluationResultReport);
+router.post("/raw-evaluations", getRawEvaluationsReport);
 
 export default router;
