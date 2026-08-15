@@ -645,31 +645,42 @@ export const getCashTargetsByUser = async (req, res) => {
     // Manager
     else if (position === "Manager") {
 
+      // query = `
+      //   SELECT
+
+      //   (
+      //     SELECT COALESCE(cash_collection, 0)
+      //     FROM public.targets
+      //     WHERE team = $1
+      //       AND status = 'Approved'
+      //       AND cash_collection > 0
+      //     ORDER BY created_at ASC
+      //     LIMIT 1
+      //   ) AS cash_collection,
+
+      //   (
+      //     SELECT COALESCE(cash_deposited_crm, 0)
+      //     FROM public.targets
+      //     WHERE team = $1
+      //       AND status = 'Approved'
+      //       AND cash_deposited_crm > 0
+      //     ORDER BY created_at ASC
+      //     LIMIT 1
+      //   ) AS cash_deposited_crm
+      // `;
+
+      // values = [team];
       query = `
         SELECT
-
-        (
-          SELECT COALESCE(cash_collection, 0)
-          FROM public.targets
-          WHERE team = $1
-            AND status = 'Approved'
-            AND cash_collection > 0
-          ORDER BY created_at ASC
-          LIMIT 1
-        ) AS cash_collection,
-
-        (
-          SELECT COALESCE(cash_deposited_crm, 0)
-          FROM public.targets
-          WHERE team = $1
-            AND status = 'Approved'
-            AND cash_deposited_crm > 0
-          ORDER BY created_at ASC
-          LIMIT 1
-        ) AS cash_deposited_crm
+          COALESCE(cash_collection, 0) AS cash_collection,
+          COALESCE(cash_deposited_crm, 0) AS cash_deposited_crm
+        FROM public.targets
+        WHERE user_name = $1
+          AND status = 'Approved'
+        LIMIT 1
       `;
 
-      values = [team];
+      values = [user_id];
     }
 
     // Director / Senior Director
@@ -678,39 +689,50 @@ export const getCashTargetsByUser = async (req, res) => {
       position === "Senior Director"
     ) {
 
+      // query = `
+      //   SELECT
+
+      //   (
+      //     SELECT COALESCE(SUM(cash_collection), 0)
+      //     FROM (
+      //       SELECT DISTINCT ON (team)
+      //         team,
+      //         cash_collection
+      //       FROM public.targets
+      //       WHERE subprocess = $1
+      //         AND status = 'Approved'
+      //         AND cash_collection > 0
+      //       ORDER BY team, created_at ASC
+      //     ) x
+      //   ) AS cash_collection,
+
+      //   (
+      //     SELECT COALESCE(SUM(cash_deposited_crm), 0)
+      //     FROM (
+      //       SELECT DISTINCT ON (team)
+      //         team,
+      //         cash_deposited_crm
+      //       FROM public.targets
+      //       WHERE subprocess = $1
+      //         AND status = 'Approved'
+      //         AND cash_deposited_crm > 0
+      //       ORDER BY team, created_at ASC
+      //     ) x
+      //   ) AS cash_deposited_crm
+      // `;
+
+      // values = [subprocess];
       query = `
         SELECT
-
-        (
-          SELECT COALESCE(SUM(cash_collection), 0)
-          FROM (
-            SELECT DISTINCT ON (team)
-              team,
-              cash_collection
-            FROM public.targets
-            WHERE subprocess = $1
-              AND status = 'Approved'
-              AND cash_collection > 0
-            ORDER BY team, created_at ASC
-          ) x
-        ) AS cash_collection,
-
-        (
-          SELECT COALESCE(SUM(cash_deposited_crm), 0)
-          FROM (
-            SELECT DISTINCT ON (team)
-              team,
-              cash_deposited_crm
-            FROM public.targets
-            WHERE subprocess = $1
-              AND status = 'Approved'
-              AND cash_deposited_crm > 0
-            ORDER BY team, created_at ASC
-          ) x
-        ) AS cash_deposited_crm
+          COALESCE(cash_collection, 0) AS cash_collection,
+          COALESCE(cash_deposited_crm, 0) AS cash_deposited_crm
+        FROM public.targets
+        WHERE user_name = $1
+          AND status = 'Approved'
+        LIMIT 1
       `;
 
-      values = [subprocess];
+      values = [user_id];
     }
 
     // VP / CHF

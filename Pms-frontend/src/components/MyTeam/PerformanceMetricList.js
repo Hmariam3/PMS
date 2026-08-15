@@ -113,10 +113,7 @@ const PerformanceMetricList = ({ member }) => {
       const targetRes = await axios.post(
         `${baseUrl}/targets/TargetsSummary/`,
         requestData
-
-
       );
-
 
       // console.log("targetRes", targetRes.data);
       const LoantargetRes = await axios.post(
@@ -258,6 +255,7 @@ const PerformanceMetricList = ({ member }) => {
         }
       }
       if (cash_collectionTarget > 0) {
+
         if (type === "Cash Collection") {
           const collectionRes = await axios.post(`${baseUrl}/nondeposit/getCashDepositbyBranchSummaryByUser`, requestData);
           return { actual: Number(collectionRes.data.total_cash_collection) || 0, target: cash_collectionTarget };
@@ -298,6 +296,7 @@ const PerformanceMetricList = ({ member }) => {
       const zero_customer_complaintsTarget = userNonDepositTargetRes.data.zero_customer_complaints || 0;
 
 
+
       const avg_txn_per_csoTarget = userNonDepositTargetRes.data.avg_txn_per_cso || 0;
       const compliance_rateTarget = userNonDepositTargetRes.data.compliance_rate || 0;
       const reports_3days_rateTarget = userNonDepositTargetRes.data.reports_3days_rate || 0;
@@ -317,6 +316,7 @@ const PerformanceMetricList = ({ member }) => {
 
       const eeu_transactionTarget = atmEeuDigitalTargetRes.data.eeu_transaction || 0;
       const digital_transaction_volumeTarget = atmEeuDigitalTargetRes.data.digital_transaction_volume || 0;
+
       const atm_crm_uptime_rateTarget = atmEeuDigitalTargetRes.data.atm_crm_uptime_rate || 0;
       const employee_perf_thresholdTarget = atmEeuDigitalTargetRes.data.employee_perf_threshold || 0;
 
@@ -1099,6 +1099,7 @@ const PerformanceMetricList = ({ member }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     if (!evaluationForm.evaluation_value || isNaN(evaluationForm.evaluation_value)) {
       toast.error("Valid evaluation value is required");
       return;
@@ -1449,9 +1450,9 @@ const PerformanceMetricList = ({ member }) => {
                 </Grid>
               </Grid>
               <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                <Button onClick={() => setShowEvalModal(false)}>Cancel</Button>
-                <Button type="submit" variant="contained" color="info">
-                  Submit Evaluation
+                <Button onClick={() => setShowEvalModal(false)} disabled={loading}>Cancel</Button>
+                <Button type="submit" variant="contained" color="info" disabled={loading}>
+                  {loading ? "Submitting..." : "Submit Evaluation"}
                 </Button>
               </Box>
             </form>

@@ -65,7 +65,7 @@ const getNavLinks = (user) => {
   const process = user?.process || "";
   const subprocess = user?.subprocess || "";
 
-  const isHaile = user?.UserName === "hailemariamk";
+  const isHaile = user?.UserName === "hailemariamk" || user?.UserName === "andualemt";
   const isAdmin = role === "Admin";
   const isHO = orgUnit === "Ho";
   const isDo = orgUnit === "Do";

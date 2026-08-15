@@ -632,53 +632,65 @@ export const getNonDepositATMEEUDigitalByUser = async (req, res) => {
 
     // Manager
     else if (position === "Manager") {
+      // query = `
+      //   SELECT
 
+      //     (
+      //       SELECT COALESCE(eeu_transaction_count,0)
+      //       FROM public.non_deposit_target
+      //       WHERE team = $1
+      //         AND status='Approved'
+      //         AND eeu_transaction_count > 0
+      //       ORDER BY created_at
+      //       LIMIT 1
+      //     ) AS eeu_transaction,
+
+      //     (
+      //       SELECT COALESCE(digital_transaction_volume,0)
+      //       FROM public.non_deposit_target
+      //       WHERE team = $1
+      //         AND status='Approved'
+      //         AND digital_transaction_volume > 0
+      //       ORDER BY created_at
+      //       LIMIT 1
+      //     ) AS digital_transaction_volume,
+
+      //     (
+      //       SELECT COALESCE(atm_crm_uptime_rate,0)
+      //       FROM public.non_deposit_target
+      //       WHERE team = $1
+      //         AND status='Approved'
+      //         AND atm_crm_uptime_rate > 0
+      //       ORDER BY created_at
+      //       LIMIT 1
+      //     ) AS atm_crm_uptime_rate,
+
+      //     (
+      //       SELECT COALESCE(employee_perf_threshold,0)
+      //       FROM public.non_deposit_target
+      //       WHERE team = $1
+      //         AND status='Approved'
+      //         AND employee_perf_threshold > 0
+      //       ORDER BY created_at
+      //       LIMIT 1
+      //     ) AS employee_perf_threshold
+
+      // `;
+
+      // values = [team];
       query = `
         SELECT
-
-          (
-            SELECT COALESCE(eeu_transaction_count,0)
-            FROM public.non_deposit_target
-            WHERE team = $1
-              AND status='Approved'
-              AND eeu_transaction_count > 0
-            ORDER BY created_at
-            LIMIT 1
-          ) AS eeu_transaction,
-
-          (
-            SELECT COALESCE(digital_transaction_volume,0)
-            FROM public.non_deposit_target
-            WHERE team = $1
-              AND status='Approved'
-              AND digital_transaction_volume > 0
-            ORDER BY created_at
-            LIMIT 1
-          ) AS digital_transaction_volume,
-
-          (
-            SELECT COALESCE(atm_crm_uptime_rate,0)
-            FROM public.non_deposit_target
-            WHERE team = $1
-              AND status='Approved'
-              AND atm_crm_uptime_rate > 0
-            ORDER BY created_at
-            LIMIT 1
-          ) AS atm_crm_uptime_rate,
-
-          (
-            SELECT COALESCE(employee_perf_threshold,0)
-            FROM public.non_deposit_target
-            WHERE team = $1
-              AND status='Approved'
-              AND employee_perf_threshold > 0
-            ORDER BY created_at
-            LIMIT 1
-          ) AS employee_perf_threshold
-
+          COALESCE(eeu_transaction_count,0) AS eeu_transaction,
+          COALESCE(digital_transaction_volume,0) AS digital_transaction_volume,
+          COALESCE(atm_crm_uptime_rate,0) AS atm_crm_uptime_rate,
+          COALESCE(employee_perf_threshold,0) AS employee_perf_threshold
+        FROM public.non_deposit_target
+        WHERE user_name = $1
+          AND status = 'Approved'
+        LIMIT 1
       `;
 
-      values = [team];
+      values = [user_id];
     }
 
     // Director / Senior Director
