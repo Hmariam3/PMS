@@ -7,6 +7,7 @@ import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
 
 import Dashboard from "./pages/Dashboard";
+import MyDashboard from "./pages/MyDashboard";
 import DashboardTeam from "./pages/DashboardTeam";
 import Projects from "./pages/Projects";
 import Users from "./components/Users/UserList";
@@ -167,6 +168,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/mydashboard"
+              element={
+                <ProtectedRoute>
+                  <MyDashboard />
                 </ProtectedRoute>
               }
             />

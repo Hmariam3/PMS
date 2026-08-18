@@ -65,7 +65,7 @@ const getNavLinks = (user) => {
   const process = user?.process || "";
   const subprocess = user?.subprocess || "";
 
-  const isHaile = user?.UserName === "hailemariamk" || user?.UserName === "andualemt";
+  const isHaile = user?.UserName === "hailemariamk";
   const isAdmin = role === "Admin";
   const isHO = orgUnit === "Ho";
   const isDo = orgUnit === "Do";
@@ -87,6 +87,12 @@ const getNavLinks = (user) => {
       path: "/",
       icon: <DashboardIcon />,
       show: isHO || (isDistrict && isDirector) || isVPOrCHF,
+    },
+    {
+      text: "My Dashboard",
+      path: "/mydashboard",
+      icon: <AssessmentIcon />,
+      show: isHaile,
     },
     {
       text: "Team Dashboard",
@@ -163,7 +169,7 @@ const getNavLinks = (user) => {
         { text: "Financial Achievement", path: "/reports/account-variation", icon: <AssessmentIcon />, show: isAdmin },
         { text: "FCY Deposit", path: "/reports/fcy-deposit", icon: <AssessmentIcon />, show: isAdmin },
         { text: "Evaluation Result Report", path: "/reports/evaluation-result", icon: <AssessmentIcon />, show: true },
-        { text: "Raw Evaluation Report", path: "/reports/raw-evaluations", icon: <AssessmentIcon />, show: isHaile },
+        { text: "Raw Evaluation Report", path: "/reports/raw-evaluations", icon: <AssessmentIcon />, show: isAdmin },
       ],
     },
   ];
