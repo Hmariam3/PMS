@@ -37,13 +37,16 @@ const COLS = [
   { key: "evaluated", label: "Employee Email" },
   { key: "evaluated_full_name", label: "Employee Name" },
   { key: "employee_id", label: "Employee ID" },
+  { key: "evaluated_title", label: "Employee Title" },
+  { key: "evaluated_position", label: "Position" },
   { key: "evaluator", label: "Evaluator Email" },
   { key: "evaluator_full_name", label: "Evaluator Name" },
   { key: "objective_name", label: "Objective" },
   { key: "metric_name", label: "Metric" },
+  { key: "metric_weight", label: "Metric Weight" },
   { key: "cap", label: "Cap" },
-  { key: "weight", label: "Result" },
   { key: "evaluation_value", label: "Evaluation Value" },
+  { key: "weight", label: "Result" },
   { key: "process", label: "Process" },
   { key: "subprocess", label: "Subprocess" },
   { key: "branch", label: "Branch" },
@@ -115,7 +118,7 @@ const RawPerformanceEvaluationsReport = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const isAdmin = user?.Role === "Admin" || user?.role === "Admin";
-  const isHaile = user?.UserName === "hailemariamk";
+  const isHaile = user?.UserName === "hailemariamkssssss";
 
   useEffect(() => {
     const handler = setTimeout(() => {

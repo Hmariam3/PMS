@@ -725,9 +725,11 @@ export const getRawEvaluationsReport = async (req, res) => {
         pe.evaluation_id, pe.metric_id, pe.weight, pe.evaluator, pe.evaluation_value, pe.evaluation_date, 
         pe.created_at, pe.updated_at, pe.created_by, pe.updated_by, pe.evaluated, pe.employee_id, 
         pe.process, pe.subprocess, pe.branch, pe.outlook_address, pe.status,
-        pm.metric_name, pm.metric_weight, pm.cap,
+        pm.metric_name, pm.metric_weight, pm.cap, pm.target_fy,
         o.objective_name, o.objective_weight,
         u.full_name as evaluated_full_name,
+        u.position as evaluated_position,
+        u.title as evaluated_title,
         u2.full_name as evaluator_full_name
       FROM public.performance_evaluations pe
       LEFT JOIN public.performance_metrics pm ON pe.metric_id = pm.metric_id
