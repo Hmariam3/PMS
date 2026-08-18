@@ -139,6 +139,7 @@ const getNavLinks = (user) => {
         { text: "District Mapping", path: "/districtmapping", icon: <MapIcon />, show: (isCRM && isIFB) || isAdmin || isIFB },
         { text: "Financial Target", path: "/target", icon: <AccountBalanceIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
         { text: "Non Financial Target", path: "/nondeposittarget", icon: <TrackChangesIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
+
       ],
     },
     {
