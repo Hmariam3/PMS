@@ -12,6 +12,7 @@ import {
   LinearProgress,
   Stack,
   Tooltip,
+  Divider,
 } from "@mui/material";
 import axios from "axios";
 import { AuthContext } from "../AuthContext";
@@ -32,13 +33,48 @@ import {
   RadialBar,
 } from "recharts";
 import AssessmentIcon from "@mui/icons-material/Assessment";
-import FlagIcon from "@mui/icons-material/Flag";
 import StarIcon from "@mui/icons-material/Star";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import PersonIcon from "@mui/icons-material/Person";
+import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16", "#f97316"];
+const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16", "#f97316"];
+
+// Animated radial gauge for overall score
+const ScoreGauge = ({ value }) => {
+  const capped = Math.min(value, 100);
+  const radius = 70;
+  const stroke = 10;
+  const normalizedR = radius - stroke / 2;
+  const circumference = 2 * Math.PI * normalizedR;
+  const strokeDashoffset = circumference - (capped / 100) * circumference;
+  const color = value >= 100 ? "#10b981" : value >= 80 ? "#f59e0b" : "#ef4444";
+
+  return (
+    <Box sx={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+      <svg width={radius * 2} height={radius * 2} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={radius} cy={radius} r={normalizedR} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={stroke} />
+        <circle
+          cx={radius} cy={radius} r={normalizedR} fill="none"
+          stroke={color} strokeWidth={stroke}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)" }}
+        />
+      </svg>
+      <Box sx={{ position: "absolute", textAlign: "center" }}>
+        <Typography variant="h4" fontWeight="900" sx={{ color: "#fff", lineHeight: 1 }}>
+          {value.toFixed(1)}%
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
 
 const MyDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -260,12 +296,10 @@ const MyDashboard = () => {
     setLoading(true);
 
     try {
-      // Step 1: Fetch full user profile using username (for requestData fields)
       const userRes = await axios.get(`${baseUrl}/users/getUserByuserName/${encodeURIComponent(user.UserName)}`);
       const info = userRes.data || {};
       setUserInfo(info);
 
-      // Step 2: Fetch employee record for title and branch_grade (lives in employees table)
       let title = user.position || "";
       let branch_grade = "";
       try {
@@ -278,7 +312,6 @@ const MyDashboard = () => {
         console.warn("Could not fetch employee title info:", empErr.message);
       }
 
-      // Step 2: Fetch assigned metrics by title + branch_grade
       const metricRes = await axios.get(
         `${baseUrl}/performances/bytitleName/${encodeURIComponent(title)}/${encodeURIComponent(branch_grade)}`
       );
@@ -290,7 +323,6 @@ const MyDashboard = () => {
         return;
       }
 
-      // Step 3: Build requestData from userinfo (same as PerformanceMetricList.js)
       const requestData = {
         user_id: info.user_name || user.UserName,
         username: info.user_name || user.UserName,
@@ -304,7 +336,6 @@ const MyDashboard = () => {
         organization: info.organization || null,
       };
 
-      // Step 4: Pre-fetch all targets at once (batch)
       const [targetRes, LoantargetRes, cashTargetRes, userNonDepositTargetRes, atmEeuDigitalTargetRes] = await Promise.all([
         axios.post(`${baseUrl}/targets/TargetsSummary/`, requestData),
         axios.post(`${baseUrl}/targets/loanCollectionTargetByUser/`, requestData),
@@ -315,14 +346,12 @@ const MyDashboard = () => {
 
       const targetsCache = { targetRes, LoantargetRes, cashTargetRes, userNonDepositTargetRes, atmEeuDigitalTargetRes };
 
-      // Quarter progress
       const startDate = new Date("2026-04-01");
       const today = new Date();
       let daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
       daysPassed = Math.max(0, Math.min(daysPassed, 90));
       const quarterRatio = daysPassed / 90;
 
-      // Step 5: For each assigned metric, resolve type and fetch data
       const ICON_MAP = {
         deposit: "💰", fcy: "💱", loan: "⚖️", account: "📈",
         transaction: "📉", card: "💳", eeu: "💡",
@@ -334,7 +363,7 @@ const MyDashboard = () => {
         "transaction audit": "🔍", "customer engagement": "👥",
         "new customer onboarding": "🆕", spm: "📊",
         "avg txn per cso": "🧾", "atm crm uptime rate": "🖥️",
-        "employee performance": "⭐", default: "📊"
+        default: "📊"
       };
 
       const TYPE_MAP = {
@@ -376,13 +405,11 @@ const MyDashboard = () => {
         let target = 0;
 
         if (isUserInput) {
-          // For user-input metrics, only fetch the target, actual starts as null (user fills)
           const result = await fetchSystemData(type, requestData, targetsCache);
           target = (result.target || 0) * quarterRatio;
-          actual = null; // user will fill
+          actual = null;
         } else {
           const result = await fetchSystemData(type, requestData, targetsCache);
-          // For ratio-based targets, apply quarterRatio to expected
           target = (result.target || 0) * quarterRatio;
           actual = result.actual || 0;
         }
@@ -451,303 +478,467 @@ const MyDashboard = () => {
     return "Needs Attention";
   };
 
+  const getStatusGradient = (rate) => {
+    if (rate >= 100) return "linear-gradient(135deg, #059669, #10b981)";
+    if (rate >= 80) return "linear-gradient(135deg, #d97706, #f59e0b)";
+    return "linear-gradient(135deg, #dc2626, #ef4444)";
+  };
+
   const chartData = metricsData
     .filter(m => m.actual !== null)
     .map(m => ({
       name: m.name.length > 12 ? m.name.substring(0, 12) + "…" : m.name,
       fullName: m.name,
-      Expected: parseFloat(m.expected.toFixed(2)),
-      Actual: parseFloat((m.actual || 0).toFixed(2)),
+      Expected: parseFloat(Number(m.expected).toFixed(2)),
+      Actual: parseFloat(Number(m.actual || 0).toFixed(2)),
     }));
 
   const pieData = metricsData
     .filter(m => m.actual !== null && m.expected > 0)
     .map(m => ({
       name: m.name,
-      value: parseFloat(Math.min(m.rate, 150).toFixed(1)),
+      value: parseFloat(Math.min(Number(m.rate), 150).toFixed(1)),
     }));
+
+  const excellentCount = metricsData.filter(m => m.rate >= 100).length;
+  const onTrackCount = metricsData.filter(m => m.rate >= 80 && m.rate < 100).length;
+  const needsAttentionCount = metricsData.filter(m => m.rate < 80 && m.actual !== null).length;
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "80vh", gap: 2 }}>
-        <CircularProgress size={56} thickness={4} sx={{ color: "#3b82f6" }} />
-        <Typography variant="body1" color="text.secondary">Loading your performance dashboard…</Typography>
+      <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "80vh", gap: 3 }}>
+        <Box sx={{
+          position: "relative", display: "inline-flex",
+          "&::before": {
+            content: '""', position: "absolute", inset: -8,
+            borderRadius: "50%", background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+            animation: "spin 2s linear infinite", opacity: 0.2,
+          }
+        }}>
+          <CircularProgress size={64} thickness={3} sx={{ color: "#6366f1" }} />
+        </Box>
+        <Box sx={{ textAlign: "center" }}>
+          <Typography variant="h6" fontWeight="700" color="#1e293b">Loading Dashboard</Typography>
+          <Typography variant="body2" color="#64748b" sx={{ mt: 0.5 }}>Fetching your performance metrics…</Typography>
+        </Box>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ minHeight: "100vh", p: { xs: 2, md: 3 }, background: "linear-gradient(135deg, #f0f4ff 0%, #f9fafb 100%)" }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 0.5 }}>
-          <Box sx={{ p: 1, borderRadius: 2, background: "linear-gradient(135deg, #3b82f6, #6366f1)", display: "flex" }}>
-            <AssessmentIcon sx={{ color: "#fff", fontSize: "1.6rem" }} />
-          </Box>
-          <Box>
-            <Typography variant="h5" fontWeight="800" color="#1e293b">
-              My Performance Dashboard
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#64748b" }}>
-              {userInfo?.title || user?.position || "Employee"} · Current Financial Quarter (Apr – Jun 2026)
-            </Typography>
-          </Box>
-        </Stack>
-      </Box>
+    <Box sx={{ minHeight: "100vh", background: "linear-gradient(160deg, #f0f4ff 0%, #fafbff 50%, #f8f0ff 100%)", p: { xs: 2, md: 3 } }}>
 
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={4}>
-          <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e0eaff", background: "linear-gradient(135deg, #eff6ff, #dbeafe)", height: "100%" }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: "#bfdbfe", color: "#1d4ed8", width: 52, height: 52 }}>
-                  <StarIcon />
+      {/* ─── Hero Header ───────────────────────────────── */}
+      <Box sx={{
+        mb: 4, borderRadius: 4, overflow: "hidden",
+        background: "linear-gradient(135deg, #0c4a6e 0%, #0369a1 45%, #0284c7 100%)",
+        position: "relative",
+        boxShadow: "0 20px 60px rgba(2,132,199,0.35)",
+      }}>
+        {/* decorative blobs */}
+        <Box sx={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(56,189,248,0.25)", filter: "blur(40px)" }} />
+        <Box sx={{ position: "absolute", bottom: -30, left: "30%", width: 160, height: 160, borderRadius: "50%", background: "rgba(14,165,233,0.2)", filter: "blur(30px)" }} />
+
+        <Box sx={{ p: { xs: 3, md: 4 }, position: "relative", zIndex: 1 }}>
+          <Grid container alignItems="center" spacing={3}>
+            <Grid item xs={12} md={7}>
+              <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                <Avatar sx={{
+                  width: 56, height: 56,
+                  background: "linear-gradient(135deg, #0ea5e9, #0284c7)",
+                  boxShadow: "0 0 0 3px rgba(255,255,255,0.2)",
+                  fontSize: "1.4rem",
+                }}>
+                  <PersonIcon sx={{ fontSize: "1.8rem", color: "#fff" }} />
                 </Avatar>
                 <Box>
-                  <Typography variant="overline" sx={{ color: "#1e40af", fontWeight: 700, lineHeight: 1 }}>Overall Achievement</Typography>
-                  <Typography variant="h4" fontWeight="900" color="#1e3a8a">{overallAverage.toFixed(1)}%</Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={Math.min(overallAverage, 100)}
-                    sx={{ mt: 0.5, height: 5, borderRadius: 4, bgcolor: "#bfdbfe", "& .MuiLinearProgress-bar": { bgcolor: "#1d4ed8", borderRadius: 4 } }}
-                  />
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={4}>
-          <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #d1fae5", background: "linear-gradient(135deg, #f0fdf4, #dcfce7)", height: "100%" }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: "#bbf7d0", color: "#15803d", width: 52, height: 52 }}>
-                  <EmojiEventsIcon />
-                </Avatar>
-                <Box>
-                  <Typography variant="overline" sx={{ color: "#166534", fontWeight: 700, lineHeight: 1 }}>Metrics Assigned</Typography>
-                  <Typography variant="h4" fontWeight="900" color="#14532d">{metricsData.length}</Typography>
-                  <Typography variant="caption" color="#15803d">
-                    {metricsData.filter(m => m.inputBy === "System").length} System · {metricsData.filter(m => m.inputBy === "User").length} Self-report
+                  <Typography variant="overline" sx={{ color: "rgba(186,230,253,0.9)", fontWeight: 700, letterSpacing: 2, fontSize: "0.7rem" }}>
+                    PERFORMANCE DASHBOARD
+                  </Typography>
+                  <Typography variant="h5" fontWeight="900" sx={{ color: "#fff", lineHeight: 1.2 }}>
+                    {user?.FullName || user?.UserName || "Welcome back"}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: "rgba(186,230,253,0.8)", mt: 0.3 }}>
+                    {userInfo?.title || user?.position || "Employee"} · Q2 2026 (Apr – Jun)
                   </Typography>
                 </Box>
               </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
 
-        <Grid item xs={12} sm={4}>
-          <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e9d5ff", background: "linear-gradient(135deg, #fdf4ff, #fae8ff)", height: "100%" }}>
-            <CardContent>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: "#f5d0fe", color: "#a21caf", width: 52, height: 52, fontSize: "1.4rem" }}>
-                  {overallAverage >= 100 ? "🏆" : overallAverage >= 80 ? "✅" : "⚠️"}
-                </Avatar>
-                <Box>
-                  <Typography variant="overline" sx={{ color: "#86198f", fontWeight: 700, lineHeight: 1 }}>Current Status</Typography>
-                  <Typography variant="h5" fontWeight="900" color="#701a75" sx={{ mt: 0.5 }}>{getStatusLabel(overallAverage)}</Typography>
+              <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+                <Chip
+                  icon={<CheckCircleIcon sx={{ fontSize: "14px !important", color: "#10b981 !important" }} />}
+                  label={`${excellentCount} Excellent`}
+                  sx={{ bgcolor: "rgba(16,185,129,0.15)", color: "#6ee7b7", fontWeight: 700, border: "1px solid rgba(16,185,129,0.3)" }}
+                />
+                <Chip
+                  icon={<TrendingUpIcon sx={{ fontSize: "14px !important", color: "#f59e0b !important" }} />}
+                  label={`${onTrackCount} On Track`}
+                  sx={{ bgcolor: "rgba(245,158,11,0.15)", color: "#fcd34d", fontWeight: 700, border: "1px solid rgba(245,158,11,0.3)" }}
+                />
+                <Chip
+                  label={`${needsAttentionCount} Needs Attention`}
+                  sx={{ bgcolor: "rgba(239,68,68,0.15)", color: "#fca5a5", fontWeight: 700, border: "1px solid rgba(239,68,68,0.3)" }}
+                />
+              </Stack>
+            </Grid>
+
+            <Grid item xs={12} md={5}>
+              <Stack alignItems={{ xs: "flex-start", md: "flex-end" }} spacing={1}>
+                <Box sx={{ textAlign: "center" }}>
+                  <Typography variant="overline" sx={{ color: "rgba(186,230,253,0.7)", fontWeight: 700, letterSpacing: 2, fontSize: "0.65rem" }}>
+                    OVERALL ACHIEVEMENT
+                  </Typography>
+                  <Box sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
+                    <ScoreGauge value={overallAverage} />
+                  </Box>
                   <Chip
-                    label={`${metricsData.filter(m => m.rate >= 100).length} metrics at 100%+`}
-                    size="small"
-                    sx={{ mt: 0.5, fontWeight: 700, bgcolor: "#f3e8ff", color: "#7e22ce" }}
+                    label={getStatusLabel(overallAverage)}
+                    sx={{
+                      mt: 1, fontWeight: 800, fontSize: "0.8rem",
+                      background: getStatusGradient(overallAverage),
+                      color: "#fff",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                    }}
                   />
                 </Box>
               </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+            </Grid>
+          </Grid>
+        </Box>
+      </Box>
 
-      {/* Charts Row */}
+      {/* ─── KPI Summary Strip ─────────────────────────── */}
+      <Box sx={{ display: "flex", gap: 2.5, mb: 4, flexWrap: "nowrap" }}>
+        {[
+          {
+            icon: <BarChartIcon />,
+            label: "Total Metrics",
+            value: metricsData.length,
+            sub: `${metricsData.filter(m => m.inputBy === "System").length} system · ${metricsData.filter(m => m.inputBy === "User").length} self-report`,
+            gradient: "linear-gradient(135deg, #eff6ff, #dbeafe)",
+            border: "#bfdbfe",
+            iconBg: "#3b82f6",
+            textColor: "#1e40af",
+          },
+          {
+            icon: <EmojiEventsIcon />,
+            label: "At 100%+",
+            value: excellentCount,
+            sub: "metrics fully achieved",
+            gradient: "linear-gradient(135deg, #f0fdf4, #dcfce7)",
+            border: "#86efac",
+            iconBg: "#10b981",
+            textColor: "#14532d",
+          },
+          {
+            icon: <WorkspacePremiumIcon />,
+            label: "Weighted Score",
+            value: `${overallAverage.toFixed(1)}%`,
+            sub: getStatusLabel(overallAverage),
+            gradient: overallAverage >= 100
+              ? "linear-gradient(135deg, #f0fdf4, #d1fae5)"
+              : overallAverage >= 80
+              ? "linear-gradient(135deg, #fffbeb, #fef3c7)"
+              : "linear-gradient(135deg, #fff1f2, #ffe4e6)",
+            border: overallAverage >= 100 ? "#6ee7b7" : overallAverage >= 80 ? "#fcd34d" : "#fca5a5",
+            iconBg: getStatusColor(overallAverage),
+            textColor: overallAverage >= 100 ? "#064e3b" : overallAverage >= 80 ? "#78350f" : "#7f1d1d",
+          },
+          {
+            icon: <StarIcon />,
+            label: "Self-Report",
+            value: metricsData.filter(m => m.inputBy === "User").length,
+            sub: "metrics need your input",
+            gradient: "linear-gradient(135deg, #fdf4ff, #fae8ff)",
+            border: "#d8b4fe",
+            iconBg: "#8b5cf6",
+            textColor: "#581c87",
+          },
+        ].map((kpi, i) => (
+          <Box key={i} sx={{ flex: 1, minWidth: 0 }}>
+            <Card elevation={0} sx={{
+              borderRadius: 3,
+              border: `1px solid ${kpi.border}`,
+              background: kpi.gradient,
+              height: "100%",
+              transition: "transform 0.2s ease, box-shadow 0.2s ease",
+              "&:hover": { transform: "translateY(-4px)", boxShadow: `0 12px 32px rgba(0,0,0,0.1)` },
+            }}>
+              <CardContent sx={{ p: 2.5 }}>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <Avatar sx={{ bgcolor: kpi.iconBg, color: "#fff", width: 48, height: 48, boxShadow: `0 6px 16px ${kpi.iconBg}55`, flexShrink: 0 }}>
+                    {kpi.icon}
+                  </Avatar>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="overline" sx={{ color: kpi.textColor, fontWeight: 700, lineHeight: 1, fontSize: "0.65rem", opacity: 0.8 }}>
+                      {kpi.label}
+                    </Typography>
+                    <Typography variant="h4" fontWeight="900" sx={{ color: kpi.textColor, lineHeight: 1.1, mt: 0.3 }}>
+                      {kpi.value}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: kpi.textColor, opacity: 0.7, fontWeight: 600 }}>
+                      {kpi.sub}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Box>
+        ))}
+      </Box>
+
+      {/* ─── Charts ────────────────────────────────────── */}
       {chartData.length > 0 && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} lg={8}>
-            <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e2e8f0", height: "100%" }}>
+        <Box sx={{ display: "flex", gap: 3, mb: 4, flexDirection: { xs: "column", md: "row" } }}>
+          {/* Bar chart – 70% */}
+          <Box sx={{ flex: "0 0 70%", maxWidth: { xs: "100%", md: "70%" } }}>
+            <Card elevation={0} sx={{
+              borderRadius: 3, border: "1px solid #e2e8f0", height: "100%",
+              background: "#fff",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.04)",
+            }}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" fontWeight="800" color="#1e293b" sx={{ mb: 2.5 }}>
-                  Actual vs Expected Performance
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
+                <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
+                  <Box sx={{ p: 0.8, borderRadius: 1.5, background: "linear-gradient(135deg, #0284c7, #0ea5e9)" }}>
+                    <BarChartIcon sx={{ color: "#fff", fontSize: "1.2rem" }} />
+                  </Box>
+                  <Typography variant="h6" fontWeight="800" color="#1e293b">
+                    Actual vs Expected
+                  </Typography>
+                </Stack>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 12, fontWeight: 600 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 11 }} />
                     <RechartsTooltip
-                      contentStyle={{ borderRadius: 10, border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", fontSize: 13 }}
+                      contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.15)", fontSize: 13, fontWeight: 600 }}
                       labelFormatter={(l, payload) => payload?.[0]?.payload?.fullName || l}
                     />
-                    <Legend iconType="circle" wrapperStyle={{ paddingTop: 16, fontSize: 13 }} />
-                    <Bar dataKey="Expected" fill="#e2e8f0" radius={[6, 6, 0, 0]} barSize={32} />
-                    <Bar dataKey="Actual" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={32} />
+                    <Legend iconType="circle" wrapperStyle={{ paddingTop: 16, fontSize: 13, fontWeight: 600 }} />
+                    <Bar dataKey="Expected" fill="#e2e8f0" radius={[6, 6, 0, 0]} barSize={28} />
+                    <Bar dataKey="Actual" fill="url(#barGradient)" radius={[6, 6, 0, 0]} barSize={28} />
+                    <defs>
+                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#0ea5e9" />
+                        <stop offset="100%" stopColor="#0284c7" />
+                      </linearGradient>
+                    </defs>
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} lg={4}>
-            <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e2e8f0", height: "100%" }}>
+          {/* Pie chart – 30% */}
+          <Box sx={{ flex: "0 0 30%", maxWidth: { xs: "100%", md: "30%" } }}>
+            <Card elevation={0} sx={{
+              borderRadius: 3, border: "1px solid #e2e8f0", height: "100%",
+              background: "#fff",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.04)",
+            }}>
               <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" fontWeight="800" color="#1e293b" sx={{ mb: 2.5 }}>
-                  Achievement Share
-                </Typography>
-                <ResponsiveContainer width="100%" height={300}>
+                <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
+                  <Box sx={{ p: 0.8, borderRadius: 1.5, background: "linear-gradient(135deg, #10b981, #059669)" }}>
+                    <AssessmentIcon sx={{ color: "#fff", fontSize: "1.2rem" }} />
+                  </Box>
+                  <Typography variant="h6" fontWeight="800" color="#1e293b">
+                    Achievement Share
+                  </Typography>
+                </Stack>
+                <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
-                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={65} outerRadius={100} paddingAngle={3} dataKey="value" nameKey="name">
+                    <Pie data={pieData} cx="50%" cy="46%" innerRadius={55} outerRadius={88} paddingAngle={3} dataKey="value" nameKey="name">
                       {pieData.map((_, index) => (
                         <Cell key={index} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <RechartsTooltip
-                      contentStyle={{ borderRadius: 10, border: "none", boxShadow: "0 4px 20px rgba(0,0,0,0.12)", fontSize: 13 }}
+                      contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.15)", fontSize: 13, fontWeight: 600 }}
                       formatter={(v, n) => [`${v}%`, n]}
                     />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       )}
 
-      {/* Metrics Cards */}
-      <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e2e8f0", mb: 2 }}>
+      {/* ─── Metrics Breakdown ─────────────────────────── */}
+      <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e2e8f0", background: "#fff", boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
         <CardContent sx={{ p: 3 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-            <Typography variant="h6" fontWeight="800" color="#1e293b">Metrics Breakdown</Typography>
-            <Chip label="Self-report metrics are editable" icon={<EditIcon sx={{ fontSize: "14px !important" }} />} size="small" sx={{ bgcolor: "#fef3c7", color: "#92400e", fontWeight: 600 }} />
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Box sx={{ p: 0.8, borderRadius: 1.5, background: "linear-gradient(135deg, #f59e0b, #d97706)" }}>
+                <StarIcon sx={{ color: "#fff", fontSize: "1.2rem" }} />
+              </Box>
+              <Box>
+                <Typography variant="h6" fontWeight="800" color="#1e293b">Metrics Breakdown</Typography>
+                <Typography variant="caption" color="#64748b" fontWeight={600}>{metricsData.length} metrics assigned to your role</Typography>
+              </Box>
+            </Stack>
+            <Chip
+              label="Self-report metrics are editable"
+              icon={<EditIcon sx={{ fontSize: "13px !important" }} />}
+              size="small"
+              sx={{ bgcolor: "#fef3c7", color: "#92400e", fontWeight: 700, border: "1px solid #fcd34d" }}
+            />
           </Stack>
 
           <Grid container spacing={2.5}>
-            {metricsData.map((metric, idx) => (
-              <Grid item xs={12} sm={6} xl={4} key={idx}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2.5,
-                    border: "1px solid",
-                    borderColor: metric.inputBy === "User" ? "#fde68a" : "#e2e8f0",
-                    borderRadius: 3,
-                    background: metric.inputBy === "User"
-                      ? "linear-gradient(135deg, #fffbeb, #fef9ee)"
-                      : "linear-gradient(135deg, #f8fafc, #fff)",
-                    transition: "all 0.25s ease",
-                    "&:hover": {
-                      transform: "translateY(-3px)",
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-                      borderColor: getStatusColor(metric.rate),
-                    },
-                  }}
-                >
-                  {/* Header */}
-                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.5 }}>
-                    <Stack direction="row" alignItems="center" spacing={1.5}>
-                      <Typography sx={{ fontSize: "1.8rem", lineHeight: 1 }}>{metric.icon}</Typography>
-                      <Box>
-                        <Typography variant="subtitle2" fontWeight="800" color="#1e293b" sx={{ lineHeight: 1.3 }}>
-                          {metric.name}
+            {metricsData.map((metric, idx) => {
+              const statusColor = getStatusColor(metric.rate);
+              const isUser = metric.inputBy === "User";
+              return (
+                <Grid item xs={12} sm={6} xl={4} key={idx}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2.5,
+                      borderRadius: 3,
+                      border: "1px solid",
+                      borderColor: isUser ? "#fde68a" : "#e8edf5",
+                      background: isUser
+                        ? "linear-gradient(135deg, #fffbeb 0%, #fefce8 100%)"
+                        : "linear-gradient(135deg, #f8faff 0%, #ffffff 100%)",
+                      transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+                      position: "relative",
+                      overflow: "hidden",
+                      "&:hover": {
+                        transform: "translateY(-4px)",
+                        boxShadow: `0 12px 36px ${statusColor}25`,
+                        borderColor: statusColor,
+                      },
+                      "&::before": metric.actual !== null ? {
+                        content: '""',
+                        position: "absolute",
+                        top: 0, left: 0, right: 0,
+                        height: 3,
+                        background: getStatusGradient(metric.rate),
+                        borderRadius: "12px 12px 0 0",
+                      } : {},
+                    }}
+                  >
+                    {/* Header row */}
+                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
+                      <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Box sx={{
+                          width: 44, height: 44, borderRadius: 2.5,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          background: isUser ? "linear-gradient(135deg, #fef3c7, #fde68a)" : "linear-gradient(135deg, #eff6ff, #dbeafe)",
+                          fontSize: "1.4rem", lineHeight: 1,
+                          boxShadow: `0 4px 12px ${isUser ? "#f59e0b" : "#6366f1"}22`,
+                        }}>
+                          {metric.icon}
+                        </Box>
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight="800" color="#1e293b" sx={{ lineHeight: 1.3, mb: 0.3 }}>
+                            {metric.name}
+                          </Typography>
+                          <Chip
+                            label={isUser ? "Self Report" : "System"}
+                            size="small"
+                            icon={isUser
+                              ? <EditIcon sx={{ fontSize: "10px !important" }} />
+                              : <CheckCircleIcon sx={{ fontSize: "10px !important" }} />
+                            }
+                            sx={{
+                              height: 18, fontSize: "0.62rem", fontWeight: 700,
+                              bgcolor: isUser ? "#fef3c7" : "#eff6ff",
+                              color: isUser ? "#92400e" : "#1d4ed8",
+                            }}
+                          />
+                        </Box>
+                      </Stack>
+
+                      <Box sx={{
+                        px: 1.5, py: 0.5, borderRadius: 2,
+                        background: metric.actual !== null ? getStatusGradient(metric.rate) : "linear-gradient(135deg, #94a3b8, #64748b)",
+                        boxShadow: metric.actual !== null ? `0 4px 12px ${statusColor}55` : "none",
+                        minWidth: 56, textAlign: "center",
+                      }}>
+                        <Typography sx={{ fontWeight: 900, color: "#fff", fontSize: "0.82rem", lineHeight: 1 }}>
+                          {metric.actual !== null ? `${metric.rate.toFixed(1)}%` : "—"}
                         </Typography>
-                        <Chip
-                          label={metric.inputBy === "User" ? "Self Report" : "System"}
-                          size="small"
-                          icon={metric.inputBy === "User" ? <EditIcon sx={{ fontSize: "10px !important" }} /> : <CheckCircleIcon sx={{ fontSize: "10px !important" }} />}
-                          sx={{
-                            height: 18, fontSize: "0.65rem", fontWeight: 700,
-                            bgcolor: metric.inputBy === "User" ? "#fef3c7" : "#eff6ff",
-                            color: metric.inputBy === "User" ? "#92400e" : "#1d4ed8",
-                            mt: 0.3,
-                          }}
-                        />
                       </Box>
                     </Stack>
-                    <Chip
-                      label={metric.actual !== null ? `${metric.rate.toFixed(1)}%` : "—"}
-                      size="small"
-                      sx={{
-                        fontWeight: 800,
-                        color: "#fff",
-                        bgcolor: metric.actual !== null ? getStatusColor(metric.rate) : "#94a3b8",
-                        borderRadius: 2,
-                        minWidth: 52,
-                        fontSize: "0.78rem",
-                      }}
-                    />
-                  </Stack>
 
-                  {/* Progress bar */}
-                  <Box sx={{ mb: 1.5 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.6 }}>
-                      <Typography variant="caption" fontWeight="700" color="#64748b">Progress</Typography>
+                    {/* Progress section */}
+                    <Box sx={{ mb: 1.5 }}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
+                        <Typography variant="caption" fontWeight="700" color="#64748b">Progress</Typography>
 
-                      {metric.inputBy === "User" ? (
-                        <Stack direction="row" alignItems="center" spacing={0.8}>
-                          <Tooltip title="Enter your actual value to simulate performance" placement="top">
-                            <input
-                              type="number"
-                              min="0"
-                              value={metric.actual !== null ? metric.actual : ""}
-                              onChange={(e) => handleManualInput(idx, e.target.value)}
-                              placeholder="Enter actual"
-                              style={{
-                                width: 90,
-                                padding: "3px 8px",
-                                border: "1.5px solid #fbbf24",
-                                borderRadius: 6,
-                                fontSize: "0.8rem",
-                                fontWeight: 600,
-                                outline: "none",
-                                background: "#fffdf0",
-                                color: "#78350f",
-                              }}
-                            />
-                          </Tooltip>
-                          <Typography variant="caption" color="#78350f" fontWeight="700">
-                            / {metric.expected > 0 ? metric.expected.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "N/A"}
+                        {isUser ? (
+                          <Stack direction="row" alignItems="center" spacing={0.8}>
+                            <Tooltip title="Enter your actual value to simulate performance" placement="top">
+                              <input
+                                type="number"
+                                min="0"
+                                value={metric.actual !== null ? metric.actual : ""}
+                                onChange={(e) => handleManualInput(idx, e.target.value)}
+                                placeholder="Enter actual"
+                                style={{
+                                  width: 88, padding: "4px 8px",
+                                  border: "1.5px solid #fbbf24",
+                                  borderRadius: 8, fontSize: "0.78rem", fontWeight: 700,
+                                  outline: "none", background: "#fffdf0", color: "#78350f",
+                                  transition: "border-color 0.2s",
+                                }}
+                              />
+                            </Tooltip>
+                            <Typography variant="caption" color="#78350f" fontWeight="700">
+                              / {Number(metric.expected) > 0 ? Number(metric.expected).toLocaleString(undefined, { maximumFractionDigits: 1 }) : "N/A"}
+                            </Typography>
+                          </Stack>
+                        ) : (
+                          <Typography variant="caption" color="#475569" fontWeight="700">
+                            {Number(metric.actual || 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                            <Typography component="span" variant="caption" color="#94a3b8" fontWeight={600}> / </Typography>
+                            {Number(metric.expected) > 0 ? Number(metric.expected).toLocaleString(undefined, { maximumFractionDigits: 1 }) : "N/A"}
                           </Typography>
-                        </Stack>
-                      ) : (
-                        <Typography variant="caption" color="#64748b" fontWeight="600">
-                          {(metric.actual || 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}
-                          {" / "}
-                          {metric.expected > 0 ? metric.expected.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "N/A"}
-                        </Typography>
-                      )}
-                    </Stack>
+                        )}
+                      </Stack>
 
-                    <LinearProgress
-                      variant="determinate"
-                      value={metric.actual !== null ? Math.min(metric.rate, 100) : 0}
-                      sx={{
-                        height: 7,
-                        borderRadius: 4,
-                        bgcolor: "#f1f5f9",
-                        "& .MuiLinearProgress-bar": {
-                          bgcolor: metric.actual !== null ? getStatusColor(metric.rate) : "#cbd5e1",
+                      <Box sx={{ position: "relative", height: 8, borderRadius: 4, bgcolor: "#f1f5f9", overflow: "hidden" }}>
+                        <Box sx={{
+                          position: "absolute", left: 0, top: 0, bottom: 0,
+                          width: `${metric.actual !== null ? Math.min(metric.rate, 100) : 0}%`,
+                          background: metric.actual !== null ? getStatusGradient(metric.rate) : "#cbd5e1",
                           borderRadius: 4,
-                        },
-                      }}
-                    />
-                  </Box>
+                          transition: "width 1s cubic-bezier(0.4,0,0.2,1)",
+                        }} />
+                      </Box>
+                    </Box>
 
-                  {/* Weight */}
-                  {metric.weight > 0 && (
-                    <Typography variant="caption" color="#94a3b8" fontWeight="600">
-                      Weight: {metric.weight}%
-                    </Typography>
-                  )}
-                </Paper>
-              </Grid>
-            ))}
+                    {/* Footer */}
+                    {metric.weight > 0 && (
+                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+                        <Chip
+                          label={`Weight: ${metric.weight}%`}
+                          size="small"
+                          sx={{ height: 18, fontSize: "0.62rem", fontWeight: 700, bgcolor: "#f1f5f9", color: "#64748b" }}
+                        />
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+              );
+            })}
           </Grid>
         </CardContent>
       </Card>
 
       {metricsData.length === 0 && (
-        <Box sx={{ textAlign: "center", py: 8 }}>
-          <Typography variant="h5" color="text.secondary" fontWeight={600}>No metrics found for your profile</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Please contact your administrator to assign metrics to your title.</Typography>
+        <Box sx={{
+          textAlign: "center", py: 10,
+          borderRadius: 3, border: "2px dashed #e2e8f0",
+          background: "linear-gradient(135deg, #f8fafc, #fff)",
+        }}>
+          <Typography variant="h3" sx={{ mb: 2 }}>📊</Typography>
+          <Typography variant="h6" color="#475569" fontWeight={700}>No metrics found for your profile</Typography>
+          <Typography variant="body2" color="#94a3b8" sx={{ mt: 1 }}>Please contact your administrator to assign metrics to your title.</Typography>
         </Box>
       )}
     </Box>
