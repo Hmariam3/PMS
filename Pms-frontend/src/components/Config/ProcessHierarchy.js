@@ -62,8 +62,8 @@ const ProcessHierarchy = () => {
   const [showBranchForm, setShowBranchForm] = useState(false);
 
   // Form States
-  const [processForm, setProcessForm] = useState({ process_name: "" });
-  const [subProcessForm, setSubProcessForm] = useState({ sub_process_name: "", process_id: "" });
+  const [processForm, setProcessForm] = useState({ process_name: "", process_acrnm: "" });
+  const [subProcessForm, setSubProcessForm] = useState({ subprocess_name: "", subprocess_acrnm: "", proc_id: "" });
   const [branchForm, setBranchForm] = useState({ branch_name: "", branch_code: "", subprocess_id: "" });
   const [errors, setErrors] = useState({});
 
@@ -104,7 +104,7 @@ const ProcessHierarchy = () => {
   }, []);
 
   // Filtered lists based on selections
-  const filteredSubProcesses = subProcesses.filter(sp => String(sp.process_id) === String(selectedProcessId));
+  const filteredSubProcesses = subProcesses.filter(sp => String(sp.proc_id) === String(selectedProcessId));
   const filteredBranches = branches.filter(b => String(b.subprocess_id) === String(selectedSubProcessId));
 
   const handleProcessSelect = (id) => {
@@ -119,11 +119,14 @@ const ProcessHierarchy = () => {
   // Process CRUD
   const handleProcessSubmit = async (e) => {
     e.preventDefault();
-    if (!processForm.process_name) return setErrors({ process_name: "Required" });
+    const newErrors = {};
+    if (!processForm.process_name) newErrors.process_name = "Required";
+    if (!processForm.process_acrnm) newErrors.process_acrnm = "Required";
+    if (Object.keys(newErrors).length > 0) return setErrors(newErrors);
     try {
       const headers = { "Content-Type": "application/json", "x-api-key": apiKey };
-      if (processForm.id) {
-        await axios.put(`${baseUrl}/processes/${processForm.id}`, processForm, { headers });
+      if (processForm.proc_id) {
+        await axios.put(`${baseUrl}/processes/${processForm.proc_id}`, processForm, { headers });
         toast.success("Process updated");
       } else {
         await axios.post(`${baseUrl}/processes/createProcess`, processForm, { headers });
@@ -137,13 +140,13 @@ const ProcessHierarchy = () => {
   };
 
   const initiateDeleteProcess = (p) => {
-    const linkedSubProcesses = subProcesses.filter(sp => String(sp.process_id) === String(p.id));
-    const linkedBranches = branches.filter(b => linkedSubProcesses.some(sp => String(b.subprocess_id) === String(sp.id)));
+    const linkedSubProcesses = subProcesses.filter(sp => String(sp.proc_id) === String(p.proc_id));
+    const linkedBranches = branches.filter(b => linkedSubProcesses.some(sp => String(b.subprocess_id) === String(sp.subprocess_id)));
     
     setDeleteConfirm({
       open: true,
       type: 'process',
-      id: p.id,
+      id: p.proc_id,
       title: 'Delete Process?',
       message: `Are you sure you want to delete "${p.process_name}"? This will also delete ${linkedSubProcesses.length} linked sub-processes and ${linkedBranches.length} linked branches. This action cannot be undone.`,
     });
@@ -162,12 +165,15 @@ const ProcessHierarchy = () => {
   // SubProcess CRUD
   const handleSubProcessSubmit = async (e) => {
     e.preventDefault();
-    if (!subProcessForm.sub_process_name) return setErrors({ sub_process_name: "Required" });
+    const newErrors = {};
+    if (!subProcessForm.subprocess_name) newErrors.subprocess_name = "Required";
+    if (!subProcessForm.subprocess_acrnm) newErrors.subprocess_acrnm = "Required";
+    if (Object.keys(newErrors).length > 0) return setErrors(newErrors);
     try {
       const headers = { "Content-Type": "application/json", "x-api-key": apiKey };
-      const payload = { ...subProcessForm, process_id: selectedProcessId };
-      if (subProcessForm.id) {
-        await axios.put(`${baseUrl}/subProcess/${subProcessForm.id}`, payload, { headers });
+      const payload = { ...subProcessForm, proc_id: selectedProcessId };
+      if (subProcessForm.subprocess_id) {
+        await axios.put(`${baseUrl}/subProcess/${subProcessForm.subprocess_id}`, payload, { headers });
         toast.success("Sub-Process updated");
       } else {
         await axios.post(`${baseUrl}/subProcess/createSubProcess`, payload, { headers });
@@ -181,14 +187,14 @@ const ProcessHierarchy = () => {
   };
 
   const initiateDeleteSubProcess = (sp) => {
-    const linkedBranches = branches.filter(b => String(b.subprocess_id) === String(sp.id));
+    const linkedBranches = branches.filter(b => String(b.subprocess_id) === String(sp.subprocess_id));
     
     setDeleteConfirm({
       open: true,
       type: 'subprocess',
-      id: sp.id,
+      id: sp.subprocess_id,
       title: 'Delete Sub-Process?',
-      message: `Are you sure you want to delete "${sp.sub_process_name}"? This will also delete ${linkedBranches.length} linked branches. This action cannot be undone.`,
+      message: `Are you sure you want to delete "${sp.subprocess_name}"? This will also delete ${linkedBranches.length} linked branches. This action cannot be undone.`,
     });
   };
 
@@ -266,19 +272,19 @@ const ProcessHierarchy = () => {
           <Paper elevation={2} sx={{ height: '65vh', display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
             <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#f8fafc' }}>
               <Typography variant="h6">Processes</Typography>
-              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setProcessForm({ process_name: "" }); setShowProcessForm(true); }}>Add</Button>
+              <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => { setProcessForm({ process_name: "", process_acrnm: "" }); setShowProcessForm(true); }}>Add</Button>
             </Box>
             <Divider />
             <List sx={{ flexGrow: 1, overflow: 'auto', p: 0 }}>
               {processes.map(p => (
                 <ListItem 
                   button 
-                  key={p.id} 
-                  selected={selectedProcessId === p.id}
-                  onClick={() => handleProcessSelect(p.id)}
+                  key={p.proc_id} 
+                  selected={selectedProcessId === p.proc_id}
+                  onClick={() => handleProcessSelect(p.proc_id)}
                   sx={{ borderBottom: '1px solid #f1f5f9' }}
                 >
-                  <ListItemText primary={p.process_name} secondary={`ID: ${p.id}`} />
+                  <ListItemText primary={`${p.process_name} (${p.process_acrnm})`} secondary={`ID: ${p.proc_id}`} />
                   <Stack direction="row" spacing={0.5}>
                     <IconButton size="small" color="warning" onClick={(e) => { e.stopPropagation(); setProcessForm(p); setShowProcessForm(true); }}><EditIcon fontSize="small" /></IconButton>
                     <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); initiateDeleteProcess(p); }}><DeleteIcon fontSize="small" /></IconButton>
@@ -295,7 +301,7 @@ const ProcessHierarchy = () => {
           <Paper elevation={2} sx={{ height: '65vh', display: 'flex', flexDirection: 'column', borderRadius: 2, opacity: selectedProcessId ? 1 : 0.6 }}>
             <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#f8fafc' }}>
               <Typography variant="h6">Sub-Processes</Typography>
-              <Button size="small" variant="contained" startIcon={<AddIcon />} disabled={!selectedProcessId} onClick={() => { setSubProcessForm({ sub_process_name: "" }); setShowSubProcessForm(true); }}>Add</Button>
+              <Button size="small" variant="contained" startIcon={<AddIcon />} disabled={!selectedProcessId} onClick={() => { setSubProcessForm({ subprocess_name: "", subprocess_acrnm: "" }); setShowSubProcessForm(true); }}>Add</Button>
             </Box>
             <Divider />
             <List sx={{ flexGrow: 1, overflow: 'auto', p: 0 }}>
@@ -305,12 +311,12 @@ const ProcessHierarchy = () => {
               {selectedProcessId && filteredSubProcesses.map(sp => (
                 <ListItem 
                   button 
-                  key={sp.id} 
-                  selected={selectedSubProcessId === sp.id}
-                  onClick={() => handleSubProcessSelect(sp.id)}
+                  key={sp.subprocess_id} 
+                  selected={selectedSubProcessId === sp.subprocess_id}
+                  onClick={() => handleSubProcessSelect(sp.subprocess_id)}
                   sx={{ borderBottom: '1px solid #f1f5f9' }}
                 >
-                  <ListItemText primary={sp.sub_process_name} secondary={`ID: ${sp.id}`} />
+                  <ListItemText primary={`${sp.subprocess_name} (${sp.subprocess_acrnm})`} secondary={`ID: ${sp.subprocess_id}`} />
                   <Stack direction="row" spacing={0.5}>
                     <IconButton size="small" color="warning" onClick={(e) => { e.stopPropagation(); setSubProcessForm(sp); setShowSubProcessForm(true); }}><EditIcon fontSize="small" /></IconButton>
                     <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); initiateDeleteSubProcess(sp); }}><DeleteIcon fontSize="small" /></IconButton>
@@ -352,9 +358,10 @@ const ProcessHierarchy = () => {
       <Modal open={showProcessForm} onClose={() => setShowProcessForm(false)} BackdropComponent={Backdrop} BackdropProps={{ timeout: 500 }}>
         <Fade in={showProcessForm}>
           <Box sx={modalStyle}>
-            <Typography variant="h6" sx={{ mb: 2 }}>{processForm.id ? "Edit Process" : "Add Process"}</Typography>
+            <Typography variant="h6" sx={{ mb: 2 }}>{processForm.proc_id ? "Edit Process" : "Add Process"}</Typography>
             <form onSubmit={handleProcessSubmit}>
-              <TextField fullWidth label="Process Name" value={processForm.process_name} onChange={(e) => setProcessForm({ ...processForm, process_name: e.target.value })} error={!!errors.process_name} margin="normal" />
+              <TextField fullWidth label="Process Name" value={processForm.process_name} onChange={(e) => setProcessForm({ ...processForm, process_name: e.target.value })} error={!!errors.process_name} helperText={errors.process_name} margin="normal" />
+              <TextField fullWidth label="Process Acronym" value={processForm.process_acrnm} onChange={(e) => setProcessForm({ ...processForm, process_acrnm: e.target.value })} error={!!errors.process_acrnm} helperText={errors.process_acrnm} margin="normal" />
               <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end", gap: 2 }}>
                 <Button onClick={() => setShowProcessForm(false)}>Cancel</Button>
                 <Button type="submit" variant="contained">Save</Button>
@@ -368,9 +375,10 @@ const ProcessHierarchy = () => {
       <Modal open={showSubProcessForm} onClose={() => setShowSubProcessForm(false)} BackdropComponent={Backdrop} BackdropProps={{ timeout: 500 }}>
         <Fade in={showSubProcessForm}>
           <Box sx={modalStyle}>
-            <Typography variant="h6" sx={{ mb: 2 }}>{subProcessForm.id ? "Edit Sub-Process" : "Add Sub-Process"}</Typography>
+            <Typography variant="h6" sx={{ mb: 2 }}>{subProcessForm.subprocess_id ? "Edit Sub-Process" : "Add Sub-Process"}</Typography>
             <form onSubmit={handleSubProcessSubmit}>
-              <TextField fullWidth label="Sub-Process Name" value={subProcessForm.sub_process_name} onChange={(e) => setSubProcessForm({ ...subProcessForm, sub_process_name: e.target.value })} error={!!errors.sub_process_name} margin="normal" />
+              <TextField fullWidth label="Sub-Process Name" value={subProcessForm.subprocess_name} onChange={(e) => setSubProcessForm({ ...subProcessForm, subprocess_name: e.target.value })} error={!!errors.subprocess_name} helperText={errors.subprocess_name} margin="normal" />
+              <TextField fullWidth label="Sub-Process Acronym" value={subProcessForm.subprocess_acrnm} onChange={(e) => setSubProcessForm({ ...subProcessForm, subprocess_acrnm: e.target.value })} error={!!errors.subprocess_acrnm} helperText={errors.subprocess_acrnm} margin="normal" />
               <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end", gap: 2 }}>
                 <Button onClick={() => setShowSubProcessForm(false)}>Cancel</Button>
                 <Button type="submit" variant="contained">Save</Button>

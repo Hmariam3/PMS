@@ -177,9 +177,9 @@ export const getDistrictsFromSubprocesses = async (req, res) => {
   try {
     const result = await pool.query(
       `
-      SELECT DISTINCT process_name
+      SELECT DISTINCT subprocess_name
       FROM public.sub_processess
-      WHERE process_name ILIKE '%District'
+      WHERE subprocess_name ILIKE '%District'
       `
     );
     res.status(200).json(result.rows);

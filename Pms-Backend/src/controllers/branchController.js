@@ -12,12 +12,12 @@ export const getBranches = async (req, res) => {
         b.subprocess_id,
         b.created_at,
         b.updated_at,
-       sp.process_name as sub_proccess,
+       sp.subprocess_name as sub_proccess,
         sp.subprocess_acrnm,
-        sp.process_id
+        sp.proc_id
       FROM public.branches b
       LEFT JOIN public.sub_processess sp 
-        ON b.subprocess_id = sp.id
+        ON b.subprocess_id = sp.subprocess_id
       ORDER BY b.id ASC
     `);
 
@@ -164,11 +164,11 @@ export const getBranchByCode = async (req, res) => {
           b.id,
           b.branch_name,
           b.branch_code,
-          s.process_name,
+          s.subprocess_name,
           s.subprocess_acrnm
        FROM public.branches b
        JOIN public.sub_processess s
-          ON b.subprocess_id = s.id
+          ON b.subprocess_id = s.subprocess_id
        WHERE
           b.branch_code = $1`,
       [branch_code],

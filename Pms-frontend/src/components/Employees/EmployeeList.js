@@ -599,7 +599,7 @@ const EmployeeList = () => {
                   <FormControl fullWidth required sx={{ width: "300px" }}>
                     <InputLabel>Process Name</InputLabel>
                     <Select name="process_name" value={employeeForm.process_name} onChange={handleFormChange} label="Process Name">
-                      {processes.map((p) => <MenuItem key={p.id} value={p.process_name}>{p.process_name}</MenuItem>)}
+                      {processes.map((p) => <MenuItem key={p.proc_id} value={p.process_name}>{p.process_name}</MenuItem>)}
                     </Select>
                   </FormControl>
                 </Grid>
@@ -608,7 +608,7 @@ const EmployeeList = () => {
                     <InputLabel>Sub Process Name</InputLabel>
                     <Select name="sub_process_name" value={employeeForm.sub_process_name} onChange={handleFormChange} label="Sub Process Name">
                       <MenuItem value=""><em>None</em></MenuItem>
-                      {filteredSubProcesses.map((sp) => <MenuItem key={sp.id} value={sp.sub_process_name}>{sp.sub_process_name}</MenuItem>)}
+                      {filteredSubProcesses.map((sp) => <MenuItem key={sp.subprocess_id} value={sp.subprocess_name}>{sp.subprocess_name}</MenuItem>)}
                     </Select>
                   </FormControl>
                 </Grid>

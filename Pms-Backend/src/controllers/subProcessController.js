@@ -1,21 +1,22 @@
 import pool from "../db.js";
 
-// Get all sub-processes
 // Get all sub-processes with process name
 export const getSubProcesses = async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        sp.id,
-        sp.process_name AS sub_process_name,
-          sp.process_id,
-        p.process_name AS process_name,
+        sp.subprocess_id,
+        sp.subprocess_name,
+        sp.subprocess_acrnm,
+        sp.proc_id,
+        p.process_name,
+        p.process_acrnm,
         sp.created_date,
         sp.updated_date
       FROM public.sub_processess sp
       JOIN public.processess p 
-        ON sp.process_id = p.id
-      ORDER BY sp.id ASC
+        ON sp.proc_id = p.proc_id
+      ORDER BY sp.subprocess_id ASC
     `);
 
     res.status(200).json(result.rows);
@@ -30,9 +31,9 @@ export const getSubProcessById = async (req, res) => {
   const { id } = req.params;
   try {
     const result = await pool.query(
-      `SELECT id, process_name, created_date, process_id, updated_date
+      `SELECT subprocess_id, subprocess_name, subprocess_acrnm, proc_id, created_date, updated_date
        FROM public.sub_processess
-       WHERE id = $1`,
+       WHERE subprocess_id = $1`,
       [id],
     );
     if (result.rows.length === 0) {
@@ -47,14 +48,14 @@ export const getSubProcessById = async (req, res) => {
 
 // Create a new sub-process
 export const createSubProcess = async (req, res) => {
-  const { sub_process_name, process_id } = req.body;
+  const { subprocess_name, subprocess_acrnm, proc_id } = req.body;
 
   try {
     const result = await pool.query(
-      `INSERT INTO public.sub_processess (process_name, process_id, created_date, updated_date)
-       VALUES ($1, $2, NOW(), NOW())
+      `INSERT INTO public.sub_processess (subprocess_name, subprocess_acrnm, proc_id, created_date, updated_date)
+       VALUES ($1, $2, $3, NOW(), NOW())
        RETURNING *`,
-      [sub_process_name, process_id],
+      [subprocess_name, subprocess_acrnm, proc_id],
     );
     res.status(201).json({
       message: "Sub-process created",
@@ -69,15 +70,15 @@ export const createSubProcess = async (req, res) => {
 // Update a sub-process
 export const updateSubProcess = async (req, res) => {
   const { id } = req.params;
-  const { process_name, process_id } = req.body;
+  const { subprocess_name, subprocess_acrnm, proc_id } = req.body;
 
   try {
     const result = await pool.query(
       `UPDATE public.sub_processess
-       SET process_name = $1, process_id = $2, updated_date = NOW()
-       WHERE id = $3
+       SET subprocess_name = $1, subprocess_acrnm = $2, proc_id = $3, updated_date = NOW()
+       WHERE subprocess_id = $4
        RETURNING *`,
-      [process_name, process_id, id],
+      [subprocess_name, subprocess_acrnm, proc_id, id],
     );
 
     if (result.rows.length === 0) {
@@ -100,7 +101,7 @@ export const deleteSubProcess = async (req, res) => {
 
   try {
     const result = await pool.query(
-      "DELETE FROM public.sub_processess WHERE id = $1 RETURNING *",
+      "DELETE FROM public.sub_processess WHERE subprocess_id = $1 RETURNING *",
       [id],
     );
 

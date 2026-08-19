@@ -392,15 +392,15 @@ export const importExcelLoanAccountMapping = async (req, res) => {
         let branch = "";
         if (soapData.companycode) {
           const branchRes = await pool.query(
-            `SELECT b.branch_name, s.process_name 
+            `SELECT b.branch_name, s.subprocess_name 
              FROM public.branches b
-             JOIN public.sub_processess s ON b.subprocess_id = s.id
+             JOIN public.sub_processess s ON b.subprocess_id = s.subprocess_id
              WHERE b.branch_code = $1`,
             [soapData.companycode]
           );
           if (branchRes.rows.length > 0) {
             branch = branchRes.rows[0].branch_name;
-            district = branchRes.rows[0].process_name;
+            district = branchRes.rows[0].subprocess_name;
           }
         }
 

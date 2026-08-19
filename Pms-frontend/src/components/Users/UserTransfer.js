@@ -185,7 +185,7 @@ const UserTransfer = () => {
                     <Select name="process" value={formData.process} label="Process" onChange={handleChange}>
                       <MenuItem value=""><em>Select Process</em></MenuItem>
                       {processes.map((p) => (
-                        <MenuItem key={p.id} value={p.process_name}>{p.process_name}</MenuItem>
+                        <MenuItem key={p.proc_id} value={p.process_name}>{p.process_name}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
@@ -196,7 +196,7 @@ const UserTransfer = () => {
                     <Select name="subprocess" value={formData.subprocess} label="Sub Process" onChange={handleChange}>
                       <MenuItem value=""><em>Select Sub Process</em></MenuItem>
                       {filteredSubProcesses.map((sp) => (
-                        <MenuItem key={sp.id} value={sp.sub_process_name}>{sp.sub_process_name}</MenuItem>
+                        <MenuItem key={sp.subprocess_id} value={sp.subprocess_name}>{sp.subprocess_name}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
