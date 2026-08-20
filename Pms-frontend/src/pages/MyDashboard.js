@@ -103,7 +103,7 @@ const MyDashboard = () => {
         totalLoanTarget = Number(LoantargetRes.data?.loan_collection) || 0;
       }
       const cash_collectionTarget = Number(cashTargetRes.data?.cash_collection) || 0;
-      const cash_deposited_crmTarget = Number(cashTargetRes.data?.cash_deposited_crm) || 0;
+      const michu_loan_collectionTarget = Number(cashTargetRes.data?.michu_loan_collection) || 0;
       const newAccountTarget = userNonDepositTargetRes.data?.total_new_account || 0;
       const unauthorizeTransTarget = userNonDepositTargetRes.data?.total_unauthorized || 0;
       const active_cardTarget = userNonDepositTargetRes.data?.active_card || 0;
@@ -119,7 +119,7 @@ const MyDashboard = () => {
       const customer_engagementTarget = userNonDepositTargetRes.data?.customer_engagement || 0;
       const new_customer_onboardingTarget = userNonDepositTargetRes.data?.new_customer_onboarding || 0;
       const cash_balance_accuracy_rateTarget = userNonDepositTargetRes.data?.cash_balance_accuracy_rate || 0;
-      const zero_customer_complaintsTarget = userNonDepositTargetRes.data?.zero_customer_complaints || 0;
+      const pos_deploymentTarget = userNonDepositTargetRes.data?.pos_deployment || 0;
       const compliance_rateTarget = userNonDepositTargetRes.data?.compliance_rate || 0;
       const reports_3days_rateTarget = userNonDepositTargetRes.data?.reports_3days_rate || 0;
       const audit_report_qualityTarget = userNonDepositTargetRes.data?.audit_report_quality || 0;
@@ -176,9 +176,9 @@ const MyDashboard = () => {
         return { actual: Number(r.data?.total_cash_collection) || 0, target: cash_collectionTarget };
       }
 
-      if (type === "CRM Deposit" && cash_deposited_crmTarget > 0) {
+      if (type === "CRM Deposit" && michu_loan_collectionTarget > 0) {
         const r = await axios.post(`${baseUrl}/nondeposit/getCRMCashDepositSummaryByUser/`, requestData);
-        return { actual: Number(r.data?.total_crm_cash) || 0, target: cash_deposited_crmTarget };
+        return { actual: Number(r.data?.total_crm_cash) || 0, target: michu_loan_collectionTarget };
       }
 
       if (type === "account" && newAccountTarget > 0) {
@@ -277,7 +277,7 @@ const MyDashboard = () => {
       if (type === "Coopay Ebirr Activation") return { actual: null, target: coopay_ebirr_activationTarget };
       if (type === "ATM CRM Uptime Rate") return { actual: null, target: atm_crm_uptime_rateTarget };
       if (type === "Cash Book") return { actual: null, target: cash_balance_accuracy_rateTarget };
-      if (type === "Customer Satisfaction") return { actual: null, target: zero_customer_complaintsTarget };
+      if (type === "Customer Satisfaction") return { actual: null, target: pos_deploymentTarget };
       if (type === "Branch Compliance") return { actual: null, target: compliance_rateTarget };
       if (type === "Audit Report") return { actual: null, target: reports_3days_rateTarget };
       if (type === "Audit Quality") return { actual: null, target: audit_report_qualityTarget };
@@ -638,8 +638,8 @@ const MyDashboard = () => {
             gradient: overallAverage >= 100
               ? "linear-gradient(135deg, #f0fdf4, #d1fae5)"
               : overallAverage >= 80
-              ? "linear-gradient(135deg, #fffbeb, #fef3c7)"
-              : "linear-gradient(135deg, #fff1f2, #ffe4e6)",
+                ? "linear-gradient(135deg, #fffbeb, #fef3c7)"
+                : "linear-gradient(135deg, #fff1f2, #ffe4e6)",
             border: overallAverage >= 100 ? "#6ee7b7" : overallAverage >= 80 ? "#fcd34d" : "#fca5a5",
             iconBg: getStatusColor(overallAverage),
             textColor: overallAverage >= 100 ? "#064e3b" : overallAverage >= 80 ? "#78350f" : "#7f1d1d",

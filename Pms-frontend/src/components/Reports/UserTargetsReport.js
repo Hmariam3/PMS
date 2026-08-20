@@ -49,7 +49,7 @@ const FIN_COLS = [
   { key: "fcy_target", label: "FCY Target" },
   { key: "loan_collection", label: "Loan Collection" },
   { key: "cash_collection", label: "Cash Collection" },
-  { key: "cash_deposited_crm", label: "Cash Deposited CRM" },
+  { key: "michu_loan_collection", label: "Michu Loan Collection" },
   { key: "fin_status", label: "Status" },
 ];
 
@@ -67,7 +67,7 @@ const NONFIN_COLS = [
   { key: "coopay_ebirr_activation", label: "CooPay/eBirr Activation" },
   { key: "atm_crm_uptime_rate", label: "ATM/CRM Uptime %" },
   { key: "cash_balance_accuracy_rate", label: "Cash Balance Acc. %" },
-  { key: "zero_customer_complaints", label: "Zero Complaints" },
+  { key: "pos_deployment", label: "Pos Deployment" },
   { key: "avg_txn_per_cso", label: "Avg Txn/CSO" },
   { key: "compliance_rate", label: "Compliance %" },
   { key: "reports_3days_rate", label: "Reports 3-Day %" },

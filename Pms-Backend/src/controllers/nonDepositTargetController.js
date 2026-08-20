@@ -13,7 +13,7 @@ export const getAllNonDepositTargets = async (req, res) => {
         merchant_recruitment, merchant_transaction_volume, agent_recruitment, 
         agent_transaction_volume, michu_unique_recruitment, digital_transaction_volume, 
         coopay_ebirr_activation, atm_crm_uptime_rate, created_by, approved_by, 
-        approved_at, status, cash_balance_accuracy_rate, zero_customer_complaints, 
+        approved_at, status, cash_balance_accuracy_rate, pos_deployment, 
         avg_txn_per_cso, compliance_rate, reports_3days_rate, audit_report_quality, 
         cash_surprise_checks, employee_perf_threshold, transaction_audit_rate,
         customer_engagement,
@@ -45,7 +45,7 @@ export const getNonDepositTargetById = async (req, res) => {
         merchant_recruitment, merchant_transaction_volume, agent_recruitment, 
         agent_transaction_volume, michu_unique_recruitment, digital_transaction_volume, 
         coopay_ebirr_activation, atm_crm_uptime_rate, created_by, approved_by, 
-        approved_at, status, cash_balance_accuracy_rate, zero_customer_complaints, 
+        approved_at, status, cash_balance_accuracy_rate, pos_deployment, 
         avg_txn_per_cso, compliance_rate, reports_3days_rate, audit_report_quality, 
         cash_surprise_checks, employee_perf_threshold, transaction_audit_rate,
         customer_engagement,
@@ -87,7 +87,7 @@ export const createNonDepositTarget = async (req, res) => {
     atm_crm_uptime_rate,
 
     cash_balance_accuracy_rate,
-    zero_customer_complaints,
+    pos_deployment,
     avg_txn_per_cso,
     compliance_rate,
     reports_3days_rate,
@@ -138,7 +138,7 @@ export const createNonDepositTarget = async (req, res) => {
         atm_crm_uptime_rate,
 
         cash_balance_accuracy_rate,
-        zero_customer_complaints,
+        pos_deployment,
         avg_txn_per_cso,
         compliance_rate,
         reports_3days_rate,
@@ -181,7 +181,7 @@ export const createNonDepositTarget = async (req, res) => {
         atm_crm_uptime_rate || 0,
 
         cash_balance_accuracy_rate || 0,
-        zero_customer_complaints || 0,
+        pos_deployment || 0,
         avg_txn_per_cso || 0,
         compliance_rate || 0,
         reports_3days_rate || 0,
@@ -231,7 +231,7 @@ export const updateNonDepositTarget = async (req, res) => {
     atm_crm_uptime_rate,
 
     cash_balance_accuracy_rate,
-    zero_customer_complaints,
+    pos_deployment,
     avg_txn_per_cso,
     compliance_rate,
     reports_3days_rate,
@@ -270,7 +270,7 @@ export const updateNonDepositTarget = async (req, res) => {
         atm_crm_uptime_rate = $13,
 
         cash_balance_accuracy_rate = $14,
-        zero_customer_complaints = $15,
+        pos_deployment = $15,
         avg_txn_per_cso = $16,
         compliance_rate = $17,
         reports_3days_rate = $18,
@@ -307,7 +307,7 @@ export const updateNonDepositTarget = async (req, res) => {
         atm_crm_uptime_rate || 0,
 
         cash_balance_accuracy_rate || 0,
-        zero_customer_complaints || 0,
+        pos_deployment || 0,
         avg_txn_per_cso || 0,
         compliance_rate || 0,
         reports_3days_rate || 0,
@@ -533,7 +533,7 @@ export const getNonDepositSummaryByUser = async (req, res) => {
 
 
         SUM(cash_balance_accuracy_rate) AS cash_balance_accuracy_rate,
-        SUM(zero_customer_complaints) AS zero_customer_complaints,
+        SUM(pos_deployment) AS pos_deployment,
         SUM(avg_txn_per_cso) AS avg_txn_per_cso,
         SUM(compliance_rate) AS compliance_rate,
         SUM(reports_3days_rate) AS reports_3days_rate,
@@ -582,7 +582,7 @@ export const getNonDepositSummaryByUser = async (req, res) => {
       michu_unique_recruitment: row.michu_unique_recruitment || 0,
       coopay_ebirr_activation: row.coopay_ebirr_activation || 0,
       cash_balance_accuracy_rate: row.cash_balance_accuracy_rate || 0,
-      zero_customer_complaints: row.zero_customer_complaints || 0,
+      pos_deployment: row.pos_deployment || 0,
       avg_txn_per_cso: row.avg_txn_per_cso || 0,
       compliance_rate: row.compliance_rate || 0,
       reports_3days_rate: row.reports_3days_rate || 0,

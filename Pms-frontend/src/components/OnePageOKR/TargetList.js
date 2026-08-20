@@ -60,7 +60,7 @@ const TargetList = () => {
     fcy_target: "",
     loan_collection: "",
     cash_collection: "",
-    cash_deposited_crm: "",
+    michu_loan_collection: "",
     user_name: user?.UserName || "",
     process: user.process,
     subprocess: user.subprocess,
@@ -97,7 +97,7 @@ const TargetList = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (["deposit_target", "fcy_target", "loan_collection", "cash_collection", "cash_deposited_crm"].includes(name)) {
+    if (["deposit_target", "fcy_target", "loan_collection", "cash_collection", "michu_loan_collection"].includes(name)) {
       if (!/^\d*\.?\d*$/.test(value)) return;
     }
     setTarget({ ...target, [name]: value });
@@ -153,7 +153,7 @@ const TargetList = () => {
       subprocess: t.subprocess || "",
       team: t.team || "",
       cash_collection: t.cash_collection || "",
-      cash_deposited_crm: t.cash_deposited_crm || "",
+      michu_loan_collection: t.michu_loan_collection || "",
       created_by: t.created_by || "",
       approved_by: t.approved_by || "",
       approved_at: t.approved_at || "",
@@ -229,7 +229,7 @@ const TargetList = () => {
               subprocess: user.subprocess,
               team: user.team,
               cash_collection: "",
-              cash_deposited_crm: "",
+              michu_loan_collection: "",
               status: "",
               created_by: user.UserName,
             });
@@ -253,7 +253,7 @@ const TargetList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>FCY Target</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Loan Collection</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Cash Collection</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Cash Deposited in CRM</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Michu Loan Collection</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Created Date</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
@@ -270,7 +270,7 @@ const TargetList = () => {
                   <TableCell>{Number(t.fcy_target).toLocaleString()}</TableCell>
                   <TableCell>{Number(t.loan_collection).toLocaleString()}</TableCell>
                   <TableCell>{Number(t.cash_collection).toLocaleString()}</TableCell>
-                  <TableCell>{Number(t.cash_deposited_crm).toLocaleString()}</TableCell>
+                  <TableCell>{Number(t.michu_loan_collection).toLocaleString()}</TableCell>
                   <TableCell>
                     <span
                       style={{
@@ -388,12 +388,12 @@ const TargetList = () => {
                 />
                 <TextField
                   fullWidth
-                  label="Cash Deposited in CRM"
-                  name="cash_deposited_crm"
-                  value={target.cash_deposited_crm}
+                  label="Michu Loan Collection"
+                  name="michu_loan_collection"
+                  value={target.michu_loan_collection}
                   onChange={handleChange}
-                  error={!!errors.cash_deposited_crm}
-                  helperText={errors.cash_deposited_crm}
+                  error={!!errors.michu_loan_collection}
+                  helperText={errors.michu_loan_collection}
                   type="number"
                   required
                 />

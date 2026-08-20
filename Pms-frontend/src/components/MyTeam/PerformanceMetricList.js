@@ -149,7 +149,7 @@ const PerformanceMetricList = ({ member }) => {
       }
 
       const cash_collectionTarget = Number(cashTargetRes.data.cash_collection) || 0;
-      const cash_deposited_crmTarget = Number(cashTargetRes.data.cash_deposited_crm) || 0;
+      const michu_loan_collectionTarget = Number(cashTargetRes.data.michu_loan_collection) || 0;
 
       if (totalDeposit > 0) {
         if (type === "deposit") {
@@ -262,10 +262,10 @@ const PerformanceMetricList = ({ member }) => {
         }
       }
 
-      if (cash_deposited_crmTarget > 0) {
+      if (michu_loan_collectionTarget > 0) {
         if (type === "CRM Deposit") {
           const CRMDepositRes = await axios.post(`${baseUrl}/nondeposit/getCRMCashDepositSummaryByUser/`, requestData);
-          return { actual: Number(CRMDepositRes.data.total_crm_cash) || 0, target: cash_deposited_crmTarget };
+          return { actual: Number(CRMDepositRes.data.total_crm_cash) || 0, target: michu_loan_collectionTarget };
         }
       }
 
@@ -293,7 +293,7 @@ const PerformanceMetricList = ({ member }) => {
 
 
       const cash_balance_accuracy_rateTarget = userNonDepositTargetRes.data.cash_balance_accuracy_rate || 0;
-      const zero_customer_complaintsTarget = userNonDepositTargetRes.data.zero_customer_complaints || 0;
+      const pos_deploymentTarget = userNonDepositTargetRes.data.pos_deployment || 0;
 
 
 
@@ -550,7 +550,7 @@ const PerformanceMetricList = ({ member }) => {
         return { actual: 0, target: cash_balance_accuracy_rateTarget };
       }
       if (type === "Customer Satisfaction") {
-        return { actual: 0, target: zero_customer_complaintsTarget };
+        return { actual: 0, target: pos_deploymentTarget };
       }
       // if (type === "Avg Txn Per CSO") {
       //   return { actual: 0, target: avg_txn_per_csoTarget };
@@ -616,7 +616,7 @@ const PerformanceMetricList = ({ member }) => {
     else if (lowerCalcFor === "branch compliance") type = "Branch Compliance";
     else if (lowerCalcFor === "compliance with the directives") type = "Compliance with the directives";
     else if (lowerCalcFor === "cash balance accuracy rate") type = "Cash Balance Accuracy Rate";
-    else if (lowerCalcFor === "zero customer complaints") type = "Zero Customer Complaints";
+    else if (lowerCalcFor === "Pos Deployment") type = "Pos Deployment";
     else if (lowerCalcFor === "avg txn per cso") type = "Avg Txn Per CSO";
     else if (lowerCalcFor === "compliance rate") type = "Compliance Rate";
     else if (lowerCalcFor === "audit report") type = "Audit Report";

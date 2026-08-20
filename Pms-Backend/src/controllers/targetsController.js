@@ -47,7 +47,7 @@ export const createTarget = async (req, res) => {
     subprocess,
     team,
     cash_collection,
-    cash_deposited_crm,
+    michu_loan_collection,
     created_by,
     approved_by,
   } = req.body;
@@ -76,7 +76,7 @@ export const createTarget = async (req, res) => {
         subprocess,
         team,
         cash_collection,
-        cash_deposited_crm,
+        michu_loan_collection,
         created_by,
         approved_by,
         created_at,
@@ -93,7 +93,7 @@ export const createTarget = async (req, res) => {
         subprocess || null,
         team || null,
         cash_collection || 0,
-        cash_deposited_crm || 0,
+        michu_loan_collection || 0,
         created_by || null,
         approved_by || null,
       ],
@@ -121,7 +121,7 @@ export const updateTarget = async (req, res) => {
     subprocess,
     team,
     cash_collection,
-    cash_deposited_crm,
+    michu_loan_collection,
     created_by,
     approved_by,
     status,
@@ -139,7 +139,7 @@ export const updateTarget = async (req, res) => {
         subprocess = $6,
         team = $7,
         cash_collection = $8,
-        cash_deposited_crm = $9,
+        michu_loan_collection = $9,
         created_by = $10,
         approved_by = $11,
         status = $12
@@ -154,7 +154,7 @@ export const updateTarget = async (req, res) => {
         subprocess || null,
         team || null,
         cash_collection || 0,
-        cash_deposited_crm || 0,
+        michu_loan_collection || 0,
         created_by || null,
         approved_by || null,
         status || "Pending",
@@ -370,14 +370,14 @@ export const getTargetsSummaryByUser = async (req, res) => {
           SUM(COALESCE(fcy_target,0)) AS total_fcy,
           SUM(COALESCE(loan_collection,0)) AS total_loan,
           SUM(COALESCE(cash_collection,0)) AS total_cash_collection,
-          SUM(COALESCE(cash_deposited_crm,0)) AS cash_deposited_crm,
+          SUM(COALESCE(michu_loan_collection,0)) AS michu_loan_collection,
 
           SUM(
               COALESCE(deposit_target,0) +
               COALESCE(fcy_target,0) +
               COALESCE(loan_collection,0) +
               COALESCE(cash_collection,0) +
-              COALESCE(cash_deposited_crm,0)
+              COALESCE(michu_loan_collection,0)
           ) AS grand_total
 
       FROM public.targets
@@ -463,7 +463,7 @@ export const getTargetsSummaryByUser = async (req, res) => {
         total_fcy: 0,
         total_loan: 0,
         cash_collection: 0,
-        cash_deposited_crm: 0,
+        michu_loan_collection: 0,
         grand_total: 0,
       });
     }
@@ -474,7 +474,7 @@ export const getTargetsSummaryByUser = async (req, res) => {
       total_loan: row.total_loan || 0,
 
       cash_collection: row.total_cash_collection || 0,
-      cash_deposited_crm: row.cash_deposited_crm || 0,
+      michu_loan_collection: row.michu_loan_collection || 0,
 
       grand_total: row.grand_total || 0,
     });
@@ -632,7 +632,7 @@ export const getCashTargetsByUser = async (req, res) => {
       query = `
         SELECT
           COALESCE(cash_collection, 0) AS cash_collection,
-          COALESCE(cash_deposited_crm, 0) AS cash_deposited_crm
+          COALESCE(michu_loan_collection, 0) AS michu_loan_collection
         FROM public.targets
         WHERE user_name = $1
           AND status = 'Approved'
@@ -659,21 +659,21 @@ export const getCashTargetsByUser = async (req, res) => {
       //   ) AS cash_collection,
 
       //   (
-      //     SELECT COALESCE(cash_deposited_crm, 0)
+      //     SELECT COALESCE(michu_loan_collection, 0)
       //     FROM public.targets
       //     WHERE team = $1
       //       AND status = 'Approved'
-      //       AND cash_deposited_crm > 0
+      //       AND michu_loan_collection > 0
       //     ORDER BY created_at ASC
       //     LIMIT 1
-      //   ) AS cash_deposited_crm
+      //   ) AS michu_loan_collection
       // `;
 
       // values = [team];
       query = `
         SELECT
           COALESCE(cash_collection, 0) AS cash_collection,
-          COALESCE(cash_deposited_crm, 0) AS cash_deposited_crm
+          COALESCE(michu_loan_collection, 0) AS michu_loan_collection
         FROM public.targets
         WHERE user_name = $1
           AND status = 'Approved'
@@ -707,25 +707,25 @@ export const getCashTargetsByUser = async (req, res) => {
       //   ) AS cash_collection,
 
       //   (
-      //     SELECT COALESCE(SUM(cash_deposited_crm), 0)
+      //     SELECT COALESCE(SUM(michu_loan_collection), 0)
       //     FROM (
       //       SELECT DISTINCT ON (team)
       //         team,
-      //         cash_deposited_crm
+      //         michu_loan_collection
       //       FROM public.targets
       //       WHERE subprocess = $1
       //         AND status = 'Approved'
-      //         AND cash_deposited_crm > 0
+      //         AND michu_loan_collection > 0
       //       ORDER BY team, created_at ASC
       //     ) x
-      //   ) AS cash_deposited_crm
+      //   ) AS michu_loan_collection
       // `;
 
       // values = [subprocess];
       query = `
         SELECT
           COALESCE(cash_collection, 0) AS cash_collection,
-          COALESCE(cash_deposited_crm, 0) AS cash_deposited_crm
+          COALESCE(michu_loan_collection, 0) AS michu_loan_collection
         FROM public.targets
         WHERE user_name = $1
           AND status = 'Approved'
@@ -756,18 +756,18 @@ export const getCashTargetsByUser = async (req, res) => {
         ) AS cash_collection,
 
         (
-          SELECT COALESCE(SUM(cash_deposited_crm), 0)
+          SELECT COALESCE(SUM(michu_loan_collection), 0)
           FROM (
             SELECT DISTINCT ON (team)
               team,
-              cash_deposited_crm
+              michu_loan_collection
             FROM public.targets
             WHERE process = $1
               AND status = 'Approved'
-              AND cash_deposited_crm > 0
+              AND michu_loan_collection > 0
             ORDER BY team, created_at ASC
           ) x
-        ) AS cash_deposited_crm
+        ) AS michu_loan_collection
       `;
 
       values = [process];
@@ -793,17 +793,17 @@ export const getCashTargetsByUser = async (req, res) => {
         ) AS cash_collection,
 
         (
-          SELECT COALESCE(SUM(cash_deposited_crm), 0)
+          SELECT COALESCE(SUM(michu_loan_collection), 0)
           FROM (
             SELECT DISTINCT ON (team)
               team,
-              cash_deposited_crm
+              michu_loan_collection
             FROM public.targets
             WHERE status = 'Approved'
-              AND cash_deposited_crm > 0
+              AND michu_loan_collection > 0
             ORDER BY team, created_at ASC
           ) x
-        ) AS cash_deposited_crm
+        ) AS michu_loan_collection
       `;
     }
 
@@ -820,17 +820,17 @@ export const getCashTargetsByUser = async (req, res) => {
     if (!row) {
       return res.status(200).json({
         cash_collection: 0,
-        cash_deposited_crm: 0,
+        michu_loan_collection: 0,
         grand_total: 0,
       });
     }
 
     const cashCollection = Number(row.cash_collection) || 0;
-    const cashDepositedCRM = Number(row.cash_deposited_crm) || 0;
+    const cashDepositedCRM = Number(row.michu_loan_collection) || 0;
 
     return res.status(200).json({
       cash_collection: cashCollection,
-      cash_deposited_crm: cashDepositedCRM,
+      michu_loan_collection: cashDepositedCRM,
       grand_total: cashCollection + cashDepositedCRM,
     });
 

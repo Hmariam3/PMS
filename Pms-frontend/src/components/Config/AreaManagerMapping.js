@@ -21,7 +21,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid
+  Grid,
+  TablePagination
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -37,10 +38,14 @@ const AreaManagerMapping = () => {
   const [areaManagers, setAreaManagers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [mappings, setMappings] = useState([]);
-  
+
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedAreaManager, setSelectedAreaManager] = useState("");
   const [selectedBranches, setSelectedBranches] = useState([]);
+
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 10;
 
   const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 
@@ -55,6 +60,9 @@ const AreaManagerMapping = () => {
         fetchAreaManagers(districtObj.subprocess_name);
         fetchBranches(selectedDistrict);
       }
+      setSelectedAreaManager("");
+      setSelectedBranches([]);
+      setPage(0);
     } else {
       setAreaManagers([]);
       setBranches([]);
@@ -66,6 +74,7 @@ const AreaManagerMapping = () => {
   useEffect(() => {
     if (selectedAreaManager) {
       fetchMappings(selectedAreaManager);
+      setPage(0);
     } else {
       setMappings([]);
     }
@@ -134,10 +143,10 @@ const AreaManagerMapping = () => {
         area_manager_user_id: selectedAreaManager,
         branch_ids: selectedBranches
       };
-      
+
       await axios.post(`${baseUrl}/area-manager-branch`, payload);
       toast.success("Branches successfully assigned");
-      
+
       setSelectedBranches([]);
       fetchMappings(selectedAreaManager);
       fetchBranches(selectedDistrict); // Refresh branch list to exclude newly mapped ones
@@ -150,7 +159,7 @@ const AreaManagerMapping = () => {
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to remove this assignment?")) return;
-    
+
     try {
       setLoading(true);
       await axios.delete(`${baseUrl}/area-manager-branch/${id}`);
@@ -164,6 +173,10 @@ const AreaManagerMapping = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
   };
 
   return (
@@ -188,7 +201,7 @@ const AreaManagerMapping = () => {
       <Paper elevation={2} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
+            <FormControl sx={{ width: '300px' }}>
               <InputLabel>District</InputLabel>
               <Select
                 value={selectedDistrict}
@@ -205,7 +218,7 @@ const AreaManagerMapping = () => {
           </Grid>
 
           <Grid item xs={12} md={3}>
-            <FormControl fullWidth disabled={!selectedDistrict || areaManagers.length === 0}>
+            <FormControl sx={{ width: '300px' }} disabled={!selectedDistrict || areaManagers.length === 0}>
               <InputLabel>Area Manager</InputLabel>
               <Select
                 value={selectedAreaManager}
@@ -222,14 +235,14 @@ const AreaManagerMapping = () => {
           </Grid>
 
           <Grid item xs={12} md={4}>
-            <FormControl fullWidth disabled={!selectedDistrict || branches.length === 0}>
+            <FormControl sx={{ width: '300px' }} disabled={!selectedDistrict || branches.length === 0}>
               <InputLabel>Branches</InputLabel>
               <Select
                 multiple
                 value={selectedBranches}
                 label="Branches"
                 onChange={(e) => setSelectedBranches(e.target.value)}
-                renderValue={(selected) => 
+                renderValue={(selected) =>
                   selected.map(val => branches.find(b => b.id === val)?.branch_name).join(', ')
                 }
               >
@@ -275,7 +288,7 @@ const AreaManagerMapping = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {mappings.map((m) => (
+                {mappings.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((m) => (
                   <TableRow key={m.id} hover>
                     <TableCell>{m.branch_name}</TableCell>
                     <TableCell>{m.branch_code}</TableCell>
@@ -295,6 +308,14 @@ const AreaManagerMapping = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          <TablePagination
+            component="div"
+            count={mappings.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPageOptions={[10]}
+          />
         </Paper>
       )}
 

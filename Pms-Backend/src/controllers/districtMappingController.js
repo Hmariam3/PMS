@@ -249,7 +249,7 @@ const getTargetTotals = async (districts) => {
         COALESCE(t.fcy_target, 0) AS total_fcy_target,
         COALESCE(t.loan_collection, 0) AS total_loan_collection,
         COALESCE(t.cash_collection, 0) AS total_cash_collection,
-        COALESCE(t.cash_deposited_crm, 0) AS total_cash_deposited_crm
+        COALESCE(t.michu_loan_collection, 0) AS total_michu_loan_collection
 
     FROM public.users u
     JOIN public.targets t
@@ -281,7 +281,7 @@ const getTargetTotals = async (districts) => {
       total_fcy_target: target.total_fcy_target,
       total_loan_collection: target.total_loan_collection,
       total_cash_collection: target.total_cash_collection,
-      total_cash_deposited_crm: target.total_cash_deposited_crm,
+      total_michu_loan_collection: target.total_michu_loan_collection,
 
       total_beginning_balance:
         deposit?.total_beginning_balance || 0,

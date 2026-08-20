@@ -70,7 +70,7 @@ const NonDepositTargetList = () => {
     digital_transaction_volume: "",
     coopay_ebirr_activation: "",
     cash_balance_accuracy_rate: "",
-    zero_customer_complaints: "",
+    pos_deployment: "",
     avg_txn_per_cso: "",
     compliance_rate: "",
     reports_3days_rate: "",
@@ -123,7 +123,7 @@ const NonDepositTargetList = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (["new_account", "unauthorized_transaction", "active_card_no", "eeu_transaction_count", "merchant_recruitment", "merchant_transaction_volume", "agent_recruitment", "agent_transaction_volume", "michu_unique_recruitment", "digital_transaction_volume", "coopay_ebirr_activation", "atm_crm_uptime_rate", "cash_balance_accuracy_rate", "zero_customer_complaints", "avg_txn_per_cso", "compliance_rate", "reports_3days_rate", "audit_report_quality", "cash_surprise_checks", "employee_perf_threshold", "transaction_audit_rate", "gl", "customer_engagement", "new_customer_onboarding", "armingc_deposit_proportion"].includes(name)) {
+    if (["new_account", "unauthorized_transaction", "active_card_no", "eeu_transaction_count", "merchant_recruitment", "merchant_transaction_volume", "agent_recruitment", "agent_transaction_volume", "michu_unique_recruitment", "digital_transaction_volume", "coopay_ebirr_activation", "atm_crm_uptime_rate", "cash_balance_accuracy_rate", "pos_deployment", "avg_txn_per_cso", "compliance_rate", "reports_3days_rate", "audit_report_quality", "cash_surprise_checks", "employee_perf_threshold", "transaction_audit_rate", "gl", "customer_engagement", "new_customer_onboarding", "armingc_deposit_proportion"].includes(name)) {
       if (!/^\d*\.?\d*$/.test(value)) return;
     }
     setTarget({ ...target, [name]: value });
@@ -165,7 +165,7 @@ const NonDepositTargetList = () => {
     if (!target.coopay_ebirr_activation) newErrors.coopay_ebirr_activation = "Required";
     if (!target.atm_crm_uptime_rate) newErrors.atm_crm_uptime_rate = "Required";
     if (!target.cash_balance_accuracy_rate) newErrors.cash_balance_accuracy_rate = "Required";
-    if (!target.zero_customer_complaints) newErrors.zero_customer_complaints = "Required";
+    if (!target.pos_deployment) newErrors.pos_deployment = "Required";
     if (!target.avg_txn_per_cso) newErrors.avg_txn_per_cso = "Required";
     if (!target.compliance_rate) newErrors.compliance_rate = "Required";
     if (!target.reports_3days_rate) newErrors.reports_3days_rate = "Required";
@@ -185,7 +185,7 @@ const NonDepositTargetList = () => {
     if (target.coopay_ebirr_activation < 0) newErrors.coopay_ebirr_activation = "Target Must be Greater Than 0";
     if (target.atm_crm_uptime_rate < 0) newErrors.atm_crm_uptime_rate = "Target Must be Greater Than 0";
     if (target.cash_balance_accuracy_rate < 0) newErrors.cash_balance_accuracy_rate = "Target Must be Greater Than 0";
-    if (target.zero_customer_complaints < 0) newErrors.zero_customer_complaints = "Target Must be Greater Than 0";
+    if (target.pos_deployment < 0) newErrors.pos_deployment = "Target Must be Greater Than 0";
     if (target.avg_txn_per_cso < 0) newErrors.avg_txn_per_cso = "Target Must be Greater Than 0";
     if (target.compliance_rate < 0) newErrors.compliance_rate = "Target Must be Greater Than 0";
     if (target.reports_3days_rate < 0) newErrors.reports_3days_rate = "Target Must be Greater Than 0";
@@ -248,7 +248,7 @@ const NonDepositTargetList = () => {
       coopay_ebirr_activation: t.coopay_ebirr_activation || "",
       atm_crm_uptime_rate: t.atm_crm_uptime_rate || "",
       cash_balance_accuracy_rate: t.cash_balance_accuracy_rate || "",
-      zero_customer_complaints: t.zero_customer_complaints || "",
+      pos_deployment: t.pos_deployment || "",
       avg_txn_per_cso: t.avg_txn_per_cso || "",
       compliance_rate: t.compliance_rate || "",
       reports_3days_rate: t.reports_3days_rate || "",
@@ -322,7 +322,7 @@ const NonDepositTargetList = () => {
               coopay_ebirr_activation: "",
               atm_crm_uptime_rate: "",
               cash_balance_accuracy_rate: "",
-              zero_customer_complaints: "",
+              pos_deployment: "",
               avg_txn_per_cso: "",
               compliance_rate: "",
               reports_3days_rate: "",
@@ -366,7 +366,7 @@ const NonDepositTargetList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Coopay E-Birr Activation</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>ATM CRM Uptime Rate</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Cash Balance Accuracy Rate</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Zero Customer Complaints</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Pos Deployment</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Avg Txn Per CSO</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Compliance Rate</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Reports 3 Days Rate</TableCell>
@@ -401,7 +401,7 @@ const NonDepositTargetList = () => {
                   <TableCell>{t.coopay_ebirr_activation}</TableCell>
                   <TableCell>{t.atm_crm_uptime_rate}</TableCell>
                   <TableCell>{t.cash_balance_accuracy_rate}</TableCell>
-                  <TableCell>{t.zero_customer_complaints}</TableCell>
+                  <TableCell>{t.pos_deployment}</TableCell>
                   <TableCell>{t.avg_txn_per_cso}</TableCell>
                   <TableCell>{t.compliance_rate}</TableCell>
                   <TableCell>{t.reports_3days_rate}</TableCell>
@@ -657,13 +657,13 @@ const NonDepositTargetList = () => {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Zero Customer Complaints"
-                    name="zero_customer_complaints"
+                    label="Pos Deployment"
+                    name="pos_deployment"
                     type="number"
-                    value={target.zero_customer_complaints}
+                    value={target.pos_deployment}
                     onChange={handleChange}
-                    error={!!errors.zero_customer_complaints}
-                    helperText={errors.zero_customer_complaints}
+                    error={!!errors.pos_deployment}
+                    helperText={errors.pos_deployment}
                     size="small"
                   />
                 </Grid>
