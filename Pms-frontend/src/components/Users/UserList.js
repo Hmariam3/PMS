@@ -468,6 +468,7 @@ const UserList = () => {
                       <MenuItem value="Senior Director">Senior Director</MenuItem>
                       <MenuItem value="Director">Director</MenuItem>
                       <MenuItem value="Manager">Manager</MenuItem>
+                      <MenuItem value="Area Manager">Area Manager</MenuItem>
                       <MenuItem value="CRM">CRM</MenuItem>
                       <MenuItem value="Individual">Individual</MenuItem>
                     </Select>

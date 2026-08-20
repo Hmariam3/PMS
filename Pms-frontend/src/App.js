@@ -17,6 +17,7 @@ import ProcessHierarchy from "./components/Config/ProcessHierarchy";
 import GeneralConfig from "./components/Config/GeneralConfig";
 import Login from "./components/Users/Login";
 import Register from "./components/Users/Register";
+import AreaManagerMapping from "./components/Config/AreaManagerMapping";
 import PillarList from "./components/OKR/PillarList";
 import ObjectiveList from "./components/OKR/ObjectiveList";
 import PerformanceMetricList from "./components/OKR/PerformanceMetricList";
@@ -242,6 +243,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <GeneralConfig />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/area-manager-mapping"
+              element={
+                <ProtectedRoute>
+                  <AreaManagerMapping />
                 </ProtectedRoute>
               }
             />

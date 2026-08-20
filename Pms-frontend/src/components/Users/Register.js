@@ -146,7 +146,7 @@ const Register = () => {
       if (!formData.subprocess) return "Sub Process is required";
       if (!formData.organization) return "Organization is required";
     }
-    if (["CRM", "Individual", "Manager"].includes(formData.position)) {
+    if (["CRM", "Individual", "Manager", "Area Manager"].includes(formData.position)) {
       if (!formData.process) return "Process is required";
       if (!formData.subprocess) return "Sub Process is required";
       if (!formData.team) return "Team/Branch is required";
@@ -369,6 +369,7 @@ const Register = () => {
                       <MenuItem value="Senior Director">Senior Director</MenuItem>
                       <MenuItem value="Director">Director</MenuItem>
                       <MenuItem value="Manager">Manager</MenuItem>
+                      <MenuItem value="Area Manager">Area Manager</MenuItem>
                       <MenuItem value="CRM">CRM</MenuItem>
                       <MenuItem value="Individual">Individual</MenuItem>
                     </Select>

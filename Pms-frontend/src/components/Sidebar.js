@@ -110,6 +110,7 @@ const getNavLinks = (user) => {
         { text: "Employee Master", path: "/employees", icon: <BadgeIcon />, show: isAdmin },
         { text: "Hierarchy Config", path: "/hierarchy", icon: <AccountTreeIcon />, show: isAdmin },
         { text: "General Configurations", path: "/general-config", icon: <SettingsIcon />, show: isAdmin },
+        { text: "Area Manager Mapping", path: "/area-manager-mapping", icon: <MapIcon />, show: isAdmin },
         { text: "Metric Upload", path: "/admin/metric-upload", icon: <CloudUploadIcon />, show: isAdmin },
       ],
 
