@@ -367,7 +367,7 @@ export const getNonDepositTargetByUser = async (req, res) => {
     let query = "";
     let values = [];
 
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
 
       query = `
       SELECT * 
@@ -549,7 +549,7 @@ export const getNonDepositSummaryByUser = async (req, res) => {
       FROM public.non_deposit_target where status = 'Approved'
     `;
 
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       query = baseQuery + ` AND user_name = $1`;
 
       values = [user_id];
@@ -613,7 +613,7 @@ export const getNonDepositATMEEUDigitalByUser = async (req, res) => {
     let values = [];
 
     // CRM / Individual
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
 
       query = `
         SELECT

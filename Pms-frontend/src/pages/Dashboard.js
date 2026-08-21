@@ -177,7 +177,7 @@ const Dashboard = () => {
       // totalLoanTarget = userTargetRes.data.total_loan;
 
       // Dates
-      const startDate = new Date("2026-04-01");
+      const startDate = new Date("2026-07-01");
       const today = new Date();
       //  Days passed  until current date
       let daysPassed =

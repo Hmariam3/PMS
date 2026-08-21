@@ -83,7 +83,7 @@ const getNavLinks = (user) => {
 
   return [
     {
-      text: "Dashboard",
+      text: "OKR Dashboard",
       path: "/",
       icon: <DashboardIcon />,
       show: isHO || (isDistrict && isDirector) || isVPOrCHF,
@@ -92,7 +92,7 @@ const getNavLinks = (user) => {
       text: "My Dashboard",
       path: "/mydashboard",
       icon: <AssessmentIcon />,
-      show: isHaile,
+      show: true,
     },
     {
       text: "Team Dashboard",
@@ -108,7 +108,7 @@ const getNavLinks = (user) => {
         { text: "Manage Users", path: "/users", icon: <PeopleIcon />, show: isAdmin },
         { text: "User Transfer", path: "/users/transfer", icon: <ManageAccountsIcon />, show: isAdmin },
         { text: "Employee Master", path: "/employees", icon: <BadgeIcon />, show: isAdmin },
-        { text: "Hierarchy Config", path: "/hierarchy", icon: <AccountTreeIcon />, show: isAdmin },
+        { text: "Hierarchy Config", path: "/hierarchy", icon: <AccountTreeIcon />, show: isHaile },
         { text: "General Configurations", path: "/general-config", icon: <SettingsIcon />, show: isAdmin },
         { text: "Area Manager Mapping", path: "/area-manager-mapping", icon: <MapIcon />, show: isAdmin },
         { text: "Metric Upload", path: "/admin/metric-upload", icon: <CloudUploadIcon />, show: isAdmin },

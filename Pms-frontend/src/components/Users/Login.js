@@ -118,7 +118,7 @@ const Login = () => {
             if (isHO || (isDistrict && isDirector)) {
               navigate("/");
             } else {
-              navigate("/teamdashboard");
+              navigate("/mydashboard");
             }
             return;
           }

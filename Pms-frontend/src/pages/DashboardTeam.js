@@ -292,7 +292,7 @@ const DashboardTeam = () => {
 
 
       const totalBalance = accountBalance;
-      const startDate = new Date("2026-04-01");
+      const startDate = new Date("2026-07-01");
       const today = new Date();
       let daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
       daysPassed = Math.max(0, Math.min(daysPassed, 90));

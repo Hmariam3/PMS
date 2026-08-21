@@ -249,7 +249,7 @@ export const getTargetByUser = async (req, res) => {
     let query;
     let values;
 
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
 
       query = `
       SELECT t.*
@@ -384,7 +384,7 @@ export const getTargetsSummaryByUser = async (req, res) => {
     `;
 
     // CRM / Individual
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
 
       query = baseQuery + `
         WHERE user_name = $1
@@ -505,7 +505,7 @@ export const getLoanCollectionTargetByUser = async (req, res) => {
     let values = [];
 
     // CRM / Individual
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
 
       query = `
         SELECT
@@ -627,7 +627,7 @@ export const getCashTargetsByUser = async (req, res) => {
     let values = [];
 
     // CRM / Individual
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
 
       query = `
         SELECT

@@ -74,9 +74,9 @@ export const fetchAccountBalanceFromSoap = async (accountNumber) => {
   }
 
   // Ensure account was opened between April 1, 2026 and June 30, 2026
-  if (openingDate <= "20260401" || openingDate >= "20260630") {
-    throw new Error("Account mapping is only allowed for accounts opened between April 1, 2026 and June 30, 2026.");
-  }
+  // if (openingDate <= "20260701" || openingDate >= "20260930") {
+  //   throw new Error("Account mapping is only allowed for accounts opened between July 1, 2026 and September 30, 2026.");
+  // }
 
   return {
     accountNo: accountData.AcctNo,
@@ -111,6 +111,7 @@ export const getAccountBalance = async (req, res) => {
 export const getUserInfo = async (req, res) => {
   try {
     const { username } = req.body;
+
 
     if (!username) {
       return res.status(400).json({ message: "username is required" });

@@ -96,7 +96,13 @@ const MyTeam = () => {
     }
   }, [team]);
 
+  const isMappingOpen = process.env.REACT_APP_IS_MAPPING_OPEN !== 'true';
+
   const handleEvaluate = (member) => {
+    if (!isMappingOpen) {
+      toast.error("Evaluation is currently closed.");
+      return;
+    }
     setSelectedMember(member);
     setShowMetricModal(true);
   };

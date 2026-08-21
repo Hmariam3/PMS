@@ -86,7 +86,7 @@ export const getUserTargetsReport = async (req, res) => {
     if (isAdmin) {
       // Admin sees all users – no WHERE
       whereClause = "";
-    } else if (position === "CRM" || position === "Individual") {
+    } else if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       whereClause = `WHERE u.user_name = $1`;
       values = [user_id];
     } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
@@ -146,7 +146,7 @@ export const getAccountMappingReport = async (req, res) => {
 
     // 1. Role-based scoping (similar to User Targets)
     if (!isAdmin) {
-      if (position === "CRM" || position === "Individual") {
+      if (position === "CRM" || position === "Individual" || position === "Area Manager") {
         conditions.push(`u.user_name = $${paramIndex++}`);
         values.push(user_id);
       } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
@@ -245,7 +245,7 @@ export const getAccountVariationReport = async (req, res) => {
 
     // 1. Role-based scoping
     if (!isAdmin) {
-      if (position === "CRM" || position === "Individual") {
+      if (position === "CRM" || position === "Individual" || position === "Area Manager") {
         conditions.push(`u.user_name = $${paramIndex++}`);
         values.push(user_id);
       } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
@@ -485,7 +485,7 @@ export const getFcyDepositReport = async (req, res) => {
 
     // 1. Role-based scoping (similar to User Targets)
     if (!isAdmin) {
-      if (position === "CRM" || position === "Individual") {
+      if (position === "CRM" || position === "Individual" || position === "Area Manager") {
         conditions.push(`fcy.user_name = $${paramIndex++}`);
         values.push(user_id);
       } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
@@ -588,7 +588,7 @@ export const getEvaluationResultReport = async (req, res) => {
 
     // Role-based scoping
     if (!isAdmin) {
-      if (position === "CRM" || position === "Individual") {
+      if (position === "CRM" || position === "Individual" || position === "Area Manager") {
         // Wait, if user_id is user_name and we have username/mail in table
         conditions.push(`(e.mail = $${paramIndex})`);
         values.push(email);
@@ -676,7 +676,7 @@ export const getRawEvaluationsReport = async (req, res) => {
 
     // Role-based scoping
     if (!isAdmin) {
-      if (position === "CRM" || position === "Individual") {
+      if (position === "CRM" || position === "Individual" || position === "Area Manager") {
         conditions.push(`pe.evaluated = $${paramIndex++}`);
         values.push(user_id);
       } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {

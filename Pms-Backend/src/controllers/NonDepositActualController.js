@@ -10,7 +10,7 @@ export const getNewAccountsSummaryByUser = async (req, res) => {
     let query = "";
     let values = [];
 
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       query = `
         SELECT COALESCE(SUM("NO_OF_NEW_ACCTS"), 0) AS total_accounts
         FROM public."DW_NEW_ACCOUNTS"
@@ -69,7 +69,7 @@ export const getNauTxnSummaryByUser = async (req, res) => {
     // ===============================
     // CRM / Individual (INPUTTER based)
     // ===============================
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       query = `
         SELECT 
           COALESCE(SUM(a."COUNT_NAU_TXN"), 0) AS total_unauthorized
@@ -159,7 +159,7 @@ export const getEeuPaymentsSummaryByUser = async (req, res) => {
     // =========================
     // CRM / Individual
     // =========================
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       // query = `
       //   SELECT 
       //     COALESCE(SUM(p."TXN_COUNT"), 0) AS total_txn_count,
@@ -252,7 +252,7 @@ export const getActiveCardUsersSummaryByUser = async (req, res) => {
     // =========================
     // CRM / Individual
     // =========================
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       query = `
           SELECT 
               COALESCE(SUM(a."NO_OF_ACTIVE_CARD_USERS"), 0) AS total_active_card_users
@@ -338,7 +338,7 @@ export const getDigitalTxnPercentageSummaryByUser = async (req, res) => {
     // =========================
     // CRM / Individual
     // =========================
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       query = `
         SELECT 
           COALESCE(SUM(a. "DIGITAL_TXN_PERCENTAGE"), 0) AS digital_txn_percentage,
@@ -449,7 +449,7 @@ export const getAuditedTxnSummaryByUser = async (req, res) => {
     // =========================
     // CRM / Individual
     // =========================
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       query = `
         SELECT 
           COALESCE(SUM(a."AUDITED_TXN_COUNT"), 0) AS total_audited_txn_count
@@ -557,7 +557,7 @@ export const getCashDepositbyBranchSummaryByUser = async (
     // =========================
     // CRM / Individual
     // =========================
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       query = `
         SELECT 
           COALESCE(
@@ -680,7 +680,7 @@ export const getCRMCashDepositSummaryByUser = async (req, res) => {
     // =========================
     // CRM / Individual
     // =========================
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       query = `
         SELECT 
           COALESCE(SUM(a."TOTAL_COLLECTED_CASH"), 0) AS total_crm_cash
@@ -786,7 +786,7 @@ export const getCustomerEngagementSummaryByUser = async (req, res) => {
     // =========================
     // CRM / Individual
     // =========================
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       query = `
         SELECT 
           COUNT(*) AS total_customer_engagement
@@ -912,7 +912,7 @@ export const getNewCustomerOnboardingSummaryByUser = async (
     // =========================
     // CRM / Individual
     // =========================
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       query = `
         SELECT 
           COUNT(*) AS total_new_customer_onboarding

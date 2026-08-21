@@ -234,9 +234,9 @@ const DistrictMappingList = () => {
                       {districts.map((d, index) => (
                         <MenuItem
                           key={index}
-                          value={d.process_name}
+                          value={d.subprocess_name}
                         >
-                          {d.process_name}
+                          {d.subprocess_name}
                         </MenuItem>
                       ))}
                     </Select>

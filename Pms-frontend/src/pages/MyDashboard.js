@@ -345,8 +345,7 @@ const MyDashboard = () => {
       ]);
 
       const targetsCache = { targetRes, LoantargetRes, cashTargetRes, userNonDepositTargetRes, atmEeuDigitalTargetRes };
-
-      const startDate = new Date("2026-04-01");
+      const startDate = new Date("2026-07-01");
       const today = new Date();
       let daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
       daysPassed = Math.max(0, Math.min(daysPassed, 90));
@@ -496,7 +495,8 @@ const MyDashboard = () => {
   const pieData = metricsData
     .filter(m => m.actual !== null && m.expected > 0)
     .map(m => ({
-      name: m.name,
+      name: m.name.length > 12 ? m.name.substring(0, 12) + "…" : m.name,
+      fullName: m.name,
       value: parseFloat(Math.min(Number(m.rate), 150).toFixed(1)),
     }));
 
@@ -530,82 +530,171 @@ const MyDashboard = () => {
 
       {/* ─── Hero Header ───────────────────────────────── */}
       <Box sx={{
-        mb: 4, borderRadius: 4, overflow: "hidden",
+        mb: 3, borderRadius: 4, overflow: "hidden",
         background: "linear-gradient(135deg, #0c4a6e 0%, #0369a1 45%, #0284c7 100%)",
         position: "relative",
         boxShadow: "0 20px 60px rgba(2,132,199,0.35)",
       }}>
-        {/* decorative blobs */}
-        <Box sx={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(56,189,248,0.25)", filter: "blur(40px)" }} />
-        <Box sx={{ position: "absolute", bottom: -30, left: "30%", width: 160, height: 160, borderRadius: "50%", background: "rgba(14,165,233,0.2)", filter: "blur(30px)" }} />
+        {/* Decorative blobs */}
+        <Box sx={{ position: "absolute", top: -60, right: -60, width: 260, height: 260, borderRadius: "50%", background: "rgba(56,189,248,0.2)", filter: "blur(50px)", pointerEvents: "none" }} />
+        <Box sx={{ position: "absolute", bottom: -40, left: "20%", width: 200, height: 200, borderRadius: "50%", background: "rgba(14,165,233,0.15)", filter: "blur(40px)", pointerEvents: "none" }} />
 
         <Box sx={{ p: { xs: 3, md: 4 }, position: "relative", zIndex: 1 }}>
-          <Grid container alignItems="center" spacing={3}>
-            <Grid item xs={12} md={7}>
-              <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-                <Avatar sx={{
-                  width: 56, height: 56,
-                  background: "linear-gradient(135deg, #0ea5e9, #0284c7)",
-                  boxShadow: "0 0 0 3px rgba(255,255,255,0.2)",
-                  fontSize: "1.4rem",
+          <Grid container alignItems="stretch" spacing={3}>
+
+            {/* ── COL 1: User Info + Chips ── */}
+            <Grid item xs={12} md={5}>
+              <Stack justifyContent="space-between" spacing={2}
+                sx={{
+                  height: "100%",
+                  px: 4, py: 2, borderRadius: 3,
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  backdropFilter: "blur(10px)",
                 }}>
-                  <PersonIcon sx={{ fontSize: "1.8rem", color: "#fff" }} />
-                </Avatar>
-                <Box>
-                  <Typography variant="overline" sx={{ color: "rgba(186,230,253,0.9)", fontWeight: 700, letterSpacing: 2, fontSize: "0.7rem" }}>
-                    PERFORMANCE DASHBOARD
-                  </Typography>
-                  <Typography variant="h5" fontWeight="900" sx={{ color: "#fff", lineHeight: 1.2 }}>
-                    {user?.FullName || user?.UserName || "Welcome back"}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "rgba(186,230,253,0.8)", mt: 0.3 }}>
-                    {userInfo?.title || user?.position || "Employee"} · Q2 2026 (Apr – Jun)
+
+                {/* Avatar + Name */}
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <Avatar sx={{
+                    width: 78, height: 78,
+                    background: "linear-gradient(135deg, #38bdf8, #0284c7)",
+                    boxShadow: "0 0 0 4px rgba(255,255,255,0.2), 0 8px 24px rgba(0,0,0,0.2)",
+                  }}>
+                    <PersonIcon sx={{ fontSize: "2.2rem", color: "#fff" }} />
+                  </Avatar>
+                  <Box>
+                    <Typography sx={{ fontSize: "0.6rem", fontWeight: 800, letterSpacing: 2.5, color: "rgba(186,230,253,0.7)", display: "block", mb: 0.3 }}>
+                      PERFORMANCE DASHBOARD
+                    </Typography>
+                    <Typography variant="h5" fontWeight="900" sx={{ color: "#fff", lineHeight: 1.2 }}>
+                      {user?.FullName || user?.UserName || "Welcome back"}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "rgba(186,230,253,0.75)", mt: 0.3, fontWeight: 500 }}>
+                      {userInfo?.title || user?.position || "Employee"} · Q1 2026 (Jul – Sep)
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                <Box sx={{ borderBottom: "1px solid rgba(255,255,255,0.1)", pb: 1, mb: 1 }}>
+                  <Typography variant="caption" sx={{ color: "rgba(186,230,253,0.65)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>
+                    Employee Performance Management System
                   </Typography>
                 </Box>
-              </Stack>
 
-              <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
-                <Chip
-                  icon={<CheckCircleIcon sx={{ fontSize: "14px !important", color: "#10b981 !important" }} />}
-                  label={`${excellentCount} Excellent`}
-                  sx={{ bgcolor: "rgba(16,185,129,0.15)", color: "#6ee7b7", fontWeight: 700, border: "1px solid rgba(16,185,129,0.3)" }}
-                />
-                <Chip
-                  icon={<TrendingUpIcon sx={{ fontSize: "14px !important", color: "#f59e0b !important" }} />}
-                  label={`${onTrackCount} On Track`}
-                  sx={{ bgcolor: "rgba(245,158,11,0.15)", color: "#fcd34d", fontWeight: 700, border: "1px solid rgba(245,158,11,0.3)" }}
-                />
-                <Chip
-                  label={`${needsAttentionCount} Needs Attention`}
-                  sx={{ bgcolor: "rgba(239,68,68,0.15)", color: "#fca5a5", fontWeight: 700, border: "1px solid rgba(239,68,68,0.3)" }}
-                />
+                {/* Status chips */}
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  <Chip icon={<CheckCircleIcon sx={{ fontSize: "13px !important", color: "#10b981 !important" }} />}
+                    label={`${excellentCount} Excellent`}
+                    sx={{ bgcolor: "rgba(16,185,129,0.15)", color: "#6ee7b7", fontWeight: 700, fontSize: "0.72rem", border: "1px solid rgba(16,185,129,0.3)" }}
+                  />
+                  <Chip icon={<TrendingUpIcon sx={{ fontSize: "13px !important", color: "#f59e0b !important" }} />}
+                    label={`${onTrackCount} On Track`}
+                    sx={{ bgcolor: "rgba(245,158,11,0.15)", color: "#fcd34d", fontWeight: 700, fontSize: "0.72rem", border: "1px solid rgba(245,158,11,0.3)" }}
+                  />
+                  <Chip label={`${needsAttentionCount} Needs Attention`}
+                    sx={{ bgcolor: "rgba(239,68,68,0.15)", color: "#fca5a5", fontWeight: 700, fontSize: "0.72rem", border: "1px solid rgba(239,68,68,0.3)" }}
+                  />
+                </Stack>
+
               </Stack>
             </Grid>
 
-            <Grid item xs={12} md={5}>
-              <Stack alignItems={{ xs: "flex-start", md: "flex-end" }} spacing={1}>
+            {/* ── COL 2: Overall Achievement (CENTER) ── */}
+            <Grid item xs={12} md={3}>
+              <Stack alignItems="center" justifyContent="center" spacing={1.5}
+                sx={{
+                  height: "100%",
+                  px: 10, py: 2, borderRadius: 3,
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  backdropFilter: "blur(10px)",
+                }}>
+                <Typography sx={{ fontSize: "0.6rem", fontWeight: 600, letterSpacing: 2.5, color: "rgba(186,230,253,0.65)" }}>
+                  OVERALL ACHIEVEMENT
+                </Typography>
+
+                {/* ScoreGauge internally renders the 410.9% text */}
+                <ScoreGauge value={overallAverage} />
+
                 <Box sx={{ textAlign: "center" }}>
-                  <Typography variant="overline" sx={{ color: "rgba(186,230,253,0.7)", fontWeight: 700, letterSpacing: 2, fontSize: "0.65rem" }}>
-                    OVERALL ACHIEVEMENT
-                  </Typography>
-                  <Box sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
-                    <ScoreGauge value={overallAverage} />
-                  </Box>
                   <Chip
                     label={getStatusLabel(overallAverage)}
+                    size="small"
                     sx={{
-                      mt: 1, fontWeight: 800, fontSize: "0.8rem",
+                      fontWeight: 800, fontSize: "0.75rem",
                       background: getStatusGradient(overallAverage),
                       color: "#fff",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
                     }}
                   />
                 </Box>
               </Stack>
             </Grid>
+
+            {/* ── COL 3: Motto + Motivation ── */}
+            <Grid item xs={12} md={4}>
+              <Stack sx={{ height: "100%" }} spacing={0}>
+
+                {/* Bank Motto */}
+                <Box sx={{
+                  px: 8, py: 2.5,
+                  borderRadius: "12px 12px 0 0",
+                  background: "rgba(255,255,255,0.1)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderBottom: "none",
+                  backdropFilter: "blur(12px)",
+                  flexGrow: 1,
+                  display: "flex", flexDirection: "column", justifyContent: "center",
+                }}>
+                  {/* <Typography sx={{ fontSize: "0.58rem", fontWeight: 800, letterSpacing: 3, color: "rgba(186,230,253,0.6)", mb: 1.2 }}>
+                    🏦 OUR MOTTO
+                  </Typography> */}
+                  <Typography variant="h5" fontWeight="800" sx={{
+                    color: "#fff", fontStyle: "italic",
+                    lineHeight: 1.4, textShadow: "0 2px 20px rgba(0,0,0,0.3)", mb: 1.2,
+                  }}>
+                    "Empowering Communities,<br />Transforming Lives!"
+                  </Typography>
+                  <Divider sx={{ borderColor: "rgba(255,255,255,0.15)", mb: 1 }} />
+                  <Typography variant="caption" sx={{ color: "rgba(186,230,253,0.5)", fontWeight: 600, letterSpacing: 1.5 }}>
+                    Cooperative Bank of Oromia
+                  </Typography>
+                </Box>
+
+                {/* Motivational Message */}
+                <Box sx={{
+                  px: 3, py: 2,
+                  borderRadius: "0 0 12px 12px",
+                  background: "rgba(255,255,255,0.07)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  backdropFilter: "blur(8px)",
+                }}>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Typography sx={{ fontSize: "1.8rem", flexShrink: 0 }}>
+                      {overallAverage >= 100 ? "🏆" : overallAverage >= 80 ? "🚀" : "🎯"}
+                    </Typography>
+                    <Box>
+                      <Typography variant="body2" fontWeight="800" sx={{ color: "#fff", mb: 0.2, fontSize: "0.82rem" }}>
+                        {overallAverage >= 100 ? "Outstanding Performance!" : overallAverage >= 80 ? "Great Progress!" : "Keep Pushing Forward!"}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "rgba(186,230,253,0.85)", lineHeight: 1.5, fontWeight: 500 }}>
+                        {overallAverage >= 100
+                          ? "You're exceeding targets. Your dedication inspires your team!"
+                          : overallAverage >= 80
+                            ? "A final push will get you past 100%!"
+                            : "Stay focused on your metrics and keep going!"}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                </Box>
+
+              </Stack>
+            </Grid>
+
           </Grid>
         </Box>
       </Box>
+
 
       {/* ─── KPI Summary Strip ─────────────────────────── */}
       <Box sx={{ display: "flex", gap: 2.5, mb: 4, flexWrap: "nowrap" }}>
@@ -632,7 +721,7 @@ const MyDashboard = () => {
           },
           {
             icon: <WorkspacePremiumIcon />,
-            label: "Weighted Score",
+            label: "Overall Achievment",
             value: `${overallAverage.toFixed(1)}%`,
             sub: getStatusLabel(overallAverage),
             gradient: overallAverage >= 100
@@ -706,7 +795,7 @@ const MyDashboard = () => {
                     Actual vs Expected
                   </Typography>
                 </Stack>
-                <ResponsiveContainer width="100%" height={280}>
+                <ResponsiveContainer width="100%" height={340}>
                   <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#64748b", fontSize: 11, fontWeight: 600 }} />
@@ -716,7 +805,7 @@ const MyDashboard = () => {
                       labelFormatter={(l, payload) => payload?.[0]?.payload?.fullName || l}
                     />
                     <Legend iconType="circle" wrapperStyle={{ paddingTop: 16, fontSize: 13, fontWeight: 600 }} />
-                    <Bar dataKey="Expected" fill="#e2e8f0" radius={[6, 6, 0, 0]} barSize={28} />
+                    <Bar dataKey="Expected" fill="#f59e0b" radius={[6, 6, 0, 0]} barSize={28} />
                     <Bar dataKey="Actual" fill="url(#barGradient)" radius={[6, 6, 0, 0]} barSize={28} />
                     <defs>
                       <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
@@ -746,7 +835,7 @@ const MyDashboard = () => {
                     Achievement Share
                   </Typography>
                 </Stack>
-                <ResponsiveContainer width="100%" height={280}>
+                <ResponsiveContainer width="100%" height={340}>
                   <PieChart>
                     <Pie data={pieData} cx="50%" cy="46%" innerRadius={55} outerRadius={88} paddingAngle={3} dataKey="value" nameKey="name">
                       {pieData.map((_, index) => (
@@ -755,7 +844,7 @@ const MyDashboard = () => {
                     </Pie>
                     <RechartsTooltip
                       contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 8px 32px rgba(0,0,0,0.15)", fontSize: 13, fontWeight: 600 }}
-                      formatter={(v, n) => [`${v}%`, n]}
+                      formatter={(value, name, props) => [`${value}%`, props.payload.fullName || name]}
                     />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
                   </PieChart>
@@ -787,12 +876,12 @@ const MyDashboard = () => {
             />
           </Stack>
 
-          <Grid container spacing={2.5}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2.5 }}>
             {metricsData.map((metric, idx) => {
               const statusColor = getStatusColor(metric.rate);
               const isUser = metric.inputBy === "User";
               return (
-                <Grid item xs={12} sm={6} xl={4} key={idx}>
+                <Box key={idx} sx={{ width: "calc(50% - 10px)", minWidth: 0, flexShrink: 0 }}>
                   <Paper
                     elevation={0}
                     sx={{
@@ -833,8 +922,8 @@ const MyDashboard = () => {
                         }}>
                           {metric.icon}
                         </Box>
-                        <Box>
-                          <Typography variant="subtitle2" fontWeight="800" color="#1e293b" sx={{ lineHeight: 1.3, mb: 0.3 }}>
+                        <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                          <Typography variant="subtitle2" fontWeight="800" color="#1e293b" sx={{ lineHeight: 1.3, mb: 0.3 }} noWrap>
                             {metric.name}
                           </Typography>
                           <Chip
@@ -923,10 +1012,10 @@ const MyDashboard = () => {
                       </Box>
                     )}
                   </Paper>
-                </Grid>
+                </Box>
               );
             })}
-          </Grid>
+          </Box>
         </CardContent>
       </Card>
 
