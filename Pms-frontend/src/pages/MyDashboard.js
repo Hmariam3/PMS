@@ -47,8 +47,8 @@ const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"
 // Animated radial gauge for overall score
 const ScoreGauge = ({ value }) => {
   const capped = Math.min(value, 100);
-  const radius = 70;
-  const stroke = 10;
+  const radius = 48;
+  const stroke = 8;
   const normalizedR = radius - stroke / 2;
   const circumference = 2 * Math.PI * normalizedR;
   const strokeDashoffset = circumference - (capped / 100) * circumference;
@@ -68,7 +68,7 @@ const ScoreGauge = ({ value }) => {
         />
       </svg>
       <Box sx={{ position: "absolute", textAlign: "center" }}>
-        <Typography variant="h4" fontWeight="900" sx={{ color: "#fff", lineHeight: 1 }}>
+        <Typography variant="body1" fontWeight="900" sx={{ color: "#fff", lineHeight: 1, fontSize: "0.95rem" }}>
           {value.toFixed(1)}%
         </Typography>
       </Box>
@@ -530,7 +530,7 @@ const MyDashboard = () => {
 
       {/* ─── Hero Header ───────────────────────────────── */}
       <Box sx={{
-        mb: 3, borderRadius: 4, overflow: "hidden",
+        mb: 3, borderRadius: { xs: 2, md: 4 }, overflow: "hidden",
         background: "linear-gradient(135deg, #0c4a6e 0%, #0369a1 45%, #0284c7 100%)",
         position: "relative",
         boxShadow: "0 20px 60px rgba(2,132,199,0.35)",
@@ -539,159 +539,152 @@ const MyDashboard = () => {
         <Box sx={{ position: "absolute", top: -60, right: -60, width: 260, height: 260, borderRadius: "50%", background: "rgba(56,189,248,0.2)", filter: "blur(50px)", pointerEvents: "none" }} />
         <Box sx={{ position: "absolute", bottom: -40, left: "20%", width: 200, height: 200, borderRadius: "50%", background: "rgba(14,165,233,0.15)", filter: "blur(40px)", pointerEvents: "none" }} />
 
-        <Box sx={{ p: { xs: 3, md: 4 }, position: "relative", zIndex: 1 }}>
-          <Grid container alignItems="stretch" spacing={3}>
+        <Box sx={{ p: { xs: 1.5, md: 2.5 }, position: "relative", zIndex: 1 }}>
+          {/* Always one row — flex, no wrap */}
+          <Box sx={{ display: "flex", gap: { xs: 1.5, md: 2 }, alignItems: "stretch" }}>
 
             {/* ── COL 1: User Info + Chips ── */}
-            <Grid item xs={12} md={5}>
-              <Stack justifyContent="space-between" spacing={2}
-                sx={{
-                  height: "100%",
-                  px: 4, py: 2, borderRadius: 3,
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  backdropFilter: "blur(10px)",
+            <Box sx={{
+              flex: "0 0 42%", minWidth: 0,
+              display: "flex", flexDirection: "column", justifyContent: "space-between",
+              px: { xs: 1.5, md: 2.5 }, py: { xs: 1.5, md: 2 },
+              borderRadius: 2.5,
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              backdropFilter: "blur(10px)",
+              gap: 1,
+            }}>
+              {/* Avatar + Name */}
+              <Stack direction="row" alignItems="center" spacing={1.5}>
+                <Avatar sx={{
+                  width: { xs: 44, md: 52 }, height: { xs: 44, md: 52 }, flexShrink: 0,
+                  background: "linear-gradient(135deg, #38bdf8, #0284c7)",
+                  boxShadow: "0 0 0 3px rgba(255,255,255,0.2)",
                 }}>
-
-                {/* Avatar + Name */}
-                <Stack direction="row" alignItems="center" spacing={2}>
-                  <Avatar sx={{
-                    width: 78, height: 78,
-                    background: "linear-gradient(135deg, #38bdf8, #0284c7)",
-                    boxShadow: "0 0 0 4px rgba(255,255,255,0.2), 0 8px 24px rgba(0,0,0,0.2)",
+                  <PersonIcon sx={{ fontSize: { xs: "1.4rem", md: "1.8rem" }, color: "#fff" }} />
+                </Avatar>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontSize: "0.55rem", fontWeight: 800, letterSpacing: 2, color: "rgba(186,230,253,0.7)", display: "block" }}>
+                    PERFORMANCE DASHBOARD
+                  </Typography>
+                  <Typography fontWeight="900" sx={{
+                    color: "#fff", lineHeight: 1.2,
+                    fontSize: { xs: "0.95rem", md: "1.15rem" },
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>
-                    <PersonIcon sx={{ fontSize: "2.2rem", color: "#fff" }} />
-                  </Avatar>
-                  <Box>
-                    <Typography sx={{ fontSize: "0.6rem", fontWeight: 800, letterSpacing: 2.5, color: "rgba(186,230,253,0.7)", display: "block", mb: 0.3 }}>
-                      PERFORMANCE DASHBOARD
+                    {user?.FullName || user?.UserName || "Welcome back"}
+                  </Typography>
+                  <Typography sx={{ color: "rgba(186,230,253,0.75)", mt: 0.2, fontWeight: 500, fontSize: { xs: "0.65rem", md: "0.75rem" } }}>
+                    {userInfo?.title || user?.position || "Employee"} · Q1 2026
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Box sx={{ borderBottom: "1px solid rgba(255,255,255,0.1)", pb: 0.5 }}>
+                <Typography sx={{ color: "rgba(186,230,253,0.6)", fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", fontSize: "0.58rem" }}>
+                  Employee Performance Management System
+                </Typography>
+              </Box>
+
+              {/* Status chips */}
+              <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                <Chip icon={<CheckCircleIcon sx={{ fontSize: "11px !important", color: "#10b981 !important" }} />}
+                  label={`${excellentCount} Excellent`} size="small"
+                  sx={{ bgcolor: "rgba(16,185,129,0.15)", color: "#6ee7b7", fontWeight: 700, fontSize: "0.65rem", border: "1px solid rgba(16,185,129,0.3)", height: 22 }}
+                />
+                <Chip icon={<TrendingUpIcon sx={{ fontSize: "11px !important", color: "#f59e0b !important" }} />}
+                  label={`${onTrackCount} On Track`} size="small"
+                  sx={{ bgcolor: "rgba(245,158,11,0.15)", color: "#fcd34d", fontWeight: 700, fontSize: "0.65rem", border: "1px solid rgba(245,158,11,0.3)", height: 22 }}
+                />
+                <Chip label={`${needsAttentionCount} Needs Attention`} size="small"
+                  sx={{ bgcolor: "rgba(239,68,68,0.15)", color: "#fca5a5", fontWeight: 700, fontSize: "0.65rem", border: "1px solid rgba(239,68,68,0.3)", height: 22 }}
+                />
+              </Stack>
+            </Box>
+
+            {/* ── COL 2: Overall Achievement (CENTER) ── */}
+            <Box sx={{
+              flex: "0 0 20%", minWidth: 0,
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              gap: 0.75,
+              px: 1, py: { xs: 1.5, md: 2 },
+              borderRadius: 2.5,
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              backdropFilter: "blur(10px)",
+            }}>
+              <Typography sx={{ fontSize: "0.55rem", fontWeight: 700, letterSpacing: 2, color: "rgba(186,230,253,0.65)", textAlign: "center" }}>
+                OVERALL ACHIEVEMENT
+              </Typography>
+              <ScoreGauge value={overallAverage} />
+              <Chip
+                label={getStatusLabel(overallAverage)}
+                size="small"
+                sx={{
+                  fontWeight: 800, fontSize: "0.65rem", height: 22,
+                  background: getStatusGradient(overallAverage),
+                  color: "#fff", boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                }}
+              />
+            </Box>
+
+            {/* ── COL 3: Motto + Motivation ── */}
+            <Box sx={{
+              flex: "1 1 0%", minWidth: 0,
+              display: "flex", flexDirection: "column",
+              borderRadius: 2.5,
+              overflow: "hidden",
+              border: "1px solid rgba(255,255,255,0.15)",
+            }}>
+              {/* Bank Motto */}
+              <Box sx={{
+                flex: 1,
+                px: { xs: 1.5, md: 2.5 }, py: { xs: 1.5, md: 2 },
+                background: "rgba(255,255,255,0.1)",
+                backdropFilter: "blur(12px)",
+                display: "flex", flexDirection: "column", justifyContent: "center",
+                borderBottom: "1px solid rgba(255,255,255,0.12)",
+              }}>
+                <Typography fontWeight="800" sx={{
+                  color: "#fff", fontStyle: "italic",
+                  fontSize: { xs: "0.85rem", md: "1rem" },
+                  lineHeight: 1.35, textShadow: "0 2px 16px rgba(0,0,0,0.3)", mb: 0.75,
+                }}>
+                  "Empowering Communities,<br />Transforming Lives!"
+                </Typography>
+                <Divider sx={{ borderColor: "rgba(255,255,255,0.15)", mb: 0.6 }} />
+                <Typography sx={{ color: "rgba(186,230,253,0.5)", fontWeight: 600, letterSpacing: 1.2, fontSize: "0.6rem" }}>
+                  Cooperative Bank of Oromia
+                </Typography>
+              </Box>
+
+              {/* Motivational Message */}
+              <Box sx={{
+                px: { xs: 1.5, md: 2.5 }, py: { xs: 1, md: 1.5 },
+                background: "rgba(255,255,255,0.07)",
+                backdropFilter: "blur(8px)",
+              }}>
+                <Stack direction="row" spacing={1.25} alignItems="center">
+                  <Typography sx={{ fontSize: { xs: "1.2rem", md: "1.5rem" }, flexShrink: 0 }}>
+                    {overallAverage >= 100 ? "🏆" : overallAverage >= 80 ? "🚀" : "🎯"}
+                  </Typography>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography fontWeight="800" sx={{ color: "#fff", mb: 0.1, fontSize: { xs: "0.7rem", md: "0.78rem" } }}>
+                      {overallAverage >= 100 ? "Outstanding Performance!" : overallAverage >= 80 ? "Great Progress!" : "Keep Pushing Forward!"}
                     </Typography>
-                    <Typography variant="h5" fontWeight="900" sx={{ color: "#fff", lineHeight: 1.2 }}>
-                      {user?.FullName || user?.UserName || "Welcome back"}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "rgba(186,230,253,0.75)", mt: 0.3, fontWeight: 500 }}>
-                      {userInfo?.title || user?.position || "Employee"} · Q1 2026 (Jul – Sep)
+                    <Typography sx={{ color: "rgba(186,230,253,0.85)", lineHeight: 1.4, fontWeight: 500, fontSize: "0.65rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {overallAverage >= 100
+                        ? "You're exceeding targets. Your dedication inspires your team!"
+                        : overallAverage >= 80
+                          ? "A final push will get you past 100%!"
+                          : "Stay focused on your metrics and keep going!"}
                     </Typography>
                   </Box>
                 </Stack>
+              </Box>
+            </Box>
 
-                <Box sx={{ borderBottom: "1px solid rgba(255,255,255,0.1)", pb: 1, mb: 1 }}>
-                  <Typography variant="caption" sx={{ color: "rgba(186,230,253,0.65)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>
-                    Employee Performance Management System
-                  </Typography>
-                </Box>
-
-                {/* Status chips */}
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  <Chip icon={<CheckCircleIcon sx={{ fontSize: "13px !important", color: "#10b981 !important" }} />}
-                    label={`${excellentCount} Excellent`}
-                    sx={{ bgcolor: "rgba(16,185,129,0.15)", color: "#6ee7b7", fontWeight: 700, fontSize: "0.72rem", border: "1px solid rgba(16,185,129,0.3)" }}
-                  />
-                  <Chip icon={<TrendingUpIcon sx={{ fontSize: "13px !important", color: "#f59e0b !important" }} />}
-                    label={`${onTrackCount} On Track`}
-                    sx={{ bgcolor: "rgba(245,158,11,0.15)", color: "#fcd34d", fontWeight: 700, fontSize: "0.72rem", border: "1px solid rgba(245,158,11,0.3)" }}
-                  />
-                  <Chip label={`${needsAttentionCount} Needs Attention`}
-                    sx={{ bgcolor: "rgba(239,68,68,0.15)", color: "#fca5a5", fontWeight: 700, fontSize: "0.72rem", border: "1px solid rgba(239,68,68,0.3)" }}
-                  />
-                </Stack>
-
-              </Stack>
-            </Grid>
-
-            {/* ── COL 2: Overall Achievement (CENTER) ── */}
-            <Grid item xs={12} md={3}>
-              <Stack alignItems="center" justifyContent="center" spacing={1.5}
-                sx={{
-                  height: "100%",
-                  px: 10, py: 2, borderRadius: 3,
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  backdropFilter: "blur(10px)",
-                }}>
-                <Typography sx={{ fontSize: "0.6rem", fontWeight: 600, letterSpacing: 2.5, color: "rgba(186,230,253,0.65)" }}>
-                  OVERALL ACHIEVEMENT
-                </Typography>
-
-                {/* ScoreGauge internally renders the 410.9% text */}
-                <ScoreGauge value={overallAverage} />
-
-                <Box sx={{ textAlign: "center" }}>
-                  <Chip
-                    label={getStatusLabel(overallAverage)}
-                    size="small"
-                    sx={{
-                      fontWeight: 800, fontSize: "0.75rem",
-                      background: getStatusGradient(overallAverage),
-                      color: "#fff",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-                    }}
-                  />
-                </Box>
-              </Stack>
-            </Grid>
-
-            {/* ── COL 3: Motto + Motivation ── */}
-            <Grid item xs={12} md={4}>
-              <Stack sx={{ height: "100%" }} spacing={0}>
-
-                {/* Bank Motto */}
-                <Box sx={{
-                  px: 8, py: 2.5,
-                  borderRadius: "12px 12px 0 0",
-                  background: "rgba(255,255,255,0.1)",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  borderBottom: "none",
-                  backdropFilter: "blur(12px)",
-                  flexGrow: 1,
-                  display: "flex", flexDirection: "column", justifyContent: "center",
-                }}>
-                  {/* <Typography sx={{ fontSize: "0.58rem", fontWeight: 800, letterSpacing: 3, color: "rgba(186,230,253,0.6)", mb: 1.2 }}>
-                    🏦 OUR MOTTO
-                  </Typography> */}
-                  <Typography variant="h5" fontWeight="800" sx={{
-                    color: "#fff", fontStyle: "italic",
-                    lineHeight: 1.4, textShadow: "0 2px 20px rgba(0,0,0,0.3)", mb: 1.2,
-                  }}>
-                    "Empowering Communities,<br />Transforming Lives!"
-                  </Typography>
-                  <Divider sx={{ borderColor: "rgba(255,255,255,0.15)", mb: 1 }} />
-                  <Typography variant="caption" sx={{ color: "rgba(186,230,253,0.5)", fontWeight: 600, letterSpacing: 1.5 }}>
-                    Cooperative Bank of Oromia
-                  </Typography>
-                </Box>
-
-                {/* Motivational Message */}
-                <Box sx={{
-                  px: 3, py: 2,
-                  borderRadius: "0 0 12px 12px",
-                  background: "rgba(255,255,255,0.07)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  backdropFilter: "blur(8px)",
-                }}>
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Typography sx={{ fontSize: "1.8rem", flexShrink: 0 }}>
-                      {overallAverage >= 100 ? "🏆" : overallAverage >= 80 ? "🚀" : "🎯"}
-                    </Typography>
-                    <Box>
-                      <Typography variant="body2" fontWeight="800" sx={{ color: "#fff", mb: 0.2, fontSize: "0.82rem" }}>
-                        {overallAverage >= 100 ? "Outstanding Performance!" : overallAverage >= 80 ? "Great Progress!" : "Keep Pushing Forward!"}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: "rgba(186,230,253,0.85)", lineHeight: 1.5, fontWeight: 500 }}>
-                        {overallAverage >= 100
-                          ? "You're exceeding targets. Your dedication inspires your team!"
-                          : overallAverage >= 80
-                            ? "A final push will get you past 100%!"
-                            : "Stay focused on your metrics and keep going!"}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Box>
-
-              </Stack>
-            </Grid>
-
-          </Grid>
+          </Box>
         </Box>
       </Box>
 

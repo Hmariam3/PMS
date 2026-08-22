@@ -21,7 +21,7 @@ export const getAreaManagersByDistrict = async (req, res) => {
   const { district_name } = req.params;
   try {
     const result = await pool.query(
-      `SELECT id, user_name, full_name, subprocess 
+      `SELECT id, user_name, full_name, subprocess, team
        FROM public.users 
        WHERE position = 'Area Manager' 
        AND subprocess = $1
@@ -29,6 +29,7 @@ export const getAreaManagersByDistrict = async (req, res) => {
       [district_name]
     );
     res.status(200).json(result.rows);
+
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: "Server error" });
@@ -96,7 +97,7 @@ export const assignBranch = async (req, res) => {
     );
 
     if (checkResult.rows.length > 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: "One or more selected branches are already assigned.",
         existing_assignment: checkResult.rows
       });
@@ -106,12 +107,12 @@ export const assignBranch = async (req, res) => {
     let values = [];
     let queryParams = [];
     let paramIndex = 1;
-    
+
     for (const branchId of branch_ids) {
       values.push(`($${paramIndex++}, $${paramIndex++}, $${paramIndex++})`);
       queryParams.push(district_id, area_manager_user_id, branchId);
     }
-    
+
     const result = await pool.query(
       `INSERT INTO public.area_manager_branch_mapping 
        (district_id, area_manager_user_id, branch_id) 

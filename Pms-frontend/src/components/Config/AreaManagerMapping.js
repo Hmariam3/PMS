@@ -98,6 +98,7 @@ const AreaManagerMapping = () => {
     try {
       setLoading(true);
       const res = await axios.get(`${baseUrl}/area-manager-branch/area-managers/${encodeURIComponent(districtName)}`);
+
       setAreaManagers(res.data);
     } catch (err) {
       toast.error("Failed to fetch Area Managers");
@@ -227,7 +228,7 @@ const AreaManagerMapping = () => {
               >
                 {areaManagers.map((am) => (
                   <MenuItem key={am.id} value={am.id}>
-                    {am.full_name} ({am.user_name})
+                    {am.full_name} ({am.team})
                   </MenuItem>
                 ))}
               </Select>
