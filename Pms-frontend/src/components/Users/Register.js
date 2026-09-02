@@ -391,8 +391,8 @@ const Register = () => {
                       fontSize: "1rem",
                       fontWeight: 600,
                       textTransform: "none",
-                      backgroundColor: "#1b3fcd",
-                      "&:hover": { backgroundColor: "#1532a1" },
+                      backgroundColor: "#125423",
+                      "&:hover": { backgroundColor: "#0d3318" },
                     }}
                   >
                     {loading ? <CircularProgress size={24} color="inherit" /> : "Complete Registration"}

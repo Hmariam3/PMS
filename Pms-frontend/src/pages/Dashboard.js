@@ -482,7 +482,7 @@ const Dashboard = () => {
                             <Stack spacing={1}>
                               {relatedKrs.map((kr, index) => (
                                 <Paper elevation={0} key={kr.kr_id} sx={{ p: 1.2, backgroundColor: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 1.5, display: "flex", alignItems: "flex-start", gap: 1.5 }}>
-                                  <Chip label={`KR ${index + 1}`} size="small" sx={{ bgcolor: "#e0f2fe", color: "#0369a1", fontWeight: 800, borderRadius: 1, height: 20, fontSize: "0.7rem" }} />
+                                  <Chip label={`KR ${index + 1}`} size="small" sx={{ bgcolor: "#d1fae5", color: "#125423", fontWeight: 800, borderRadius: 1, height: 20, fontSize: "0.7rem" }} />
                                   <Typography variant="body2" sx={{ color: "#334155", pt: 0.2, fontWeight: 500, fontSize: "0.85rem" }}>
                                     {kr.kr_detail}
                                   </Typography>

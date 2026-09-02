@@ -226,7 +226,7 @@ const FcyDepositReport = () => {
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3, flexWrap: "wrap", gap: 2 }}>
         <Box>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-            <AssessmentIcon sx={{ color: "#0ea5e9" }} />
+            <AssessmentIcon sx={{ color: "#125423" }} />
             <Typography variant="h5" sx={{ fontWeight: 700, color: "#1e293b" }}>
               FCY Deposit Report
             </Typography>
@@ -244,7 +244,7 @@ const FcyDepositReport = () => {
             onClick={handleExport}
             disabled={exporting || totalCount === 0}
             sx={{
-              bgcolor: "#10b981", "&:hover": { bgcolor: "#059669" },
+              bgcolor: "#125423", "&:hover": { bgcolor: "#0d3318" },
               textTransform: "none", fontWeight: 600, borderRadius: 2,
             }}
           >
@@ -363,7 +363,7 @@ const FcyDepositReport = () => {
                         sx={{
                           ...bodyCellSx,
                           fontWeight: c.key === "account_number" ? 600 : 400,
-                          color: c.key === "account_number" ? "#0369a1" : "inherit"
+                          color: c.key === "account_number" ? "#125423" : "inherit"
                         }}
                       >
                         {c.key === "created_at" && row[c.key] ? new Date(row[c.key]).toLocaleDateString() :

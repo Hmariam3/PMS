@@ -329,7 +329,7 @@ const AccountVariationReport = () => {
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
         <Box>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-            <AssessmentIcon sx={{ color: "#0ea5e9" }} />
+            <AssessmentIcon sx={{ color: "#125423" }} />
             <Typography variant="h5" sx={{ fontWeight: 700, color: "#1e293b" }}>
               Financial Achievement Report
             </Typography>
@@ -365,7 +365,7 @@ const AccountVariationReport = () => {
             onClick={exportToExcelStyled}
             disabled={filteredRows.length === 0 || loading}
             sx={{
-              bgcolor: "#10b981", "&:hover": { bgcolor: "#059669" },
+              bgcolor: "#125423", "&:hover": { bgcolor: "#0d3318" },
               textTransform: "none", fontWeight: 600, borderRadius: 2,
             }}
           >

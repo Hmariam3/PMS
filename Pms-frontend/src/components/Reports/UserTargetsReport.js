@@ -301,7 +301,7 @@ const UserTargetsReport = () => {
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
         <Box>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-            <AssessmentIcon sx={{ color: "#0ea5e9" }} />
+            <AssessmentIcon sx={{ color: "#125423" }} />
             <Typography variant="h5" sx={{ fontWeight: 700, color: "#1e293b" }}>
               User Targets Report
             </Typography>
@@ -337,7 +337,7 @@ const UserTargetsReport = () => {
             onClick={() => exportToExcelStyled(filteredRows)}
             disabled={filteredRows.length === 0 || loading}
             sx={{
-              bgcolor: "#10b981", "&:hover": { bgcolor: "#059669" },
+              bgcolor: "#125423", "&:hover": { bgcolor: "#0d3318" },
               textTransform: "none", fontWeight: 600, borderRadius: 2,
             }}
           >
@@ -386,8 +386,8 @@ const UserTargetsReport = () => {
                   <TableCell
                     colSpan={FIN_COLS.length}
                     sx={{
-                      ...headerCellSx, bgcolor: "#0c4a6e", color: "#fff",
-                      textAlign: "center", borderRight: "2px solid #0369a1"
+                      ...headerCellSx, bgcolor: "#0d3318", color: "#fff",
+                      textAlign: "center", borderRight: "2px solid #125423"
                     }}
                   >
                     💰 Financial Target
@@ -420,8 +420,8 @@ const UserTargetsReport = () => {
                     <TableCell
                       key={c.key}
                       sx={{
-                        ...headerCellSx, bgcolor: "#e0f2fe", color: "#0c4a6e",
-                        borderRight: i === FIN_COLS.length - 1 ? "2px solid #7dd3fc" : undefined
+                        ...headerCellSx, bgcolor: "#d1fae5", color: "#0d3318",
+                        borderRight: i === FIN_COLS.length - 1 ? "2px solid #6ee7b7" : undefined
                       }}
                     >
                       {c.label}
@@ -480,7 +480,7 @@ const UserTargetsReport = () => {
                             sx={{
                               ...bodyCellSx,
                               color: !hasFinTarget(row) ? "#94a3b8" : "inherit",
-                              borderRight: i === FIN_COLS.length - 1 ? "2px solid #7dd3fc" : undefined
+                              borderRight: i === FIN_COLS.length - 1 ? "2px solid #6ee7b7" : undefined
                             }}
                           >
                             {cellVal(row, c.key)}

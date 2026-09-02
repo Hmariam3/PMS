@@ -217,7 +217,7 @@ const AccountMappingReport = () => {
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3, flexWrap: "wrap", gap: 2 }}>
         <Box>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-            <AssessmentIcon sx={{ color: "#0ea5e9" }} />
+            <AssessmentIcon sx={{ color: "#125423" }} />
             <Typography variant="h5" sx={{ fontWeight: 700, color: "#1e293b" }}>
               Account Mapping Report
             </Typography>
@@ -236,7 +236,7 @@ const AccountMappingReport = () => {
               onClick={handleExport}
               disabled={exporting || totalCount === 0}
               sx={{
-                bgcolor: "#10b981", "&:hover": { bgcolor: "#059669" },
+                bgcolor: "#125423", "&:hover": { bgcolor: "#0d3318" },
                 textTransform: "none", fontWeight: 600, borderRadius: 2,
               }}
             >
@@ -337,7 +337,7 @@ const AccountMappingReport = () => {
                         sx={{
                           ...bodyCellSx,
                           fontWeight: c.key === "account_number" ? 600 : 400,
-                          color: c.key === "account_number" ? "#0369a1" : "inherit"
+                          color: c.key === "account_number" ? "#125423" : "inherit"
                         }}
                       >
                         {row[c.key] || "—"}

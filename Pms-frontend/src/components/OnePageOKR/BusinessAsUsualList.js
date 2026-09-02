@@ -277,7 +277,7 @@ const BusinessAsUsualList = () => {
       >
         <Fade in={showDetailsModal}>
           <Box sx={modalStyle}>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: "#1b3fcd" }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: "#125423" }}>
               BAU Record Details
             </Typography>
             <Divider sx={{ mb: 3 }} />

@@ -531,13 +531,13 @@ const MyDashboard = () => {
       {/* ─── Hero Header ───────────────────────────────── */}
       <Box sx={{
         mb: 3, borderRadius: { xs: 2, md: 4 }, overflow: "hidden",
-        background: "linear-gradient(135deg, #0c4a6e 0%, #0369a1 45%, #0284c7 100%)",
+        background: "linear-gradient(135deg, #0d3318 0%, #125423 45%, #1a6b2e 100%)",
         position: "relative",
-        boxShadow: "0 20px 60px rgba(2,132,199,0.35)",
+        boxShadow: "0 20px 60px rgba(18,84,35,0.35)",
       }}>
         {/* Decorative blobs */}
-        <Box sx={{ position: "absolute", top: -60, right: -60, width: 260, height: 260, borderRadius: "50%", background: "rgba(56,189,248,0.2)", filter: "blur(50px)", pointerEvents: "none" }} />
-        <Box sx={{ position: "absolute", bottom: -40, left: "20%", width: 200, height: 200, borderRadius: "50%", background: "rgba(14,165,233,0.15)", filter: "blur(40px)", pointerEvents: "none" }} />
+        <Box sx={{ position: "absolute", top: -60, right: -60, width: 260, height: 260, borderRadius: "50%", background: "rgba(52,168,83,0.2)", filter: "blur(50px)", pointerEvents: "none" }} />
+        <Box sx={{ position: "absolute", bottom: -40, left: "20%", width: 200, height: 200, borderRadius: "50%", background: "rgba(18,84,35,0.15)", filter: "blur(40px)", pointerEvents: "none" }} />
 
         <Box sx={{ p: { xs: 1.5, md: 2.5 }, position: "relative", zIndex: 1 }}>
           {/* Always one row — flex, no wrap */}
@@ -558,13 +558,13 @@ const MyDashboard = () => {
               <Stack direction="row" alignItems="center" spacing={1.5}>
                 <Avatar sx={{
                   width: { xs: 44, md: 52 }, height: { xs: 44, md: 52 }, flexShrink: 0,
-                  background: "linear-gradient(135deg, #38bdf8, #0284c7)",
+                  background: "linear-gradient(135deg, #34a853, #125423)",
                   boxShadow: "0 0 0 3px rgba(255,255,255,0.2)",
                 }}>
                   <PersonIcon sx={{ fontSize: { xs: "1.4rem", md: "1.8rem" }, color: "#fff" }} />
                 </Avatar>
                 <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontSize: "0.55rem", fontWeight: 800, letterSpacing: 2, color: "rgba(186,230,253,0.7)", display: "block" }}>
+                  <Typography sx={{ fontSize: "0.55rem", fontWeight: 800, letterSpacing: 2, color: "rgba(167,243,208,0.7)", display: "block" }}>
                     PERFORMANCE DASHBOARD
                   </Typography>
                   <Typography fontWeight="900" sx={{
@@ -804,7 +804,7 @@ const MyDashboard = () => {
             }}>
               <CardContent sx={{ p: 3 }}>
                 <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 3 }}>
-                  <Box sx={{ p: 0.8, borderRadius: 1.5, background: "linear-gradient(135deg, #0284c7, #0ea5e9)" }}>
+                  <Box sx={{ p: 0.8, borderRadius: 1.5, background: "linear-gradient(135deg, #125423, #1a6b2e)" }}>
                     <BarChartIcon sx={{ color: "#fff", fontSize: "1.2rem" }} />
                   </Box>
                   <Typography variant="h6" fontWeight="800" color="#1e293b">
@@ -825,8 +825,8 @@ const MyDashboard = () => {
                     <Bar dataKey="Actual" fill="url(#barGradient)" radius={[6, 6, 0, 0]} barSize={28} />
                     <defs>
                       <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#0ea5e9" />
-                        <stop offset="100%" stopColor="#0284c7" />
+                        <stop offset="0%" stopColor="#125423" />
+                        <stop offset="100%" stopColor="#1a6b2e" />
                       </linearGradient>
                     </defs>
                   </BarChart>
@@ -951,8 +951,8 @@ const MyDashboard = () => {
                             }
                             sx={{
                               height: 18, fontSize: "0.62rem", fontWeight: 700,
-                              bgcolor: isUser ? "#fef3c7" : "#eff6ff",
-                              color: isUser ? "#92400e" : "#1d4ed8",
+                              bgcolor: isUser ? "#fef3c7" : "#d1fae5",
+                              color: isUser ? "#92400e" : "#125423",
                             }}
                           />
                         </Box>

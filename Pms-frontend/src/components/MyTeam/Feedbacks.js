@@ -334,8 +334,8 @@ const Feedbacks = () => {
                     </Typography>
 
                     {fb.reply && (
-                      <Box sx={{ p: 1.5, bgcolor: "#f8fafc", borderRadius: 1, borderLeft: "4px solid #1b3fcd", mb: 2 }}>
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: "#1b3fcd", display: "block", mb: 0.5 }}>
+                      <Box sx={{ p: 1.5, bgcolor: "#f8fafc", borderRadius: 1, borderLeft: "4px solid #125423", mb: 2 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: "#125423", display: "block", mb: 0.5 }}>
                           REPLY:
                         </Typography>
                         <Typography variant="body2">

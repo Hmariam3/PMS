@@ -258,7 +258,7 @@ const RawPerformanceEvaluationsReport = () => {
             startIcon={exporting ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
             onClick={handleExport}
             disabled={exporting || loading}
-            sx={{ textTransform: "none", borderRadius: 2, fontWeight: 600, backgroundColor: "#0f172a", "&:hover": { backgroundColor: "#1e293b" } }}
+            sx={{ textTransform: "none", borderRadius: 2, fontWeight: 600, backgroundColor: "#125423", "&:hover": { backgroundColor: "#0d3318" } }}
           >
             Export to Excel
           </Button>

@@ -58,6 +58,49 @@ import RawPerformanceEvaluationsReport from "./components/Reports/RawPerformance
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./AuthContext";
 import { useMediaQuery, useTheme, Box } from "@mui/material";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+
+// ── Global MUI Theme: forest green brand color ──────────────────────────────
+const brandTheme = createTheme({
+  palette: {
+    primary: {
+      main: "#125423",
+      dark: "#0d3318",
+      light: "#1a6b2e",
+      contrastText: "#ffffff",
+    },
+    info: {
+      main: "#125423",
+      dark: "#0d3318",
+      light: "#1a6b2e",
+      contrastText: "#ffffff",
+    },
+    secondary: {
+      main: "#1a6b2e",
+      dark: "#0d3318",
+      light: "#34a853",
+      contrastText: "#ffffff",
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        containedPrimary: {
+          backgroundColor: "#125423",
+          "&:hover": { backgroundColor: "#0d3318" },
+        },
+        containedInfo: {
+          backgroundColor: "#125423",
+          "&:hover": { backgroundColor: "#0d3318" },
+        },
+        containedSecondary: {
+          backgroundColor: "#1a6b2e",
+          "&:hover": { backgroundColor: "#0d3318" },
+        },
+      },
+    },
+  },
+});
 
 const drawerWidth = 240;
 
@@ -114,6 +157,7 @@ function App() {
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   return (
+    <ThemeProvider theme={brandTheme}>
     <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       {isAuthenticated && (
         <>
@@ -521,6 +565,7 @@ function App() {
         )}
       </Box>
     </Box>
+    </ThemeProvider>
   );
 }
 

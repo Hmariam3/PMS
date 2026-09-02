@@ -153,7 +153,7 @@ const MyTeam = () => {
               {team.map((member) => (
                 <TableRow key={member.employee_id} hover>
                   <TableCell>{member.employee_id}</TableCell>
-                  <TableCell sx={{ cursor: "pointer", color: "#1b3fcd", fontWeight: 500 }} onClick={() => handleShowDetails(member)}>
+                  <TableCell sx={{ cursor: "pointer", color: "#125423", fontWeight: 500 }} onClick={() => handleShowDetails(member)}>
                     {member.display_name}
                   </TableCell>
                   <TableCell>{member.title}</TableCell>

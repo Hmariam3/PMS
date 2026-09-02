@@ -115,11 +115,8 @@ const Login = () => {
             const isDistrict = orgUnit.toLowerCase() === "do";
             const isDirector = pos.toLowerCase().includes("director");
 
-            if (isHO || (isDistrict && isDirector)) {
-              navigate("/");
-            } else {
-              navigate("/mydashboard");
-            }
+            navigate("/mydashboard");
+
             return;
           }
 
@@ -305,11 +302,11 @@ const Login = () => {
                   textTransform: "none",
                   fontSize: "1rem",
                   fontWeight: 600,
-                  backgroundColor: "#1b3fcd",
+                  backgroundColor: "#125423",
                   "&:hover": {
-                    backgroundColor: "#1532a1",
+                    backgroundColor: "#0d3318",
                   },
-                  boxShadow: "0px 4px 12px rgba(27, 63, 205, 0.3)",
+                  boxShadow: "0px 4px 12px rgba(18, 84, 35, 0.35)",
                 }}
               >
                 {loading ? (

@@ -519,7 +519,7 @@ const DashboardTeam = () => {
                         <Typography variant="h5" sx={{ fontWeight: 600, color: "#1e293b" }}>{u.full_name}</Typography>
                         <Stack direction="row" spacing={1.5} sx={{ mt: 1 }}>
                           <Chip label={u.position} size="medium" color="primary" variant="filled" sx={{ fontWeight: 700, borderRadius: 2 }} />
-                          <Chip label={getOrgLabel(u)} size="medium" variant="outlined" sx={{ fontWeight: 600, borderRadius: 2 }} />
+                          {/* <Chip label={getOrgLabel(u)} size="medium" variant="outlined" sx={{ fontWeight: 600, borderRadius: 2 }} /> */}
                         </Stack>
                       </Box>
                     </Stack>
@@ -715,9 +715,9 @@ const DashboardTeam = () => {
                                       variant="h6"
                                       sx={{
                                         fontWeight: 500,
-                                        color: "#1b3fcd",
+                                        color: "#125423",
                                         mb: 2,
-                                        borderLeft: "5px solid #1b3fcd",
+                                        borderLeft: "5px solid #125423",
                                         pl: 2,
                                       }}
                                     >

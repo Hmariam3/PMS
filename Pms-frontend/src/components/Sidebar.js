@@ -222,7 +222,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed }) =
           /> */}
           <Typography
             variant="h1"
-            sx={{ fontWeight: "bold", color: "#00AEEF", fontSize: "2rem" }}
+          sx={{ fontWeight: "bold", color: "#125423", fontSize: "2rem" }}
           >
             PMS
           </Typography>
@@ -247,13 +247,13 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed }) =
                   borderRadius: 1,
                   justifyContent: isCollapsed ? "center" : "flex-start",
                   "&.Mui-selected": {
-                    backgroundColor: theme.palette.info.main,
-                    color: theme.palette.common.white,
+                    backgroundColor: "#125423",
+                    color: "#ffffff",
                     "&:hover": {
-                      backgroundColor: theme.palette.info.dark,
+                      backgroundColor: "#0d3318",
                     },
                     "& .MuiListItemIcon-root": {
-                      color: theme.palette.common.white,
+                      color: "#ffffff",
                     },
                   },
                   "&:hover": {

@@ -82,7 +82,7 @@ const Navbar = ({ handleDrawerToggle, drawerWidth, isCollapsed, setIsCollapsed }
       elevation={2}
       sx={{
         zIndex: (theme) => theme.zIndex.drawer - 1,
-        backgroundColor: "#00AEEF",
+        backgroundColor: "#125423",
         width: isMobile ? "100%" : `calc(100% - ${drawerWidth}px)`,
         ml: isMobile ? 0 : `${drawerWidth}px`,
         transition: theme.transitions.create(["width", "margin"], {
