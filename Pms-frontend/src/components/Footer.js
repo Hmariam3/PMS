@@ -16,7 +16,7 @@ const Footer = ({ drawerWidth = 240 }) => {
       }}
     >
       <Typography variant="body2" color="text.secondary">
-        © {new Date().getFullYear()} PMS System. All Rights Reserved.
+        © {new Date().getFullYear()} PMS System.
       </Typography>
     </Box>
   );

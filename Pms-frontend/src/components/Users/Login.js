@@ -183,7 +183,7 @@ const Login = () => {
               border: "1px solid rgba(255, 255, 255, 0.3)",
             }}
           >
-            <Box
+            {/* <Box
               component="img"
               src={logo}
               alt="Logo"
@@ -194,7 +194,7 @@ const Login = () => {
                 mb: 3,
                 filter: "drop-shadow(0px 4px 4px rgba(0,0,0,0.1))",
               }}
-            />
+            /> */}
 
             <Typography
               component="h1"
@@ -326,7 +326,7 @@ const Login = () => {
                 sx={{ mt: 2 }}
               >
                 {"© "}
-                {new Date().getFullYear()} Cooperative Bank of Oromia
+                {new Date().getFullYear()} Demo-PMS-1.0.0
               </Typography>
             </Box>
           </Paper>

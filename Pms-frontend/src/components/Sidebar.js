@@ -82,12 +82,12 @@ const getNavLinks = (user) => {
 
 
   return [
-    {
-      text: "OKR Dashboard",
-      path: "/",
-      icon: <DashboardIcon />,
-      show: isHO || (isDistrict && isDirector) || isVPOrCHF,
-    },
+    // {
+    //   text: "OKR Dashboard",
+    //   path: "/",
+    //   icon: <DashboardIcon />,
+    //   show: isHO || (isDistrict && isDirector) || isVPOrCHF,
+    // },
     {
       text: "My Dashboard",
       path: "/mydashboard",
@@ -115,19 +115,19 @@ const getNavLinks = (user) => {
       ],
 
     },
-    {
-      text: "One Page OKR",
-      icon: <EmojiEventsIcon />,
-      show: isHO || (isDistrict && isDirector) || isAdmin || isVPOrCHF,
-      children: [
-        { text: "Objectives", path: "/onepageobjective", icon: <FlagIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
-        { text: "Key Result", path: "/keyresult", icon: <ChecklistIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
-        { text: "Priority List", path: "/prioritylist", icon: <ListAltIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
-        { text: "Business As Usual", path: "/bau", icon: <WorkIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
-        { text: "Quarter OKR", path: "/quarter-okr", icon: <PieChartIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
-        { text: "Engagement", path: "/engagement", icon: <PsychologyIcon />, show: isCRM || (isDistrict && isDirector) || isAdmin || isVPOrCHF || isIFB },
-      ],
-    },
+    // {
+    //   text: "One Page OKR",
+    //   icon: <EmojiEventsIcon />,
+    //   show: isHO || (isDistrict && isDirector) || isAdmin || isVPOrCHF,
+    //   children: [
+    //     { text: "Objectives", path: "/onepageobjective", icon: <FlagIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
+    //     { text: "Key Result", path: "/keyresult", icon: <ChecklistIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
+    //     { text: "Priority List", path: "/prioritylist", icon: <ListAltIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
+    //     { text: "Business As Usual", path: "/bau", icon: <WorkIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
+    //     { text: "Quarter OKR", path: "/quarter-okr", icon: <PieChartIcon />, show: isHO || (isDistrict && isDirector) || isVPOrCHF },
+    //     { text: "Engagement", path: "/engagement", icon: <PsychologyIcon />, show: isCRM || (isDistrict && isDirector) || isAdmin || isVPOrCHF || isIFB },
+    //   ],
+    // },
     {
       text: "Set Target",
       icon: <GpsFixedIcon />,
@@ -214,12 +214,12 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed }) =
             borderBottom: "1px solid #e2e8f0",
           }}
         >
-          <Box
+          {/* <Box
             component="img"
             src="/cooplogo.gif"
             alt="Logo"
             sx={{ height: 34, width: "auto" }}
-          />
+          /> */}
           <Typography
             variant="h1"
             sx={{ fontWeight: "bold", color: "#00AEEF", fontSize: "2rem" }}

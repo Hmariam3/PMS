@@ -131,12 +131,12 @@ const Navbar = ({ handleDrawerToggle, drawerWidth, isCollapsed, setIsCollapsed }
           {(isCollapsed || isMobile) && (
             <Fade in={isCollapsed || isMobile}>
               <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Box
+                {/* <Box
                   component="img"
                   src="/coplog.PNG"
                   alt="Logo"
                   sx={{ height: 40, width: "auto", mr: 1 }}
-                />
+                /> */}
                 <Typography
                   variant="h6"
                   noWrap

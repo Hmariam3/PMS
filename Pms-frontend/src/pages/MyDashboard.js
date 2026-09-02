@@ -639,22 +639,45 @@ const MyDashboard = () => {
               {/* Bank Motto */}
               <Box sx={{
                 flex: 1,
-                px: { xs: 1.5, md: 2.5 }, py: { xs: 1.5, md: 2 },
+                px: { xs: 1.5, md: 2.5 },
+                py: { xs: 1.5, md: 2 },
                 background: "rgba(255,255,255,0.1)",
                 backdropFilter: "blur(12px)",
-                display: "flex", flexDirection: "column", justifyContent: "center",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
                 borderBottom: "1px solid rgba(255,255,255,0.12)",
               }}>
-                <Typography fontWeight="800" sx={{
-                  color: "#fff", fontStyle: "italic",
-                  fontSize: { xs: "0.85rem", md: "1rem" },
-                  lineHeight: 1.35, textShadow: "0 2px 16px rgba(0,0,0,0.3)", mb: 0.75,
-                }}>
-                  "Empowering Communities,<br />Transforming Lives!"
+                <Typography
+                  fontWeight="800"
+                  sx={{
+                    color: "#fff",
+                    fontStyle: "italic",
+                    fontSize: { xs: "0.85rem", md: "1rem" },
+                    lineHeight: 1.35,
+                    textShadow: "0 2px 16px rgba(0,0,0,0.3)",
+                    mb: 0.75,
+                  }}
+                >
+                  "Businesses,<br />Futures!"
                 </Typography>
-                <Divider sx={{ borderColor: "rgba(255,255,255,0.15)", mb: 0.6 }} />
-                <Typography sx={{ color: "rgba(186,230,253,0.5)", fontWeight: 600, letterSpacing: 1.2, fontSize: "0.6rem" }}>
-                  Cooperative Bank of Oromia
+
+                <Divider
+                  sx={{
+                    borderColor: "rgba(255,255,255,0.15)",
+                    mb: 0.6,
+                  }}
+                />
+
+                <Typography
+                  sx={{
+                    color: "rgba(186,230,253,0.5)",
+                    fontWeight: 600,
+                    letterSpacing: 1.2,
+                    fontSize: "0.6rem",
+                  }}
+                >
+                  Demo Company
                 </Typography>
               </Box>
 
