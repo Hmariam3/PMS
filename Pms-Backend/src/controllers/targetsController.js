@@ -540,18 +540,28 @@ export const getLoanCollectionTargetByUser = async (req, res) => {
       position === "Senior Director"
     ) {
 
+
       query = `
         SELECT
           COALESCE(SUM(t.loan_collection),0) AS loan_collection
         FROM public.targets t
-        INNER JOIN public.users u
-          ON u.user_name = t.user_name
-        WHERE u.position = 'Manager'
-          AND u.subprocess = $1
+        WHERE t.user_name = $1
           AND t.status = 'Approved'
       `;
 
-      values = [subprocess];
+      values = [user_id];
+      // query = `
+      //   SELECT
+      //     COALESCE(SUM(t.loan_collection),0) AS loan_collection
+      //   FROM public.targets t
+      //   INNER JOIN public.users u
+      //     ON u.user_name = t.user_name
+      //   WHERE u.position = 'Manager'
+      //     AND u.subprocess = $1
+      //     AND t.status = 'Approved'
+      // `;
+
+      // values = [subprocess];
 
     }
 
@@ -560,19 +570,27 @@ export const getLoanCollectionTargetByUser = async (req, res) => {
       position === "VP" ||
       position === "CHF"
     ) {
-
       query = `
         SELECT
           COALESCE(SUM(t.loan_collection),0) AS loan_collection
         FROM public.targets t
-        INNER JOIN public.users u
-          ON u.user_name = t.user_name
-        WHERE u.position = 'Manager'
-          AND u.process = $1
+        WHERE t.user_name = $1
           AND t.status = 'Approved'
       `;
 
-      values = [process];
+      values = [user_id];
+      // query = `
+      //   SELECT
+      //     COALESCE(SUM(t.loan_collection),0) AS loan_collection
+      //   FROM public.targets t
+      //   INNER JOIN public.users u
+      //     ON u.user_name = t.user_name
+      //   WHERE u.position = 'Manager'
+      //     AND u.process = $1
+      //     AND t.status = 'Approved'
+      // `;
+
+      // values = [process];
 
     }
 
@@ -583,11 +601,20 @@ export const getLoanCollectionTargetByUser = async (req, res) => {
         SELECT
           COALESCE(SUM(t.loan_collection),0) AS loan_collection
         FROM public.targets t
-        INNER JOIN public.users u
-          ON u.user_name = t.user_name
-        WHERE u.position = 'Manager'
+        WHERE t.user_name = $1
           AND t.status = 'Approved'
       `;
+
+      values = [user_id];
+      // query = `
+      //   SELECT
+      //     COALESCE(SUM(t.loan_collection),0) AS loan_collection
+      //   FROM public.targets t
+      //   INNER JOIN public.users u
+      //     ON u.user_name = t.user_name
+      //   WHERE u.position = 'Manager'
+      //     AND t.status = 'Approved'
+      // `;
 
     }
 
@@ -738,73 +765,96 @@ export const getCashTargetsByUser = async (req, res) => {
     // VP / CHF
     else if (position === "VP" || position === "CHF") {
 
+      // query = `
+      //   SELECT
+
+      //   (
+      //     SELECT COALESCE(SUM(cash_collection), 0)
+      //     FROM (
+      //       SELECT DISTINCT ON (team)
+      //         team,
+      //         cash_collection
+      //       FROM public.targets
+      //       WHERE process = $1
+      //         AND status = 'Approved'
+      //         AND cash_collection > 0
+      //       ORDER BY team, created_at ASC
+      //     ) x
+      //   ) AS cash_collection,
+
+      //   (
+      //     SELECT COALESCE(SUM(michu_loan_collection), 0)
+      //     FROM (
+      //       SELECT DISTINCT ON (team)
+      //         team,
+      //         michu_loan_collection
+      //       FROM public.targets
+      //       WHERE process = $1
+      //         AND status = 'Approved'
+      //         AND michu_loan_collection > 0
+      //       ORDER BY team, created_at ASC
+      //     ) x
+      //   ) AS michu_loan_collection
+      // `;
+
+      // values = [process];
+
       query = `
         SELECT
-
-        (
-          SELECT COALESCE(SUM(cash_collection), 0)
-          FROM (
-            SELECT DISTINCT ON (team)
-              team,
-              cash_collection
-            FROM public.targets
-            WHERE process = $1
-              AND status = 'Approved'
-              AND cash_collection > 0
-            ORDER BY team, created_at ASC
-          ) x
-        ) AS cash_collection,
-
-        (
-          SELECT COALESCE(SUM(michu_loan_collection), 0)
-          FROM (
-            SELECT DISTINCT ON (team)
-              team,
-              michu_loan_collection
-            FROM public.targets
-            WHERE process = $1
-              AND status = 'Approved'
-              AND michu_loan_collection > 0
-            ORDER BY team, created_at ASC
-          ) x
-        ) AS michu_loan_collection
+          COALESCE(cash_collection, 0) AS cash_collection,
+          COALESCE(michu_loan_collection, 0) AS michu_loan_collection
+        FROM public.targets
+        WHERE user_name = $1
+          AND status = 'Approved'
+        LIMIT 1
       `;
 
-      values = [process];
+      values = [user_id];
     }
 
     // CEO
     else if (position === "CEO") {
 
+      // query = `
+      //   SELECT
+
+      //   (
+      //     SELECT COALESCE(SUM(cash_collection), 0)
+      //     FROM (
+      //       SELECT DISTINCT ON (team)
+      //         team,
+      //         cash_collection
+      //       FROM public.targets
+      //       WHERE status = 'Approved'
+      //         AND cash_collection > 0
+      //       ORDER BY team, created_at ASC
+      //     ) x
+      //   ) AS cash_collection,
+
+      //   (
+      //     SELECT COALESCE(SUM(michu_loan_collection), 0)
+      //     FROM (
+      //       SELECT DISTINCT ON (team)
+      //         team,
+      //         michu_loan_collection
+      //       FROM public.targets
+      //       WHERE status = 'Approved'
+      //         AND michu_loan_collection > 0
+      //       ORDER BY team, created_at ASC
+      //     ) x
+      //   ) AS michu_loan_collection
+      // `;
       query = `
         SELECT
-
-        (
-          SELECT COALESCE(SUM(cash_collection), 0)
-          FROM (
-            SELECT DISTINCT ON (team)
-              team,
-              cash_collection
-            FROM public.targets
-            WHERE status = 'Approved'
-              AND cash_collection > 0
-            ORDER BY team, created_at ASC
-          ) x
-        ) AS cash_collection,
-
-        (
-          SELECT COALESCE(SUM(michu_loan_collection), 0)
-          FROM (
-            SELECT DISTINCT ON (team)
-              team,
-              michu_loan_collection
-            FROM public.targets
-            WHERE status = 'Approved'
-              AND michu_loan_collection > 0
-            ORDER BY team, created_at ASC
-          ) x
-        ) AS michu_loan_collection
+          COALESCE(cash_collection, 0) AS cash_collection,
+          COALESCE(michu_loan_collection, 0) AS michu_loan_collection
+        FROM public.targets
+        WHERE user_name = $1
+          AND status = 'Approved'
+        LIMIT 1
       `;
+
+      values = [user_id];
     }
 
     else {
@@ -826,12 +876,12 @@ export const getCashTargetsByUser = async (req, res) => {
     }
 
     const cashCollection = Number(row.cash_collection) || 0;
-    const cashDepositedCRM = Number(row.michu_loan_collection) || 0;
+    const michuloanCollection = Number(row.michu_loan_collection) || 0;
 
     return res.status(200).json({
       cash_collection: cashCollection,
-      michu_loan_collection: cashDepositedCRM,
-      grand_total: cashCollection + cashDepositedCRM,
+      michu_loan_collection: michuloanCollection,
+      grand_total: cashCollection + michuloanCollection,
     });
 
   } catch (err) {

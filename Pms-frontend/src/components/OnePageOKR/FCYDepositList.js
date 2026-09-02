@@ -393,7 +393,7 @@ const FCYDepositList = () => {
                   <TextField fullWidth label="Reference" value={deposit.reference} onChange={(e) => setDeposit({ ...deposit, reference: e.target.value })} size="small" />
                 </Grid>
 
-                <Grid item xs={12}>
+                {/* <Grid item xs={12}>
                   <FormControlLabel
                     control={
                       <Checkbox
@@ -503,7 +503,7 @@ const FCYDepositList = () => {
                       />
                     </Grid>
                   </>
-                )}
+                )} */}
                 {/* <Grid item xs={12} sm={6}>
                   <TextField fullWidth label="Status" select value={deposit.status} onChange={(e) => setDeposit({...deposit, status: e.target.value})} size="small">
                     <MenuItem value="Pending">Pending</MenuItem>

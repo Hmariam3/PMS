@@ -82,6 +82,9 @@ const NonDepositTargetList = () => {
     customer_engagement: "",
     new_customer_onboarding: "",
     armingc_deposit_proportion: "",
+    gl: "",
+    coopapp_business_onboarding: "",
+    new_bill_payers_onboarding: "",
 
     user_name: user?.UserName || "",
     process: user?.process || "",
@@ -123,7 +126,7 @@ const NonDepositTargetList = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (["new_account", "unauthorized_transaction", "active_card_no", "eeu_transaction_count", "merchant_recruitment", "merchant_transaction_volume", "agent_recruitment", "agent_transaction_volume", "michu_unique_recruitment", "digital_transaction_volume", "coopay_ebirr_activation", "atm_crm_uptime_rate", "cash_balance_accuracy_rate", "pos_deployment", "avg_txn_per_cso", "compliance_rate", "reports_3days_rate", "audit_report_quality", "cash_surprise_checks", "employee_perf_threshold", "transaction_audit_rate", "gl", "customer_engagement", "new_customer_onboarding", "armingc_deposit_proportion"].includes(name)) {
+    if (["new_account", "unauthorized_transaction", "active_card_no", "eeu_transaction_count", "merchant_recruitment", "merchant_transaction_volume", "agent_recruitment", "agent_transaction_volume", "michu_unique_recruitment", "digital_transaction_volume", "coopay_ebirr_activation", "atm_crm_uptime_rate", "cash_balance_accuracy_rate", "pos_deployment", "avg_txn_per_cso", "compliance_rate", "reports_3days_rate", "audit_report_quality", "cash_surprise_checks", "employee_perf_threshold", "transaction_audit_rate", "gl", "customer_engagement", "new_customer_onboarding", "armingc_deposit_proportion", "coopapp_business_onboarding", "new_bill_payers_onboarding"].includes(name)) {
       if (!/^\d*\.?\d*$/.test(value)) return;
     }
     setTarget({ ...target, [name]: value });
@@ -173,6 +176,8 @@ const NonDepositTargetList = () => {
     if (!target.cash_surprise_checks) newErrors.cash_surprise_checks = "Required";
     if (!target.employee_perf_threshold) newErrors.employee_perf_threshold = "Required";
     if (!target.transaction_audit_rate) newErrors.transaction_audit_rate = "Required";
+    if (!target.coopapp_business_onboarding) newErrors.coopapp_business_onboarding = "Required";
+    if (!target.new_bill_payers_onboarding) newErrors.new_bill_payers_onboarding = "Required";
 
     if (target.active_card_no < 0) newErrors.active_card_no = "Target Must be Greater Than 0";
     if (target.eeu_transaction_count < 0) newErrors.eeu_transaction_count = "Target Must be Greater Than 0";
@@ -197,6 +202,8 @@ const NonDepositTargetList = () => {
     if (target.new_customer_onboarding < 0) newErrors.new_customer_onboarding = "Target Must be Greater Than 0";
     if (target.armingc_deposit_proportion < 0) newErrors.armingc_deposit_proportion = "Target Must be Greater Than 0";
     if (target.gl < 0) newErrors.gl = "Target Must be Greater Than 0";
+    if (target.coopapp_business_onboarding < 0) newErrors.coopapp_business_onboarding = "Target Must be Greater Than 0";
+    if (target.new_bill_payers_onboarding < 0) newErrors.new_bill_payers_onboarding = "Target Must be Greater Than 0";
     return newErrors;
   };
 
@@ -260,6 +267,8 @@ const NonDepositTargetList = () => {
       new_customer_onboarding: t.new_customer_onboarding || "",
       armingc_deposit_proportion: t.armingc_deposit_proportion || "",
       gl: t.gl || "",
+      coopapp_business_onboarding: t.coopapp_business_onboarding || "",
+      new_bill_payers_onboarding: t.new_bill_payers_onboarding || "",
       created_by: t.created_by || "",
       approved_by: t.approved_by || "",
       approved_at: t.approved_at || "",
@@ -333,6 +342,9 @@ const NonDepositTargetList = () => {
               customer_engagement: "",
               new_customer_onboarding: "",
               armingc_deposit_proportion: "",
+              gl: "",
+              coopapp_business_onboarding: "",
+              new_bill_payers_onboarding: "",
               created_by: user?.UserName || "",
               approved_by: "",
               approved_at: "",
@@ -378,6 +390,8 @@ const NonDepositTargetList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>New Customer Onboarding</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Arming C Deposit Proportion</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>GL</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Coopapp Business Onboarding</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>New Bill Payers Onboarding</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
                   Actions
@@ -413,6 +427,8 @@ const NonDepositTargetList = () => {
                   <TableCell>{t.new_customer_onboarding}</TableCell>
                   <TableCell>{t.armingc_deposit_proportion}</TableCell>
                   <TableCell>{t.gl}</TableCell>
+                  <TableCell>{t.coopapp_business_onboarding}</TableCell>
+                  <TableCell>{t.new_bill_payers_onboarding}</TableCell>
                   <TableCell>
                     <span
                       style={{
@@ -807,6 +823,32 @@ const NonDepositTargetList = () => {
                     onChange={handleChange}
                     error={!!errors.gl}
                     helperText={errors.gl}
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Coopapp Business Onboarding"
+                    name="coopapp_business_onboarding"
+                    type="number"
+                    value={target.coopapp_business_onboarding}
+                    onChange={handleChange}
+                    error={!!errors.coopapp_business_onboarding}
+                    helperText={errors.coopapp_business_onboarding}
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="New Bill Payers Onboarding"
+                    name="new_bill_payers_onboarding"
+                    type="number"
+                    value={target.new_bill_payers_onboarding}
+                    onChange={handleChange}
+                    error={!!errors.new_bill_payers_onboarding}
+                    helperText={errors.new_bill_payers_onboarding}
                     size="small"
                   />
                 </Grid>

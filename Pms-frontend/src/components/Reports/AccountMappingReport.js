@@ -129,6 +129,7 @@ const AccountMappingReport = () => {
         position: user.position,
         role: user.role,
         team: user.team,
+        title: user.title,
         subprocess: user.subprocess,
         process: user.process,
         organization: user.organization,
@@ -151,7 +152,7 @@ const AccountMappingReport = () => {
   }, [fetchReport]);
 
   const handleExport = async () => {
-    if (!user || user.role !== "Admin" || !district) return;
+    if (!user || !district) return;
     try {
       setExporting(true);
       const res = await axios.post(`${baseUrl}/reports/account-mapping`, {
@@ -159,6 +160,7 @@ const AccountMappingReport = () => {
         position: user.position,
         role: user.role,
         team: user.team,
+        title: user.title,
         subprocess: user.subprocess,
         process: user.process,
         organization: user.organization,
@@ -204,9 +206,9 @@ const AccountMappingReport = () => {
 
   // We add a few sample districts for the filter. This could be populated dynamically later.
   const districtOptions = [
-    "North", "South", "East", "West", "Central",
-    "Dire Dawa", "Jimma", "Hawassa", "Bahirdar", "Mekelle", "Chiro", "Asella",
-    "Shashemane", "Adama", "Nekemte", "Hosana", "Bale"
+    "North", "South", "East", "West",
+    "Dire Dawa", "Jimma", "Hawassa", "Bahir Dar", "Mekelle", "Chiro",
+    "Shashemane", "Adama", "Nekemte"
   ];
 
   return (
@@ -227,7 +229,7 @@ const AccountMappingReport = () => {
         </Box>
 
         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
-          {user?.role === "Admin" && district && (
+          {district && (
             <Button
               variant="contained"
               startIcon={exporting ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}

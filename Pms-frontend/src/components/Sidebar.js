@@ -77,7 +77,7 @@ const getNavLinks = (user) => {
   const isManager = position === "Manager";
   const isVPOrCHF = position.includes("VP") || position.includes("CHF");
   const isIFB = process === "Interest Free Banking";
-  const isCorporate = subprocess === "Corporate Banking" || subprocess === "NGO and Institutional Banking" || subprocess === "Cooperative Business" || subprocess === "Agri Business" || subprocess === "Product Director by Division";
+  const isCorporate = subprocess === "Corporate Banking" || subprocess === "NGO and Institutional Banking" || subprocess === "Cooperatives Business" || subprocess === "Agri Business" || subprocess === "Product Director by Division" || subprocess === "District Coordination and Support";
 
 
 
@@ -137,7 +137,7 @@ const getNavLinks = (user) => {
         { text: "FCY Account Mapping", path: "/fcyaccountmapping", icon: <CurrencyExchangeIcon />, show: isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
         { text: "FCY Generation", path: "/fcy-deposit", icon: <SavingsIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
         { text: "Loan Account Mapping", path: "/loanaccountmapping", icon: <AccountBalanceWalletIcon />, show: isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
-        { text: "District Mapping", path: "/districtmapping", icon: <MapIcon />, show: (isCRM && isIFB) || isAdmin || isIFB },
+        { text: "District Mapping", path: "/districtmapping", icon: <MapIcon />, show: (isCRM) || isAdmin },
         { text: "Financial Target", path: "/target", icon: <AccountBalanceIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
         { text: "Non Financial Target", path: "/nondeposittarget", icon: <TrackChangesIcon />, show: isBranch || isCRM || isAdmin || (isDistrict && isDirector) || isVPOrCHF || isIFB || isDo || isCorporate },
 
@@ -167,7 +167,7 @@ const getNavLinks = (user) => {
       show: true,
       children: [
         { text: "User Targets Report", path: "/reports/user-targets", icon: <AssessmentIcon />, show: true },
-        { text: "Account Mapping Report", path: "/reports/account-mapping", icon: <AssessmentIcon />, show: isAdmin },
+        { text: "Account Mapping Report", path: "/reports/account-mapping", icon: <AssessmentIcon />, show: isAdmin || isDo },
         { text: "Financial Achievement", path: "/reports/account-variation", icon: <AssessmentIcon />, show: isAdmin },
         { text: "FCY Deposit", path: "/reports/fcy-deposit", icon: <AssessmentIcon />, show: isAdmin },
         { text: "Evaluation Result Report", path: "/reports/evaluation-result", icon: <AssessmentIcon />, show: true },

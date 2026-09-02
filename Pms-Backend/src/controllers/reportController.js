@@ -5,11 +5,10 @@ import pool from "../db.js";
 // their financial target and non-financial target rows.
 // Users with no targets still appear with null target columns.
 export const getUserTargetsReport = async (req, res) => {
-  const { user_id, position, role, team, subprocess, process, organization } = req.body;
+  const { user_id, position, role, team, title, subprocess, process, organization } = req.body;
   if (!user_id || !position) {
     return res.status(400).json({ error: "user_id and position are required" });
   }
-
   try {
     const isAdmin = role === "Admin";
 
@@ -69,6 +68,8 @@ export const getUserTargetsReport = async (req, res) => {
         ndt.new_customer_onboarding,
         ndt.armingc_deposit_proportion,
         ndt.gl,
+        ndt.coopapp_business_onboarding,
+        ndt.new_bill_payers_onboarding,
         ndt.status           AS nonfin_status,
         ndt.created_by       AS nonfin_created_by,
         ndt.approved_by      AS nonfin_approved_by
@@ -89,7 +90,7 @@ export const getUserTargetsReport = async (req, res) => {
     } else if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       whereClause = `WHERE u.user_name = $1`;
       values = [user_id];
-    } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
+    } else if (position === "Director" || position === "Senior Director" || ((title?.includes("Human Capital Business Partner") || title?.includes("Employee Performance Management Officer")) && organization === "Do")) {
       whereClause = `WHERE u.subprocess = $1`;
       values = [subprocess];
     } else if (position === "Manager") {
@@ -120,7 +121,7 @@ export const getUserTargetsReport = async (req, res) => {
 export const getAccountMappingReport = async (req, res) => {
   try {
     const {
-      user_id, position, role, team, subprocess, process, organization,
+      user_id, position, role, team, title, subprocess, process, organization,
       page = 0, limit = 10, searchTerm = "", district = "", isExport = false
     } = req.body;
 
@@ -130,9 +131,7 @@ export const getAccountMappingReport = async (req, res) => {
 
     const isAdmin = role === "Admin";
 
-    if (isExport && !isAdmin) {
-      return res.status(403).json({ error: "Export is only allowed for Admin" });
-    }
+
     if (isExport && !district) {
       return res.status(400).json({ error: "Export requires filtering by a specific district" });
     }
@@ -149,7 +148,7 @@ export const getAccountMappingReport = async (req, res) => {
       if (position === "CRM" || position === "Individual" || position === "Area Manager") {
         conditions.push(`u.user_name = $${paramIndex++}`);
         values.push(user_id);
-      } else if (position === "Director" || position === "Senior Director" || ((team?.includes("Human Capital Business Partner") || team?.includes("Strategy Implementation and Monitoring")) && organization === "Do")) {
+      } else if (position === "Director" || position === "Senior Director" || ((title?.includes("Human Capital Business Partner") || title?.includes("Employee Performance Management Officer")) && organization === "Do")) {
         conditions.push(`u.subprocess = $${paramIndex++}`);
         values.push(subprocess);
       } else if (position === "Manager") {

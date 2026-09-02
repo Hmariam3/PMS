@@ -211,9 +211,9 @@ const EvaluationResultReport = () => {
   };
 
   const districtOptions = [
-    "North", "South", "East", "West", "Central",
-    "Dire Dawa", "Jimma", "Hawassa", "Bahirdar", "Mekelle", "Chiro", "Asella",
-    "Shashemane", "Adama", "Nekemte", "Hosana", "Bale"
+    "North", "South", "East", "West",
+    "Dire Dawa", "Jimma", "Hawassa", "Bahir Dar", "Mekelle", "Chiro",
+    "Shashemane", "Adama", "Nekemte"
   ];
 
   return (

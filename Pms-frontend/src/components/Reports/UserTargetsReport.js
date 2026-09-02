@@ -79,6 +79,8 @@ const NONFIN_COLS = [
   { key: "new_customer_onboarding", label: "New Customer Onboarding" },
   { key: "armingc_deposit_proportion", label: "ARMINGC Deposit Prop." },
   { key: "gl", label: "GL" },
+  { key: "coopapp_business_onboarding", label: "Coopapp Business Onboarding" },
+  { key: "new_bill_payers_onboarding", label: "New Bill Payers Onboarding" },
   { key: "nonfin_status", label: "Status" },
 ];
 
@@ -251,6 +253,7 @@ const UserTargetsReport = () => {
           position: user?.position,
           role: user?.role,
           team: user?.team,
+          title: user?.title,
           subprocess: user?.subprocess,
           process: user?.process,
           organization: user?.organization,

@@ -20,6 +20,8 @@ export const getAllNonDepositTargets = async (req, res) => {
         new_customer_onboarding,
         armingc_deposit_proportion,
         gl,
+        coopapp_business_onboarding,
+        new_bill_payers_onboarding
       FROM public.non_deposit_target
       ORDER BY target_id`,
     );
@@ -52,6 +54,8 @@ export const getNonDepositTargetById = async (req, res) => {
         new_customer_onboarding,
         armingc_deposit_proportion,
         gl,
+        coopapp_business_onboarding,
+        new_bill_payers_onboarding
       FROM public.non_deposit_target
       WHERE target_id = $1`,
       [id],
@@ -99,6 +103,8 @@ export const createNonDepositTarget = async (req, res) => {
     new_customer_onboarding,
     armingc_deposit_proportion,
     gl,
+    coopapp_business_onboarding,
+    new_bill_payers_onboarding,
 
     process,
     subprocess,
@@ -150,6 +156,8 @@ export const createNonDepositTarget = async (req, res) => {
         new_customer_onboarding,
         armingc_deposit_proportion,
         gl,
+        coopapp_business_onboarding,
+        new_bill_payers_onboarding,
 
         process,
         subprocess,
@@ -161,7 +169,8 @@ export const createNonDepositTarget = async (req, res) => {
         $1,$2,$3,$4,$5,
         $6,$7,$8,$9,$10,$11,$12,$13,
         $14,$15,$16,$17,$18,$19,$20,$21,$22,
-        $23,$24,$25,$26,$27,$28,$29,$30,$31
+        $23,$24,$25,$26,$27,$28,
+        $29,$30,$31,$32,$33
       )
       RETURNING *`,
       [
@@ -193,6 +202,8 @@ export const createNonDepositTarget = async (req, res) => {
         new_customer_onboarding || 0,
         armingc_deposit_proportion || 0,
         gl || 0,
+        coopapp_business_onboarding || 0,
+        new_bill_payers_onboarding || 0,
 
         process || null,
         subprocess || null,
@@ -243,6 +254,8 @@ export const updateNonDepositTarget = async (req, res) => {
     new_customer_onboarding,
     armingc_deposit_proportion,
     gl,
+    coopapp_business_onboarding,
+    new_bill_payers_onboarding,
 
     process,
     subprocess,
@@ -282,13 +295,15 @@ export const updateNonDepositTarget = async (req, res) => {
         new_customer_onboarding = $24,
         armingc_deposit_proportion = $25,
         gl = $26,
+        coopapp_business_onboarding = $27,
+        new_bill_payers_onboarding = $28,
 
-        process = $27,
-        subprocess = $28,
-        team = $29,
-        status = $30
+        process = $29,
+        subprocess = $30,
+        team = $31,
+        status = $32
 
-       WHERE target_id = $31
+       WHERE target_id = $33
        RETURNING *`,
       [
         user_name,
@@ -319,6 +334,8 @@ export const updateNonDepositTarget = async (req, res) => {
         new_customer_onboarding || 0,
         armingc_deposit_proportion || 0,
         gl || 0,
+        coopapp_business_onboarding || 0,
+        new_bill_payers_onboarding || 0,
 
         process || null,
         subprocess || null,
@@ -544,7 +561,9 @@ export const getNonDepositSummaryByUser = async (req, res) => {
         SUM(customer_engagement) AS customer_engagement,
         SUM(new_customer_onboarding) AS new_customer_onboarding,
         SUM(armingc_deposit_proportion) AS armingc_deposit_proportion,
-        SUM(gl) AS gl
+        SUM(gl) AS gl,
+        SUM(coopapp_business_onboarding) AS coopapp_business_onboarding,
+        SUM(new_bill_payers_onboarding) AS new_bill_payers_onboarding
 
       FROM public.non_deposit_target where status = 'Approved'
     `;
@@ -593,6 +612,8 @@ export const getNonDepositSummaryByUser = async (req, res) => {
       new_customer_onboarding: row.new_customer_onboarding || 0,
       armingc_deposit_proportion: row.armingc_deposit_proportion || 0,
       gl: row.gl || 0,
+      coopapp_business_onboarding: row.coopapp_business_onboarding || 0,
+      new_bill_payers_onboarding: row.new_bill_payers_onboarding || 0,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -774,127 +795,154 @@ export const getNonDepositATMEEUDigitalByUser = async (req, res) => {
     // VP / CHF
     else if (position === "VP" || position === "CHF") {
 
+      // query = `
+      //   SELECT
+
+      //     (
+      //       SELECT COALESCE(SUM(eeu_transaction_count),0)
+      //       FROM (
+      //         SELECT DISTINCT ON (team)
+      //           team,
+      //           eeu_transaction_count
+      //         FROM public.non_deposit_target
+      //         WHERE process = $1
+      //           AND status='Approved'
+      //           AND eeu_transaction_count > 0
+      //         ORDER BY team, created_at
+      //       ) x
+      //     ) AS eeu_transaction,
+
+      //     (
+      //       SELECT COALESCE(SUM(digital_transaction_volume),0)
+      //       FROM (
+      //         SELECT DISTINCT ON (team)
+      //           team,
+      //           digital_transaction_volume
+      //         FROM public.non_deposit_target
+      //         WHERE process = $1
+      //           AND status='Approved'
+      //           AND digital_transaction_volume > 0
+      //         ORDER BY team, created_at
+      //       ) x
+      //     ) AS digital_transaction_volume,
+
+      //     (
+      //       SELECT COALESCE(SUM(atm_crm_uptime_rate),0)
+      //       FROM (
+      //         SELECT DISTINCT ON (team)
+      //           team,
+      //           atm_crm_uptime_rate
+      //         FROM public.non_deposit_target
+      //         WHERE process = $1
+      //           AND status='Approved'
+      //           AND atm_crm_uptime_rate > 0
+      //         ORDER BY team, created_at
+      //       ) x
+      //     ) AS atm_crm_uptime_rate, 
+
+      //     (
+      //       SELECT COALESCE(SUM(employee_perf_threshold),0)
+      //       FROM (
+      //         SELECT DISTINCT ON (team)
+      //           team,
+      //           employee_perf_threshold
+      //         FROM public.non_deposit_target
+      //         WHERE process = $1
+      //           AND status='Approved'
+      //           AND employee_perf_threshold > 0
+      //         ORDER BY team, created_at
+      //       ) x
+      //     ) AS employee_perf_threshold
+      // `;
+
+      // values = [process];
+
       query = `
         SELECT
-
-          (
-            SELECT COALESCE(SUM(eeu_transaction_count),0)
-            FROM (
-              SELECT DISTINCT ON (team)
-                team,
-                eeu_transaction_count
-              FROM public.non_deposit_target
-              WHERE process = $1
-                AND status='Approved'
-                AND eeu_transaction_count > 0
-              ORDER BY team, created_at
-            ) x
-          ) AS eeu_transaction,
-
-          (
-            SELECT COALESCE(SUM(digital_transaction_volume),0)
-            FROM (
-              SELECT DISTINCT ON (team)
-                team,
-                digital_transaction_volume
-              FROM public.non_deposit_target
-              WHERE process = $1
-                AND status='Approved'
-                AND digital_transaction_volume > 0
-              ORDER BY team, created_at
-            ) x
-          ) AS digital_transaction_volume,
-
-          (
-            SELECT COALESCE(SUM(atm_crm_uptime_rate),0)
-            FROM (
-              SELECT DISTINCT ON (team)
-                team,
-                atm_crm_uptime_rate
-              FROM public.non_deposit_target
-              WHERE process = $1
-                AND status='Approved'
-                AND atm_crm_uptime_rate > 0
-              ORDER BY team, created_at
-            ) x
-          ) AS atm_crm_uptime_rate, 
-
-          (
-            SELECT COALESCE(SUM(employee_perf_threshold),0)
-            FROM (
-              SELECT DISTINCT ON (team)
-                team,
-                employee_perf_threshold
-              FROM public.non_deposit_target
-              WHERE process = $1
-                AND status='Approved'
-                AND employee_perf_threshold > 0
-              ORDER BY team, created_at
-            ) x
-          ) AS employee_perf_threshold
+          COALESCE(eeu_transaction_count,0) AS eeu_transaction,
+          COALESCE(digital_transaction_volume,0) AS digital_transaction_volume,
+          COALESCE(atm_crm_uptime_rate,0) AS atm_crm_uptime_rate,
+          COALESCE(employee_perf_threshold,0) AS employee_perf_threshold
+        FROM public.non_deposit_target
+        WHERE user_name = $1
+          AND status = 'Approved'
+        LIMIT 1
       `;
 
-      values = [process];
+      values = [user_id];
     }
 
     // CEO
     else if (position === "CEO") {
 
+      // query = `
+      //   SELECT
+
+      //     (
+      //       SELECT COALESCE(SUM(eeu_transaction_count),0)
+      //       FROM (
+      //         SELECT DISTINCT ON (team)
+      //           team,
+      //           eeu_transaction_count
+      //         FROM public.non_deposit_target
+      //         WHERE status='Approved'
+      //           AND eeu_transaction_count > 0
+      //         ORDER BY team, created_at
+      //       ) x
+      //     ) AS eeu_transaction,
+
+      //     (
+      //       SELECT COALESCE(SUM(digital_transaction_volume),0)
+      //       FROM (
+      //         SELECT DISTINCT ON (team)
+      //           team,
+      //           digital_transaction_volume
+      //         FROM public.non_deposit_target
+      //         WHERE status='Approved'
+      //           AND digital_transaction_volume > 0
+      //         ORDER BY team, created_at
+      //       ) x
+      //     ) AS digital_transaction_volume,
+
+      //     (
+      //       SELECT COALESCE(SUM(atm_crm_uptime_rate),0)
+      //       FROM (
+      //         SELECT DISTINCT ON (team)
+      //           team,
+      //           atm_crm_uptime_rate
+      //         FROM public.non_deposit_target
+      //         WHERE status='Approved'
+      //           AND atm_crm_uptime_rate > 0
+      //         ORDER BY team, created_at
+      //       ) x
+      //     ) AS atm_crm_uptime_rate,
+
+      //     (
+      //       SELECT COALESCE(SUM(employee_perf_threshold),0)
+      //       FROM (
+      //         SELECT DISTINCT ON (team)
+      //           team,
+      //           employee_perf_threshold
+      //         FROM public.non_deposit_target
+      //         WHERE status='Approved'
+      //           AND employee_perf_threshold > 0
+      //         ORDER BY team, created_at
+      //       ) x
+      //     ) AS employee_perf_threshold
+      // `;
       query = `
         SELECT
-
-          (
-            SELECT COALESCE(SUM(eeu_transaction_count),0)
-            FROM (
-              SELECT DISTINCT ON (team)
-                team,
-                eeu_transaction_count
-              FROM public.non_deposit_target
-              WHERE status='Approved'
-                AND eeu_transaction_count > 0
-              ORDER BY team, created_at
-            ) x
-          ) AS eeu_transaction,
-
-          (
-            SELECT COALESCE(SUM(digital_transaction_volume),0)
-            FROM (
-              SELECT DISTINCT ON (team)
-                team,
-                digital_transaction_volume
-              FROM public.non_deposit_target
-              WHERE status='Approved'
-                AND digital_transaction_volume > 0
-              ORDER BY team, created_at
-            ) x
-          ) AS digital_transaction_volume,
-
-          (
-            SELECT COALESCE(SUM(atm_crm_uptime_rate),0)
-            FROM (
-              SELECT DISTINCT ON (team)
-                team,
-                atm_crm_uptime_rate
-              FROM public.non_deposit_target
-              WHERE status='Approved'
-                AND atm_crm_uptime_rate > 0
-              ORDER BY team, created_at
-            ) x
-          ) AS atm_crm_uptime_rate,
-
-          (
-            SELECT COALESCE(SUM(employee_perf_threshold),0)
-            FROM (
-              SELECT DISTINCT ON (team)
-                team,
-                employee_perf_threshold
-              FROM public.non_deposit_target
-              WHERE status='Approved'
-                AND employee_perf_threshold > 0
-              ORDER BY team, created_at
-            ) x
-          ) AS employee_perf_threshold
+          COALESCE(eeu_transaction_count,0) AS eeu_transaction,
+          COALESCE(digital_transaction_volume,0) AS digital_transaction_volume,
+          COALESCE(atm_crm_uptime_rate,0) AS atm_crm_uptime_rate,
+          COALESCE(employee_perf_threshold,0) AS employee_perf_threshold
+        FROM public.non_deposit_target
+        WHERE user_name = $1
+          AND status = 'Approved'
+        LIMIT 1
       `;
+
+      values = [user_id];
     }
 
     else {

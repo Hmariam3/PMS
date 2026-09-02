@@ -209,7 +209,9 @@ const LoanAccountMappingList = () => {
       fetchMappings();
       handleClose();
     } catch (err) {
-      toast.error("Operation failed");
+      toast.error(
+        err.response?.data?.message || "Operation failed"
+      );
     } finally {
       setLoading(false);
     }

@@ -305,7 +305,8 @@ export const deleteAccountMapping = async (req, res) => {
 
 //  Get balance difference by user role
 export const getBalanceDifferenceByUser = async (req, res) => {
-  const { user_id, position, team, subprocess, process, organization } = req.body;
+  const { user_id, position, team, title, subprocess, process, organization } = req.body;
+
   if (!user_id || !position) {
     return res.status(400).json({
       error: "User ID and position are required",
@@ -317,7 +318,7 @@ export const getBalanceDifferenceByUser = async (req, res) => {
     let fcyQuery;
     let values;
 
-    if (position === "CRM" || position === "Individual") {
+    if (position === "CRM" || position === "Individual" || title.toLowerCase().includes("manager operation management")) {
       query = `
         SELECT 
           SUM(COALESCE(current_balance, 0)) - 

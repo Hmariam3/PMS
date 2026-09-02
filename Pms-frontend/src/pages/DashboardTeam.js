@@ -86,6 +86,7 @@ const DashboardTeam = () => {
       user_id: singleUser.user_name,
       user_name: singleUser.user_name,
       position: singleUser.position,
+      title: singleUser.title,
       process: singleUser.process || null,
       subprocess: singleUser.subprocess || null,
       team: singleUser.team || null,
@@ -188,7 +189,7 @@ const DashboardTeam = () => {
       } else {
         try {
           if (
-            singleUser.position === "Manager" &&
+            (singleUser.title === "Branch Manager I" || singleUser.title === "Branch Manager II" || singleUser.title === "Branch Manager III" || singleUser.title === "Branch Manager IV") &&
             singleUser.organization === "Branch"
           ) {
             const BranchManageraccountRes = await axios.post(
