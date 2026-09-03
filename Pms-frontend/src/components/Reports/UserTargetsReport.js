@@ -49,7 +49,7 @@ const FIN_COLS = [
   { key: "fcy_target", label: "FCY Target" },
   { key: "loan_collection", label: "Loan Collection" },
   { key: "cash_collection", label: "Cash Collection" },
-  { key: "michu_loan_collection", label: "Michu Loan Collection" },
+  // { key: "michu_loan_collection", label: "Michu Loan Collection" },
   { key: "fin_status", label: "Status" },
 ];
 
@@ -62,9 +62,9 @@ const NONFIN_COLS = [
   { key: "merchant_transaction_volume", label: "Merchant Txn Vol" },
   { key: "agent_recruitment", label: "Agent Recruitment" },
   { key: "agent_transaction_volume", label: "Agent Txn Vol" },
-  { key: "michu_unique_recruitment", label: "Michu Unique Rec." },
+  // { key: "michu_unique_recruitment", label: "Michu Unique Rec." },
   { key: "digital_transaction_volume", label: "Digital Txn Vol" },
-  { key: "coopay_ebirr_activation", label: "CooPay/eBirr Activation" },
+  // { key: "coopay_ebirr_activation", label: "CooPay/eBirr Activation" },
   { key: "atm_crm_uptime_rate", label: "ATM/CRM Uptime %" },
   { key: "cash_balance_accuracy_rate", label: "Cash Balance Acc. %" },
   { key: "pos_deployment", label: "Pos Deployment" },
@@ -79,7 +79,7 @@ const NONFIN_COLS = [
   { key: "new_customer_onboarding", label: "New Customer Onboarding" },
   { key: "armingc_deposit_proportion", label: "ARMINGC Deposit Prop." },
   { key: "gl", label: "GL" },
-  { key: "coopapp_business_onboarding", label: "Coopapp Business Onboarding" },
+  // { key: "coopapp_business_onboarding", label: "Coopapp Business Onboarding" },
   { key: "new_bill_payers_onboarding", label: "New Bill Payers Onboarding" },
   { key: "nonfin_status", label: "Status" },
 ];

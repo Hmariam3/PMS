@@ -373,9 +373,9 @@ const NonDepositTargetList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Merchant Transaction Volume</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Agent Recruitment</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Agent Transaction Volume</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Michu Unique Recruitment</TableCell>
+                {/* <TableCell sx={{ fontWeight: 600 }}>Michu Unique Recruitment</TableCell> */}
                 <TableCell sx={{ fontWeight: 600 }}>Digital Transaction Volume</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Coopay E-Birr Activation</TableCell>
+                {/* <TableCell sx={{ fontWeight: 600 }}>Coopay E-Birr Activation</TableCell> */}
                 <TableCell sx={{ fontWeight: 600 }}>ATM CRM Uptime Rate</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Cash Balance Accuracy Rate</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Pos Deployment</TableCell>
@@ -390,7 +390,7 @@ const NonDepositTargetList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>New Customer Onboarding</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Arming C Deposit Proportion</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>GL</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Coopapp Business Onboarding</TableCell>
+                {/* <TableCell sx={{ fontWeight: 600 }}>Coopapp Business Onboarding</TableCell> */}
                 <TableCell sx={{ fontWeight: 600 }}>New Bill Payers Onboarding</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
@@ -410,9 +410,9 @@ const NonDepositTargetList = () => {
                   <TableCell>{t.merchant_transaction_volume}</TableCell>
                   <TableCell>{t.agent_recruitment}</TableCell>
                   <TableCell>{t.agent_transaction_volume}</TableCell>
-                  <TableCell>{t.michu_unique_recruitment}</TableCell>
+                  {/* <TableCell>{t.michu_unique_recruitment}</TableCell> */}
                   <TableCell>{t.digital_transaction_volume}</TableCell>
-                  <TableCell>{t.coopay_ebirr_activation}</TableCell>
+                  {/* <TableCell>{t.coopay_ebirr_activation}</TableCell> */}
                   <TableCell>{t.atm_crm_uptime_rate}</TableCell>
                   <TableCell>{t.cash_balance_accuracy_rate}</TableCell>
                   <TableCell>{t.pos_deployment}</TableCell>
@@ -427,7 +427,7 @@ const NonDepositTargetList = () => {
                   <TableCell>{t.new_customer_onboarding}</TableCell>
                   <TableCell>{t.armingc_deposit_proportion}</TableCell>
                   <TableCell>{t.gl}</TableCell>
-                  <TableCell>{t.coopapp_business_onboarding}</TableCell>
+                  {/* <TableCell>{t.coopapp_business_onboarding}</TableCell> */}
                   <TableCell>{t.new_bill_payers_onboarding}</TableCell>
                   <TableCell>
                     <span
@@ -605,7 +605,7 @@ const NonDepositTargetList = () => {
                     size="small"
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                {/* <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Michu Unique Recruitment"
@@ -617,7 +617,7 @@ const NonDepositTargetList = () => {
                     helperText={errors.michu_unique_recruitment}
                     size="small"
                   />
-                </Grid>
+                </Grid> */}
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
@@ -631,7 +631,7 @@ const NonDepositTargetList = () => {
                     size="small"
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                {/* <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Coopay/EBirr Activation"
@@ -643,7 +643,7 @@ const NonDepositTargetList = () => {
                     helperText={errors.coopay_ebirr_activation}
                     size="small"
                   />
-                </Grid>
+                </Grid> */}
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
@@ -826,7 +826,7 @@ const NonDepositTargetList = () => {
                     size="small"
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
+                {/* <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Coopapp Business Onboarding"
@@ -838,7 +838,7 @@ const NonDepositTargetList = () => {
                     helperText={errors.coopapp_business_onboarding}
                     size="small"
                   />
-                </Grid>
+                </Grid> */}
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
