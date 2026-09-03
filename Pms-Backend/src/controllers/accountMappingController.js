@@ -318,7 +318,7 @@ export const getBalanceDifferenceByUser = async (req, res) => {
     let fcyQuery;
     let values;
 
-    if (position === "CRM" || position === "Individual" || title.toLowerCase().includes("manager operation management")) {
+    if (position === "CRM" || position === "Individual" || title?.toLowerCase().includes("manager operation management")) {
       query = `
         SELECT 
           SUM(COALESCE(current_balance, 0)) - 
