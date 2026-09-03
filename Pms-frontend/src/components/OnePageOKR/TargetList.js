@@ -253,7 +253,7 @@ const TargetList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>FCY Target</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Loan Collection</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Cash Collection</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Michu Loan Collection</TableCell>
+                {/* <TableCell sx={{ fontWeight: 600 }}>Michu Loan Collection</TableCell> */}
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Created Date</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
@@ -270,7 +270,7 @@ const TargetList = () => {
                   <TableCell>{Number(t.fcy_target).toLocaleString()}</TableCell>
                   <TableCell>{Number(t.loan_collection).toLocaleString()}</TableCell>
                   <TableCell>{Number(t.cash_collection).toLocaleString()}</TableCell>
-                  <TableCell>{Number(t.michu_loan_collection).toLocaleString()}</TableCell>
+                  {/* <TableCell>{Number(t.michu_loan_collection).toLocaleString()}</TableCell> */}
                   <TableCell>
                     <span
                       style={{
@@ -386,7 +386,7 @@ const TargetList = () => {
                   type="number"
                   required
                 />
-                <TextField
+                {/* <TextField
                   fullWidth
                   label="Michu Loan Collection"
                   name="michu_loan_collection"
@@ -396,7 +396,7 @@ const TargetList = () => {
                   helperText={errors.michu_loan_collection}
                   type="number"
                   required
-                />
+                /> */}
                 <TextField
                   fullWidth
                   label="Assigned To"

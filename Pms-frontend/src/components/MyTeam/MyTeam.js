@@ -96,7 +96,7 @@ const MyTeam = () => {
     }
   }, [team]);
 
-  const isMappingOpen = process.env.REACT_APP_IS_MAPPING_OPEN !== 'true';
+  const isMappingOpen = process.env.REACT_APP_IS_MAPPING_OPEN !== 'false';
 
   const handleEvaluate = (member) => {
     if (!isMappingOpen) {
