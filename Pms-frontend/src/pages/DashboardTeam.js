@@ -189,7 +189,7 @@ const DashboardTeam = () => {
       } else {
         try {
           if (
-            (singleUser.title === "Branch Manager I" || singleUser.title === "Branch Manager II" || singleUser.title === "Branch Manager III" || singleUser.title === "Branch Manager IV") &&
+            (singleUser.title === "Branch Manager I" || singleUser.title === "Branch Manager II" || singleUser.title === "Branch Manager III" || singleUser.title === "Branch Manager IV" || (singleUser.title?.includes('Manager Operation Management') && singleUser.team?.includes('Eco'))) &&
             singleUser.organization === "Branch"
           ) {
             const BranchManageraccountRes = await axios.post(
@@ -229,10 +229,7 @@ const DashboardTeam = () => {
         `${baseUrl}/fcy/fcyBalanceDifference`,
         requestData
       );
-      let fcyResMapped = await axios.post(
-        `${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`,
-        requestData
-      );
+
 
       let loanRes = 0;
       if (singleUser.process === "Interest Free Banking" || singleUser.process === "Agri and Cooperative Business" || (singleUser.process === "Growth and Operations" && singleUser.organization === "Ho")) {
@@ -303,9 +300,37 @@ const DashboardTeam = () => {
       const expectedLoan = (daysPassed / 90) * totalLoanTarget;
 
 
-      let totalfcy =
-        // Number(fcyRes.data.total_difference || 0) +
-        Number(fcyResMapped.data.total_difference || 0);
+
+      // let fcyResMapped = await axios.post(
+      //   `${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`,
+      //   requestData
+      // );
+
+      // let totalfcy =
+      //   // Number(fcyRes.data.total_difference || 0) +
+      //   Number(fcyResMapped.data.total_difference || 0);
+
+
+
+      let totalfcy = 0;
+      if (
+        (singleUser.title === "Branch Manager I" || singleUser.title === "Branch Manager II" || singleUser.title === "Branch Manager III" || singleUser.title === "Branch Manager IV" || (singleUser.title?.includes('Manager Operation Management') && singleUser.team?.includes('Eco'))) &&
+        singleUser.organization === "Branch") {
+        const BranchManageraccountRes = await axios.post(
+          `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
+          requestData
+        );
+        totalfcy = Number(BranchManageraccountRes.data.fcy) || 0;
+      } else if ((requestData.position === 'Director' || requestData.position === 'Senior Director') && requestData.organization === 'Do') {
+        const DistrictDirectoraccountRes = await axios.post(
+          `${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`,
+          requestData
+        );
+        totalfcy = Number(DistrictDirectoraccountRes.data.fcy) || 0;
+      } else {
+        const fcyResMapped = await axios.post(`${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`, requestData);
+        totalfcy = Number(fcyResMapped.data.total_difference) || 0;
+      }
 
       // calculate current achivement rate
       const achievementDeposit = expectedDeposit > 0 ? (totalBalance / expectedDeposit) * 100 : 0;

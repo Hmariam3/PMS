@@ -109,7 +109,7 @@ const PerformanceMetricList = ({ member }) => {
       company_code: userinfo.company_code,
       organization: userinfo.organization,
     };
-    console.log("requestData", requestData);
+    // console.log("requestData", requestData);
     try {
       const targetRes = await axios.post(
         `${baseUrl}/targets/TargetsSummary/`,
@@ -178,7 +178,7 @@ const PerformanceMetricList = ({ member }) => {
 
           let accountBalance = 0;
 
-          if ((requestData.title === 'Branch Manager I' || requestData.title === 'Branch Manager II' || requestData.title === 'Branch Manager III' || requestData.title === 'Branch Manager IV') && requestData.organization === 'Branch') {
+          if ((requestData.title === 'Branch Manager I' || requestData.title === 'Branch Manager II' || requestData.title === 'Branch Manager III' || requestData.title === 'Branch Manager IV' || (requestData.title?.includes('Manager Operation Management') && requestData.team?.includes('Eco'))) && requestData.organization === 'Branch') {
             const BranchManageraccountRes = await axios.post(
               `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
               requestData
@@ -210,7 +210,7 @@ const PerformanceMetricList = ({ member }) => {
           // const fcyRes = await axios.post(`${baseUrl}/fcy/fcyBalanceDifference`, requestData);
           // return { actual: Number(fcyRes.data.total_difference) || 0, target: totalFcyTarget };
           let fcyBalance = 0;
-          if ((requestData.title === 'Branch Manager I' || requestData.title === 'Branch Manager II' || requestData.title === 'Branch Manager III' || requestData.title === 'Branch Manager IV') && requestData.organization === 'Branch') {
+          if ((requestData.title === 'Branch Manager I' || requestData.title === 'Branch Manager II' || requestData.title === 'Branch Manager III' || requestData.title === 'Branch Manager IV' || (requestData.title?.includes('Manager Operation Management') && requestData.team?.includes('Eco'))) && requestData.organization === 'Branch') {
             const BranchManageraccountRes = await axios.post(
               `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,
               requestData

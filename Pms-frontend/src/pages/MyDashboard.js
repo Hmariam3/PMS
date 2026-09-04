@@ -88,6 +88,8 @@ const MyDashboard = () => {
 
   // Exactly mirrors PerformanceMetricList.js fetchDataforsystemcalculate
   const fetchSystemData = async (type, requestData, targetsCache) => {
+
+    // console.log("requestData", requestData);
     try {
       const {
         targetRes, LoantargetRes, cashTargetRes,
@@ -131,14 +133,14 @@ const MyDashboard = () => {
 
       if (type === "deposit" && totalDeposit > 0) {
         let accountBalance = 0;
-        if (requestData.position === "Manager" && requestData.organization === "Branch") {
-          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`, requestData);
+        if ((requestData.title === 'Branch Manager I' || requestData.title === 'Branch Manager II' || requestData.title === 'Branch Manager III' || requestData.title === 'Branch Manager IV' || (requestData.title?.includes('Manager Operation Management') && requestData.team?.includes('Eco'))) && requestData.organization === 'Branch') {
+          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`, requestData).catch(() => ({ data: {} }));
           accountBalance = Number(r.data?.local_deposit) || 0;
         } else if ((requestData.position === "Director" || requestData.position === "Senior Director") && requestData.organization === "Do") {
-          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`, requestData);
+          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`, requestData).catch(() => ({ data: {} }));
           accountBalance = Number(r.data?.local_deposit) || 0;
         } else {
-          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifference/`, requestData);
+          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifference/`, requestData).catch(() => ({ data: {} }));
           accountBalance = Number(r.data?.total_difference) || 0;
         }
         return { actual: accountBalance, target: totalDeposit };
@@ -146,14 +148,14 @@ const MyDashboard = () => {
 
       if (type === "fcy" && totalFcyTarget > 0) {
         let fcyBalance = 0;
-        if (requestData.position === "Manager" && requestData.organization === "Branch") {
-          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`, requestData);
+        if ((requestData.title === 'Branch Manager I' || requestData.title === 'Branch Manager II' || requestData.title === 'Branch Manager III' || requestData.title === 'Branch Manager IV' || (requestData.title?.includes('Manager Operation Management') && requestData.team?.includes('Eco'))) && requestData.organization === 'Branch') {
+          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`, requestData).catch(() => ({ data: {} }));
           fcyBalance = Number(r.data?.fcy) || 0;
         } else if ((requestData.position === "Director" || requestData.position === "Senior Director") && requestData.organization === "Do") {
-          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`, requestData);
+          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`, requestData).catch(() => ({ data: {} }));
           fcyBalance = Number(r.data?.fcy) || 0;
         } else {
-          const r = await axios.post(`${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`, requestData);
+          const r = await axios.post(`${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`, requestData).catch(() => ({ data: {} }));
           fcyBalance = Number(r.data?.total_difference) || 0;
         }
         return { actual: fcyBalance, target: totalFcyTarget };
@@ -162,10 +164,10 @@ const MyDashboard = () => {
       if (type === "loan" && totalLoanTarget > 0) {
         let loanActual = 0;
         if (requestData.process === "Interest Free Banking" || requestData.process === "Agri and Cooperative Business" || (requestData.process === "Growth and Operations" && requestData.organization === "Ho")) {
-          const r = await axios.post(`${baseUrl}/loan/loanBalanceDifferenceMapped`, requestData);
+          const r = await axios.post(`${baseUrl}/loan/loanBalanceDifferenceMapped`, requestData).catch(() => ({ data: {} }));
           loanActual = Number(r.data?.total_difference) || 0;
         } else {
-          const r = await axios.post(`${baseUrl}/loan/loanBalanceDifference`, requestData);
+          const r = await axios.post(`${baseUrl}/loan/loanBalanceDifference`, requestData).catch(() => ({ data: {} }));
           loanActual = Number(r.data?.total_difference) || 0;
         }
         return { actual: loanActual, target: totalLoanTarget };
@@ -331,6 +333,7 @@ const MyDashboard = () => {
         process: info.process || null,
         subprocess: info.subprocess || null,
         team: info.team || null,
+        title: info.title || user.title,
         cbsusername: info.cbsusername || null,
         company_code: info.company_code,
         organization: info.organization || null,
