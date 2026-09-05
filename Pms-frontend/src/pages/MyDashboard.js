@@ -14,8 +14,9 @@ import {
   Tooltip,
   Divider,
 } from "@mui/material";
-import axios from "axios";
+import axiosOriginal from "axios";
 import { AuthContext } from "../AuthContext";
+import { calculateMetricScore } from "../utils/scoreCalculator";
 import { toast } from "react-toastify";
 import {
   BarChart,
@@ -41,6 +42,21 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import PersonIcon from "@mui/icons-material/Person";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
+
+const axios = {
+  ...axiosOriginal,
+  get: (...args) => axiosOriginal.get(...args).catch((err) => {
+    console.error("API Error in get:", err);
+    return { data: {} };
+  }),
+  post: (...args) => axiosOriginal.post(...args).catch((err) => {
+    if (args[0] && args[0].includes("/evaluations/")) {
+      throw err;
+    }
+    console.error("API Error in post:", err);
+    return { data: {} };
+  }),
+};
 
 const COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16", "#f97316"];
 
@@ -69,7 +85,7 @@ const ScoreGauge = ({ value }) => {
       </svg>
       <Box sx={{ position: "absolute", textAlign: "center" }}>
         <Typography variant="body1" fontWeight="900" sx={{ color: "#fff", lineHeight: 1, fontSize: "0.95rem" }}>
-          {value.toFixed(1)}%
+          {value.toFixed(1)}
         </Typography>
       </Box>
     </Box>
@@ -103,6 +119,7 @@ const MyDashboard = () => {
         totalLoanTarget = Number(targetRes.data?.total_loan) || 0;
       } else {
         totalLoanTarget = Number(LoantargetRes.data?.loan_collection) || 0;
+
       }
       const cash_collectionTarget = Number(cashTargetRes.data?.cash_collection) || 0;
       const michu_loan_collectionTarget = Number(cashTargetRes.data?.michu_loan_collection) || 0;
@@ -139,6 +156,9 @@ const MyDashboard = () => {
         } else if ((requestData.position === "Director" || requestData.position === "Senior Director") && requestData.organization === "Do") {
           const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`, requestData).catch(() => ({ data: {} }));
           accountBalance = Number(r.data?.local_deposit) || 0;
+        } else if (requestData.title === 'Area Manager') {
+          const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+          accountBalance = Number(AreaManagerRes.data.total_local_deposit) || 0;
         } else {
           const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifference/`, requestData).catch(() => ({ data: {} }));
           accountBalance = Number(r.data?.total_difference) || 0;
@@ -154,6 +174,9 @@ const MyDashboard = () => {
         } else if ((requestData.position === "Director" || requestData.position === "Senior Director") && requestData.organization === "Do") {
           const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`, requestData).catch(() => ({ data: {} }));
           fcyBalance = Number(r.data?.fcy) || 0;
+        } else if (requestData.title === 'Area Manager') {
+          const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+          fcyBalance = Number(AreaManagerRes.data.total_fcy) || 0;
         } else {
           const r = await axios.post(`${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`, requestData).catch(() => ({ data: {} }));
           fcyBalance = Number(r.data?.total_difference) || 0;
@@ -162,10 +185,14 @@ const MyDashboard = () => {
       }
 
       if (type === "loan" && totalLoanTarget > 0) {
+        console.log("totalLoanTarget", totalLoanTarget);
         let loanActual = 0;
         if (requestData.process === "Interest Free Banking" || requestData.process === "Agri and Cooperative Business" || (requestData.process === "Growth and Operations" && requestData.organization === "Ho")) {
           const r = await axios.post(`${baseUrl}/loan/loanBalanceDifferenceMapped`, requestData).catch(() => ({ data: {} }));
           loanActual = Number(r.data?.total_difference) || 0;
+        } else if (requestData.title === 'Area Manager') {
+          const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+          loanActual = Number(AreaManagerRes.data.total_loan_collection) || 0;
         } else {
           const r = await axios.post(`${baseUrl}/loan/loanBalanceDifference`, requestData).catch(() => ({ data: {} }));
           loanActual = Number(r.data?.total_difference) || 0;
@@ -184,8 +211,13 @@ const MyDashboard = () => {
       }
 
       if (type === "account" && newAccountTarget > 0) {
-        const r = await axios.post(`${baseUrl}/nondeposit/new-accounts-summary/`, requestData);
-        return { actual: r.data?.total_accounts || 0, target: newAccountTarget };
+        if (requestData.title === 'Area Manager') {
+          const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+          return { actual: Number(AreaManagerRes.data.total_new_accounts) || 0, target: newAccountTarget };
+        } else {
+          const r = await axios.post(`${baseUrl}/nondeposit/new-accounts-summary/`, requestData).catch(() => ({ data: {} }));
+          return { actual: r.data?.total_accounts || 0, target: newAccountTarget };
+        }
       }
 
       if (type === "Transaction" && unauthorizeTransTarget > 0) {
@@ -227,18 +259,26 @@ const MyDashboard = () => {
         if ((requestData.position === "Director" || requestData.position === "Senior Director") && requestData.organization === "Do") {
           const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`, requestData);
           return { actual: Number(r.data?.merchant_transaction_volume) || 0, target: merchant_transaction_volumeTarget };
+        } else if (requestData.title === 'Area Manager') {
+          const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+          return { actual: Number(AreaManagerRes.data.total_merchant_transaction_volume) || 0, target: merchant_transaction_volumeTarget };
+        } else {
+          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`, requestData);
+          return { actual: Number(r.data?.merchant_transaction_volume) || 0, target: merchant_transaction_volumeTarget };
         }
-        const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`, requestData);
-        return { actual: Number(r.data?.merchant_transaction_volume) || 0, target: merchant_transaction_volumeTarget };
       }
 
       if (type === "Agent Transaction Volume" && agent_transaction_volumeTarget > 0) {
         if ((requestData.position === "Director" || requestData.position === "Senior Director") && requestData.organization === "Do") {
           const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforDistrictDirectors/`, requestData);
           return { actual: Number(r.data?.agent_transaction_volume) || 0, target: agent_transaction_volumeTarget };
+        } else if (requestData.title === 'Area Manager') {
+          const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+          return { actual: Number(AreaManagerRes.data.total_agent_transaction_volume) || 0, target: agent_transaction_volumeTarget };
+        } else {
+          const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`, requestData);
+          return { actual: Number(r.data?.agent_transaction_volume) || 0, target: agent_transaction_volumeTarget };
         }
-        const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`, requestData);
-        return { actual: Number(r.data?.agent_transaction_volume) || 0, target: agent_transaction_volumeTarget };
       }
 
       if (type === "Avg Txn Per CSO" && avg_txn_per_csoTarget > 0) {
@@ -348,6 +388,7 @@ const MyDashboard = () => {
       ]);
 
       const targetsCache = { targetRes, LoantargetRes, cashTargetRes, userNonDepositTargetRes, atmEeuDigitalTargetRes };
+
       const startDate = new Date("2026-07-01");
       const today = new Date();
       let daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
@@ -418,6 +459,13 @@ const MyDashboard = () => {
 
         const rate = target > 0 && actual !== null ? (actual / target) * 100 : 0;
 
+        let targetTo = target === 0 ? 1 : target;
+        let score = 0;
+        if (actual !== null) {
+          const scoreObj = calculateMetricScore(metric, actual, targetTo);
+          score = scoreObj.score || 0;
+        }
+
         return {
           name: metric.metric_name || metric.calculated_for || "Metric",
           calcFor: calcFor,
@@ -427,6 +475,8 @@ const MyDashboard = () => {
           icon: icon,
           inputBy: isUserInput ? "User" : "System",
           weight: metric.metric_weight || 0,
+          score: score,
+          metric: metric,
         };
       });
 
@@ -434,10 +484,8 @@ const MyDashboard = () => {
       setMetricsData(resolved);
 
       const validMetrics = resolved.filter(m => m.actual !== null);
-      const avg = validMetrics.length > 0
-        ? validMetrics.reduce((s, m) => s + m.rate, 0) / validMetrics.length
-        : 0;
-      setOverallAverage(avg);
+      const totalScore = validMetrics.reduce((sum, m) => sum + (Number(m.score) || 0), 0);
+      setOverallAverage(totalScore);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
       toast.error("Failed to load your dashboard metrics. Check the console.");
@@ -454,18 +502,21 @@ const MyDashboard = () => {
   const handleManualInput = (index, val) => {
     const updated = [...metricsData];
     const num = parseFloat(val) || 0;
+
+    let targetTo = updated[index].expected === 0 ? 1 : updated[index].expected;
+    const scoreObj = calculateMetricScore(updated[index].metric, num, targetTo);
+
     updated[index] = {
       ...updated[index],
       actual: num,
       rate: updated[index].expected > 0 ? (num / updated[index].expected) * 100 : 0,
+      score: scoreObj.score || 0,
     };
     setMetricsData(updated);
 
-    const valid = updated.filter(m => m.actual !== null && m.inputBy === "System" || (m.inputBy === "User" && m.actual !== null));
-    const avg = valid.length > 0
-      ? updated.reduce((s, m) => s + (m.actual !== null ? m.rate : 0), 0) / updated.length
-      : 0;
-    setOverallAverage(avg);
+    const valid = updated.filter(m => m.actual !== null);
+    const totalScore = valid.reduce((sum, m) => sum + (Number(m.score) || 0), 0);
+    setOverallAverage(totalScore);
   };
 
   const getStatusColor = (rate) => {
@@ -718,7 +769,7 @@ const MyDashboard = () => {
           {
             icon: <WorkspacePremiumIcon />,
             label: "Overall Achievment",
-            value: `${overallAverage.toFixed(1)}%`,
+            value: `${overallAverage.toFixed(1)} / 100`,
             sub: getStatusLabel(overallAverage),
             gradient: overallAverage >= 100
               ? "linear-gradient(135deg, #f0fdf4, #d1fae5)"

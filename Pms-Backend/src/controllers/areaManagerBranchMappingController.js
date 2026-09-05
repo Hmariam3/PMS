@@ -154,3 +154,59 @@ export const removeBranchAssignment = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+// Get aggregated performance for an area manager's mapped branches
+export const getAreaManagerPerformance = async (req, res) => {
+  const { user_id } = req.body; // In frontend this is actually the username string
+  if (!user_id) {
+    return res.status(400).json({ error: "user_id is required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT 
+        COALESCE(SUM(bv."LOCAL_DEPOSIT"), 0) AS total_local_deposit,
+        COALESCE(SUM(bv."FCY"), 0) AS total_fcy,
+        COALESCE(SUM(bv."MERCHANT_TRANSACTION_VOLUME"), 0) AS total_merchant_transaction_volume,
+        COALESCE(SUM(bv."AGENT_TRANSACTION_VOLUME"), 0) AS total_agent_transaction_volume,
+        COALESCE(SUM(bv."TOTAL_RESULT"), 0) AS total_result
+      FROM public.users u
+      JOIN public.area_manager_branch_mapping am ON am.area_manager_user_id = u.id
+      JOIN public.branches b ON am.branch_id = b.id
+      JOIN public.branch_vital bv ON b.branch_code = bv."COMPANY_CODE"
+      WHERE u.user_name = $1`,
+      [user_id]
+    );
+
+    const loanResult = await pool.query(
+      `SELECT 
+        COALESCE(SUM(ldc."TOTAL_COLLECTION"), 0) AS total_loan_collection
+      FROM public.users u
+      JOIN public.area_manager_branch_mapping am ON am.area_manager_user_id = u.id
+      JOIN public.branches b ON am.branch_id = b.id
+      JOIN public."DW_LOAN_DUE_COLLECTION" ldc ON b.branch_code = ldc."CO_CODE"
+      WHERE u.user_name = $1`,
+      [user_id]
+    );
+
+    const accountResult = await pool.query(
+      `SELECT 
+        COALESCE(SUM(na."NO_OF_NEW_ACCTS"), 0) AS total_new_accounts
+      FROM public.users u
+      JOIN public.area_manager_branch_mapping am ON am.area_manager_user_id = u.id
+      JOIN public.branches b ON am.branch_id = b.id
+      JOIN public."DW_NEW_ACCOUNTS" na ON b.branch_code = na."BRANCH_CODE"
+      WHERE u.user_name = $1`,
+      [user_id]
+    );
+
+    res.status(200).json({
+      ...result.rows[0],
+      ...loanResult.rows[0],
+      ...accountResult.rows[0]
+    });
+  } catch (err) {
+    console.error("Error in getAreaManagerPerformance:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};

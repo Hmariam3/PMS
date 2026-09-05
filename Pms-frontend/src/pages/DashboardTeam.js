@@ -21,9 +21,24 @@ import {
   PriorityHigh as PriorityIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
-import axios from "axios";
+import axiosOriginal from "axios";
 import { AuthContext } from "../AuthContext";
 import { toast } from "react-toastify";
+
+const axios = {
+  ...axiosOriginal,
+  get: (...args) => axiosOriginal.get(...args).catch((err) => {
+    console.error("API Error in get:", err);
+    return { data: {} };
+  }),
+  post: (...args) => axiosOriginal.post(...args).catch((err) => {
+    if (args[0] && args[0].includes("/evaluations/")) {
+      throw err;
+    }
+    console.error("API Error in post:", err);
+    return { data: {} };
+  }),
+};
 
 const DashboardTeam = () => {
   const { user } = useContext(AuthContext);
@@ -210,6 +225,9 @@ const DashboardTeam = () => {
 
             accountBalance =
               Number(DistrictDirectoraccountRes.data.local_deposit) || 0;
+          } else if (singleUser.title === 'Area Manager') {
+            const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+            accountBalance = Number(AreaManagerRes.data.total_local_deposit) || 0;
           } else {
             const accountRes = await axios.post(
               `${baseUrl}/accountmapping/getBalanceDifference`,
@@ -225,10 +243,16 @@ const DashboardTeam = () => {
         }
       }
 
-      const fcyRes = await axios.post(
-        `${baseUrl}/fcy/fcyBalanceDifference`,
-        requestData
-      );
+      let fcyRes = null;
+      if (singleUser.title === 'Area Manager') {
+        fcyRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+        fcyRes.data = { total_difference: fcyRes.data.total_fcy };
+      } else {
+        fcyRes = await axios.post(
+          `${baseUrl}/fcy/fcyBalanceDifference`,
+          requestData
+        );
+      }
 
 
       let loanRes = 0;
@@ -237,8 +261,10 @@ const DashboardTeam = () => {
           `${baseUrl}/loan/loanBalanceDifferenceMapped`,
           requestData
         );
-      }
-      else {
+      } else if (singleUser.title === 'Area Manager') {
+        loanRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+        loanRes.data = { total_difference: loanRes.data.total_loan_collection };
+      } else {
         loanRes = await axios.post(
           `${baseUrl}/loan/loanBalanceDifference`,
           requestData
@@ -249,10 +275,16 @@ const DashboardTeam = () => {
 
 
       // for non financial product
-      const newaccountRes = await axios.post(
-        `${baseUrl}/nondeposit/new-accounts-summary/`,
-        requestData
-      );
+      let newaccountRes = null;
+      if (singleUser.title === 'Area Manager') {
+        newaccountRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+        newaccountRes.data = { total_accounts: newaccountRes.data.total_new_accounts };
+      } else {
+        newaccountRes = await axios.post(
+          `${baseUrl}/nondeposit/new-accounts-summary/`,
+          requestData
+        );
+      }
       const unutorizedTranRes = await axios.post(
         `${baseUrl}/nondeposit/non-txn-summary/`,
         requestData

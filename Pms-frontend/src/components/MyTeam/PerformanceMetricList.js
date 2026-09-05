@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
-import axios from "axios";
+import axiosOriginal from "axios";
 import {
   Box,
   Typography,
@@ -27,6 +27,22 @@ import {
 } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../AuthContext";
+import { calculateMetricScore } from "../../utils/scoreCalculator";
+
+const axios = {
+  ...axiosOriginal,
+  get: (...args) => axiosOriginal.get(...args).catch((err) => {
+    console.error("API Error in get:", err);
+    return { data: {} };
+  }),
+  post: (...args) => axiosOriginal.post(...args).catch((err) => {
+    if (args[0] && args[0].includes("/evaluations/")) {
+      throw err;
+    }
+    console.error("API Error in post:", err);
+    return { data: {} };
+  }),
+};
 
 const modalStyle = {
   position: "absolute",
@@ -195,6 +211,9 @@ const PerformanceMetricList = ({ member }) => {
             // console.log("DistrictDirectoraccountRes", DistrictDirectoraccountRes.data.local_deposit);
             accountBalance =
               Number(DistrictDirectoraccountRes.data.local_deposit) || 0;
+          } else if (requestData.title === 'Area Manager') {
+            const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+            accountBalance = Number(AreaManagerRes.data.total_local_deposit) || 0;
           } else {
             // console.log("accountRes", accountRes.data.total_difference);
             accountBalance = Number(accountRes.data.total_difference) || 0;
@@ -226,9 +245,12 @@ const PerformanceMetricList = ({ member }) => {
 
             fcyBalance =
               Number(DistrictDirectoraccountRes.data.fcy) || 0;
+          } else if (requestData.title === 'Area Manager') {
+            const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+            fcyBalance = Number(AreaManagerRes.data.total_fcy) || 0;
           } else {
-            const fcyResMapped = await axios.post(`${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`, requestData);
-            fcyBalance = Number(fcyResMapped.data.total_difference) || 0;
+            const fcyResMapped = await axios.post(`${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`, requestData).catch(() => ({ data: {} }));
+            fcyBalance = Number(fcyResMapped.data?.total_difference) || 0;
           }
           return { actual: fcyBalance, target: totalFcyTarget };
 
@@ -244,15 +266,17 @@ const PerformanceMetricList = ({ member }) => {
             loanRes = await axios.post(
               `${baseUrl}/loan/loanBalanceDifferenceMapped`,
               requestData
-            );
-            return { actual: Number(loanRes.data.total_difference) || 0, target: totalLoanTarget };
-          }
-          else {
+            ).catch(() => ({ data: {} }));
+            return { actual: Number(loanRes.data?.total_difference) || 0, target: totalLoanTarget };
+          } else if (requestData.title === 'Area Manager') {
+            const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+            return { actual: Number(AreaManagerRes.data.total_loan_collection) || 0, target: totalLoanTarget };
+          } else {
             loanRes = await axios.post(
               `${baseUrl}/loan/loanBalanceDifference`,
               requestData
-            );
-            return { actual: Number(loanRes.data.total_difference) || 0, target: totalLoanTarget };
+            ).catch(() => ({ data: {} }));
+            return { actual: Number(loanRes.data?.total_difference) || 0, target: totalLoanTarget };
           }
         }
       }
@@ -326,8 +350,13 @@ const PerformanceMetricList = ({ member }) => {
 
       if (newAccountTarget > 0) {
         if (type === "account") {
-          const newaccountRes = await axios.post(`${baseUrl}/nondeposit/new-accounts-summary/`, requestData);
-          return { actual: newaccountRes?.data?.total_accounts || 0, target: newAccountTarget };
+          if (requestData.title === 'Area Manager') {
+            const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+            return { actual: Number(AreaManagerRes.data.total_new_accounts) || 0, target: newAccountTarget };
+          } else {
+            const newaccountRes = await axios.post(`${baseUrl}/nondeposit/new-accounts-summary/`, requestData).catch(() => ({ data: {} }));
+            return { actual: newaccountRes?.data?.total_accounts || 0, target: newAccountTarget };
+          }
         }
       }
       if (unauthorizeTransTarget > 0) {
@@ -396,6 +425,9 @@ const PerformanceMetricList = ({ member }) => {
             );
 
             return { actual: Number(DistrictDirectoraccountRes.data.merchant_transaction_volume) || 0, target: merchant_transaction_volumeTarget };
+          } else if (requestData.title === 'Area Manager') {
+            const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+            return { actual: Number(AreaManagerRes.data.total_merchant_transaction_volume) || 0, target: merchant_transaction_volumeTarget };
           } else {
 
             const BranchManageraccountRes = await axios.post(
@@ -417,6 +449,9 @@ const PerformanceMetricList = ({ member }) => {
               requestData
             );
             return { actual: Number(DistrictDirectoraccountRes.data.agent_transaction_volume) || 0, target: agent_transaction_volumeTarget };
+          } else if (requestData.title === 'Area Manager') {
+            const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+            return { actual: Number(AreaManagerRes.data.total_agent_transaction_volume) || 0, target: agent_transaction_volumeTarget };
           } else {
 
             const BranchManageraccountRes = await axios.post(
@@ -642,441 +677,15 @@ const PerformanceMetricList = ({ member }) => {
       const divider = parseFloat(metric?.divider_or_multiplied) || 1;
       const metricWeight = parseFloat(metric?.metric_weight) || 0;
 
-      // Calculate weight consider grter than 100
-      if (metric.calculated_with === ">100") {
-        const actualachive = (evaluationValue / targetTo) * 100;
-
-        if (actualachive >= 120) {
-          calculatedWeight = 5 * metricWeight;
-        } else if (actualachive >= 100 && actualachive < 120) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 75 && actualachive < 100) {
-          calculatedWeight = 3 * metricWeight;
-        } else if (actualachive >= 50 && actualachive < 75) {
-          calculatedWeight = 2 * metricWeight;
-        } else if (actualachive > 0 && actualachive < 50) {
-          calculatedWeight = 1 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      } else if (metric.calculated_with === "100") {
-        //  GL
-        if (metric.calculated_for === "Gl") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        //  ATM
-        else if (metric.calculated_for === "ATM CRM Uptime Rate") {
-          actualachive = (evaluationValue / targetTo) * 100;
-          if (actualachive >= 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 92 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 85 && actualachive < 92) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 80 && actualachive < 85) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // Transaction
-        else if (metric.calculated_for === "Transaction") {
-          actualachive = (evaluationValue / targetTo) * 100;
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // Customer Satisfaction
-        else if (metric.calculated_for === "Customer Satisfaction") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 99 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 98 && actualachive < 99) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 97 && actualachive < 98) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // Cash Book
-        else if (metric.calculated_for === "Cash Book") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 95 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 90 && actualachive < 95) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 85 && actualachive < 90) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // Cash Surprise Cheque
-        else if (metric.calculated_for === "Cash Surprise Cheque") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 83 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 67 && actualachive < 83) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 50 && actualachive < 67) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // Branch Compliance
-        else if (metric.calculated_for === "Branch Compliance") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 95 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 90 && actualachive < 95) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 85 && actualachive < 90) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // Audit Report
-        else if (metric.calculated_for === "Audit Report") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 67 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // Audit Quality
-        else if (metric.calculated_for === "Audit Quality") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 95 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 90 && actualachive < 95) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 85 && actualachive < 90) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // Transaction Audit
-        else if (metric.calculated_for === "Transaction Audit") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        // SPM
-        else if (metric.calculated_for === "SPM") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive < 3) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 3 && actualachive <= 4) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive > 4 && actualachive <= 5) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive > 5) {
-            calculatedWeight = 0;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // Arming C for District
-        else if (metric.calculated_for === "Armingc Deposit Proportion") {
-          actualachive = (evaluationValue / targetTo) * 100;
-          if (actualachive >= 86 && actualachive <= 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 71 && actualachive < 86) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 57 && actualachive < 71) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 14 && actualachive < 57) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // Employee Performance
-        else if (metric.calculated_for === "Employee Performance") {
-          actualachive = (evaluationValue / targetTo) * 100;
-          if (actualachive >= 90 && actualachive <= 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 75 && actualachive < 90) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 50 && actualachive < 75) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 1 && actualachive < 50) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // branch Vital
-        else if (metric.calculated_for === "Branch Vital") {
-          calculatedWeight = (evaluationValue * metricWeight);
-        }
-      } else {
-        calculatedWeight = 0;
-      }
-    }
-
-
-    if (metric.input_by === "User") {
-
-      const { actual, target } = await fetchDataforsystemcalculate(type);
-
-
-      // evaluationValue = parseFloat(actual) || 0; // input value
-      let actualachive = 0;
-      let targetTo = 0;
-      evaluationValue = 0; // input value
-
-      if (target === 0) {
-        targetTo = 1;
-      } else {
-        targetTo = parseFloat(target);
+      const { calculatedWeight: cW, weight: w } = calculateMetricScore(metric, evaluationValue, targetTo);
+      calculatedWeight = cW;
+    } else if (metric.input_by === "User") {
+      const { target } = await fetchDataforsystemcalculate(type);
+      if (target !== 0) {
         metric.target_fy = target;
       }
-      const divider = parseFloat(metric?.divider_or_multiplied) || 1;
-
-      const metricWeight = parseFloat(metric?.metric_weight) || 0;
-      if (metric.calculated_with === "100") {
-        //  GL
-        if (metric.calculated_for === "Gl") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        //  ATM
-        else if (metric.calculated_for === "ATM CRM Uptime Rate") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive >= 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 92 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 85 && actualachive < 92) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 80 && actualachive < 85) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        // Transaction
-        else if (metric.calculated_for === "Transaction") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        // Customer Satisfaction
-        else if (metric.calculated_for === "Customer Satisfaction") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 99 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 98 && actualachive < 99) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 97 && actualachive < 88) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        // Cash Book
-        else if (metric.calculated_for === "Cash Book") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 95 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 90 && actualachive < 95) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 85 && actualachive < 90) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        // Cash Surprise Cheque
-        else if (metric.calculated_for === "Cash Surprise Cheque") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 83 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 67 && actualachive < 83) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 50 && actualachive < 67) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        // Branch Compliance
-        else if (metric.calculated_for === "Branch Compliance") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 95 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 90 && actualachive < 95) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 85 && actualachive < 90) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        // Audit Report
-        else if (metric.calculated_for === "Audit Report") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 67 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        // Audit Quality
-        else if (metric.calculated_for === "Audit Quality") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 95 && actualachive < 100) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 90 && actualachive < 95) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 85 && actualachive < 90) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        // Transaction Audit
-        else if (metric.calculated_for === "Transaction Audit") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive === 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        // Arming C for District
-        else if (metric.calculated_for === "Armingc Deposit Proportion") {
-          actualachive = (evaluationValue / targetTo) * 100;
-
-          if (actualachive >= 86 && actualachive <= 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 71 && actualachive < 86) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 57 && actualachive < 71) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 14 && actualachive < 57) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-
-        // Employee Performance
-        else if (metric.calculated_for === "Employee Performance") {
-          actualachive = (evaluationValue / targetTo) * 100;
-          if (actualachive >= 90 && actualachive <= 100) {
-            calculatedWeight = 4 * metricWeight;
-          } else if (actualachive >= 75 && actualachive < 90) {
-            calculatedWeight = 3 * metricWeight;
-          } else if (actualachive >= 50 && actualachive < 75) {
-            calculatedWeight = 2 * metricWeight;
-          } else if (actualachive >= 1 && actualachive < 50) {
-            calculatedWeight = 1 * metricWeight;
-          } else {
-            calculatedWeight = 0;
-          }
-        }
-        // branch Vital
-
-        else if (metric.calculated_for === "Branch Vital") {
-
-          calculatedWeight = (evaluationValue * metricWeight);
-        }
-      } else if (metric.calculated_with === ">100") {
-        const actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive >= 120) {
-          calculatedWeight = 5 * metricWeight;
-        } else if (actualachive >= 100 && actualachive < 120) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 75 && actualachive < 100) {
-          calculatedWeight = 3 * metricWeight;
-        } else if (actualachive >= 50 && actualachive < 75) {
-          calculatedWeight = 2 * metricWeight;
-        } else if (actualachive > 0 && actualachive < 50) {
-          calculatedWeight = 1 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      } else {
-        calculatedWeight = 0;
-      }
+      evaluationValue = 0;
+      calculatedWeight = 0;
     }
 
     setEvaluationForm({
@@ -1140,213 +749,9 @@ const PerformanceMetricList = ({ member }) => {
     const metricWeight = parseFloat(selectedMetric?.metric_weight) || 0;
 
     let calculatedWeight = 0;
-    let actualachive = 0;
     const evaluationValue = value;
-
-    if (selectedMetric?.calculated_with === "100") {
-      //  GL
-      if (selectedMetric.calculated_for === "Gl") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive === 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      //  ATM
-      else if (selectedMetric.calculated_for === "ATM CRM Uptime Rate") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive >= 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 92 && actualachive < 100) {
-          calculatedWeight = 3 * metricWeight;
-        } else if (actualachive >= 85 && actualachive < 92) {
-          calculatedWeight = 2 * metricWeight;
-        } else if (actualachive >= 80 && actualachive < 85) {
-          calculatedWeight = 1 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // Transaction
-      else if (selectedMetric.calculated_for === "Transaction") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive === 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // Customer Satisfaction
-      else if (selectedMetric.calculated_for === "Customer Satisfaction") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive === 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 99 && actualachive < 100) {
-          calculatedWeight = 3 * metricWeight;
-        } else if (actualachive >= 98 && actualachive < 99) {
-          calculatedWeight = 2 * metricWeight;
-        } else if (actualachive >= 97 && actualachive < 98) {
-          calculatedWeight = 1 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // Cash Book
-      else if (selectedMetric.calculated_for === "Cash Book") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive === 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 95 && actualachive < 100) {
-          calculatedWeight = 3 * metricWeight;
-        } else if (actualachive >= 90 && actualachive < 95) {
-          calculatedWeight = 2 * metricWeight;
-        } else if (actualachive >= 85 && actualachive < 90) {
-          calculatedWeight = 1 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // Cash Surprise Cheque
-      else if (selectedMetric.calculated_for === "Cash Surprise Cheque") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive === 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 83 && actualachive < 100) {
-          calculatedWeight = 3 * metricWeight;
-        } else if (actualachive >= 67 && actualachive < 83) {
-          calculatedWeight = 2 * metricWeight;
-        } else if (actualachive >= 50 && actualachive < 67) {
-          calculatedWeight = 1 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // Branch Compliance
-      else if (selectedMetric.calculated_for === "Branch Compliance") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive === 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 95 && actualachive < 100) {
-          calculatedWeight = 3 * metricWeight;
-        } else if (actualachive >= 90 && actualachive < 95) {
-          calculatedWeight = 2 * metricWeight;
-        } else if (actualachive >= 85 && actualachive < 90) {
-          calculatedWeight = 1 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // Audit Report
-      else if (selectedMetric.calculated_for === "Audit Report") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive === 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 67 && actualachive < 100) {
-          calculatedWeight = 3 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // Audit Quality
-      else if (selectedMetric.calculated_for === "Audit Quality") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive === 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 95 && actualachive < 100) {
-          calculatedWeight = 3 * metricWeight;
-        } else if (actualachive >= 90 && actualachive < 95) {
-          calculatedWeight = 2 * metricWeight;
-        } else if (actualachive >= 85 && actualachive < 90) {
-          calculatedWeight = 1 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // Transaction Audit
-      else if (selectedMetric.calculated_for === "Transaction Audit") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive === 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // SPM
-      else if (selectedMetric.calculated_for === "SPM") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive < 3) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 3 && actualachive <= 4) {
-          calculatedWeight = 3 * metricWeight;
-        } else if (actualachive > 4 && actualachive <= 5) {
-          calculatedWeight = 2 * metricWeight;
-        } else if (actualachive > 5) {
-          calculatedWeight = 0;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // Arming C for District
-      else if (selectedMetric.calculated_for === "Armingc Deposit Proportion") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive >= 86 && actualachive <= 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 71 && actualachive < 86) {
-          calculatedWeight = 3 * metricWeight;
-        } else if (actualachive >= 57 && actualachive < 71) {
-          calculatedWeight = 2 * metricWeight;
-        } else if (actualachive >= 14 && actualachive < 57) {
-          calculatedWeight = 1 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // Employee Performance
-      else if (selectedMetric.calculated_for === "Employee Performance") {
-        actualachive = (evaluationValue / targetTo) * 100;
-        if (actualachive >= 90 && actualachive <= 100) {
-          calculatedWeight = 4 * metricWeight;
-        } else if (actualachive >= 75 && actualachive < 90) {
-          calculatedWeight = 3 * metricWeight;
-        } else if (actualachive >= 50 && actualachive < 75) {
-          calculatedWeight = 2 * metricWeight;
-        } else if (actualachive >= 1 && actualachive < 50) {
-          calculatedWeight = 1 * metricWeight;
-        } else {
-          calculatedWeight = 0;
-        }
-      }
-      // branch Vital
-      else if (selectedMetric.calculated_for === "Branch Vital") {
-        calculatedWeight = (evaluationValue * metricWeight);
-      } else {
-        // Fallback generic calculation for "100" if no specific rule matches
-        calculatedWeight = (value / targetTo) * (parseFloat(selectedMetric?.divider_or_multiplied) || 1) * metricWeight;
-        if (calculatedWeight > metricWeight) calculatedWeight = metricWeight;
-      }
-    } else if (selectedMetric?.calculated_with === ">100") {
-      actualachive = (evaluationValue / targetTo) * 100;
-      if (actualachive >= 120) {
-        calculatedWeight = 5 * metricWeight;
-      } else if (actualachive >= 100 && actualachive < 120) {
-        calculatedWeight = 4 * metricWeight;
-      } else if (actualachive >= 75 && actualachive < 100) {
-        calculatedWeight = 3 * metricWeight;
-      } else if (actualachive >= 50 && actualachive < 75) {
-        calculatedWeight = 2 * metricWeight;
-      } else if (actualachive > 0 && actualachive < 50) {
-        calculatedWeight = 1 * metricWeight;
-      } else {
-        calculatedWeight = 0;
-      }
-    } else {
-      // Generic calculation when no specific criteria matches
-      // calculatedWeight = (value / targetTo) * (parseFloat(selectedMetric?.divider_or_multiplied) || 1) * metricWeight;
-      // if (calculatedWeight > metricWeight) calculatedWeight = metricWeight;
-      console.error("No specific criteria matched for metric: ", selectedMetric.metric_name);
-    }
-
+    const { calculatedWeight: cW } = calculateMetricScore(selectedMetric, evaluationValue, targetTo);
+    calculatedWeight = cW;
     setEvaluationForm((prev) => ({
       ...prev,
       evaluation_value: value,

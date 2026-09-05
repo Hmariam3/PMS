@@ -1,8 +1,24 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Box, Typography, useTheme, useMediaQuery, Divider, Stack, Grid, Card, CardContent, Avatar, Chip, Paper, LinearProgress } from "@mui/material";
-import axios from "axios";
+import axiosOriginal from "axios";
 import { AuthContext } from "../AuthContext";
 import { toast } from "react-toastify";
+
+const axios = {
+  ...axiosOriginal,
+  get: (...args) => axiosOriginal.get(...args).catch((err) => {
+    console.error("API Error in get:", err);
+    return { data: {} };
+  }),
+  post: (...args) => axiosOriginal.post(...args).catch((err) => {
+    if (args[0] && args[0].includes("/evaluations/")) {
+      throw err;
+    }
+    console.error("API Error in post:", err);
+    return { data: {} };
+  }),
+};
+
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
   const theme = useTheme();
@@ -161,6 +177,9 @@ const Dashboard = () => {
           const message = err?.response?.data?.message || err.message;
           toast.error(`${requestData.user_name}: ${message}`);
         }
+      } else if (requestData.title === 'Area Manager') {
+        const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+        accountBalaceActual = AreaManagerRes.data.total_local_deposit || 0;
       } else {
         // Account Balance Difference
         const accountBalanceRes = await axios.post(
@@ -201,10 +220,16 @@ const Dashboard = () => {
         requestData
       );
       // for FCY mapped
-      const fcyResMapped = await axios.post(
-        `${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`,
-        requestData
-      );
+      let fcyResMapped = null;
+      if (requestData.title === 'Area Manager') {
+        fcyResMapped = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+        fcyResMapped.data.total_difference = fcyResMapped.data.total_fcy;
+      } else {
+        fcyResMapped = await axios.post(
+          `${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`,
+          requestData
+        );
+      }
 
       // for Loan mapped  for ifb and for branch from  total loan collection 
       let loanRes = 0;
@@ -213,6 +238,9 @@ const Dashboard = () => {
           `${baseUrl}/loan/loanBalanceDifferenceMapped`,
           requestData
         );
+      } else if (requestData.title === 'Area Manager') {
+        loanRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+        loanRes.data.total_difference = loanRes.data.total_loan_collection;
       }
       else {
         loanRes = await axios.post(
@@ -285,10 +313,16 @@ const Dashboard = () => {
       const eeuTransactionTarget = atmEeuDigitalTargetRes.data.eeu_transaction || 0;
 
       // for new account
-      const newaccountRes = await axios.post(
-        `${baseUrl}/nondeposit/new-accounts-summary/`,
-        requestData,
-      );
+      let newaccountRes = null;
+      if (requestData.title === 'Area Manager') {
+        newaccountRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
+        newaccountRes.data = { total_accounts: newaccountRes.data.total_new_accounts };
+      } else {
+        newaccountRes = await axios.post(
+          `${baseUrl}/nondeposit/new-accounts-summary/`,
+          requestData,
+        );
+      }
       const actualNewAccount = newaccountRes?.data?.total_accounts || 0;
       const expectedNewAccount = (daysPassed / 90) * newAccountTarget;
       const achievementNewAccountRate =

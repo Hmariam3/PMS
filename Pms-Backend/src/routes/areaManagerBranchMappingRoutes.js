@@ -5,7 +5,8 @@ import {
   getBranchesByDistrict,
   getMappingByAreaManager,
   assignBranch,
-  removeBranchAssignment
+  removeBranchAssignment,
+  getAreaManagerPerformance
 } from "../controllers/areaManagerBranchMappingController.js";
 
 const router = express.Router();
@@ -15,6 +16,7 @@ router.get("/area-managers/:district_name", getAreaManagersByDistrict);
 router.get("/branches/:district_id", getBranchesByDistrict);
 router.get("/mapping/:area_manager_user_id", getMappingByAreaManager);
 router.post("/", assignBranch);
+router.post("/area-manager-performance", getAreaManagerPerformance);
 router.delete("/:id", removeBranchAssignment);
 
 export default router;
