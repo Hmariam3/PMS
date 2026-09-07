@@ -47,17 +47,55 @@ export const getPerformanceData = async (req, res) => {
         fcy: summaryRes.rows[0]?.fcy || 0
       };
 
-      // All Districts breakdown
+      // All Districts breakdown (driven from sub_processess so every district
+      // appears, even those without branch_vital rows yet)
       const districtsQuery = `
-        SELECT b.subprocess_id as district_name, 
+        SELECT sp.subprocess_name as district_name,
                SUM(COALESCE(CAST(bv."LOCAL_DEPOSIT" AS NUMERIC), 0)) as local_deposit, 
                SUM(COALESCE(CAST(bv."FCY" AS NUMERIC), 0)) as fcy
-        FROM public.branch_vital bv
-        JOIN public.branches b ON b.branch_code = bv."COMPANY_CODE"
-        GROUP BY b.subprocess_id
+        FROM public.sub_processess sp
+        LEFT JOIN public.branches b ON b.subprocess_id = sp.subprocess_id
+        LEFT JOIN public.branch_vital bv ON b.branch_code = bv."COMPANY_CODE"
+        WHERE sp.subprocess_name ILIKE '%District%'
+        GROUP BY sp.subprocess_name
+        ORDER BY sp.subprocess_name
       `;
       const districtsRes = await pool.query(districtsQuery);
       result.districtBreakdown = districtsRes.rows;
+
+      // Area Managers breakdown — actuals rolled up from mapped branches
+      const amQuery = `
+        SELECT amu.user_name, amu.full_name as am_name,
+               COUNT(DISTINCT b.id) as branch_count,
+               STRING_AGG(DISTINCT sp.subprocess_name, ', ' ORDER BY sp.subprocess_name) as district_name,
+               SUM(COALESCE(CAST(bv."LOCAL_DEPOSIT" AS NUMERIC), 0)) as local_deposit,
+               SUM(COALESCE(CAST(bv."FCY" AS NUMERIC), 0)) as fcy
+        FROM public.users amu
+        JOIN public.area_manager_branch_mapping amb ON amb.area_manager_user_id = amu.id
+        JOIN public.branches b ON amb.branch_id = b.id
+        LEFT JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+        LEFT JOIN public.branch_vital bv ON b.branch_code = bv."COMPANY_CODE"
+        WHERE amu.title = 'Area Manager'
+        GROUP BY amu.user_name, amu.full_name
+        ORDER BY district_name, amu.full_name
+      `;
+      const amRes = await pool.query(amQuery);
+      result.areaManagerBreakdown = amRes.rows;
+
+      // All branches breakdown — bank-wide
+      const allBranchesQuery = `
+        SELECT b.branch_name, b.branch_code,
+               sp.subprocess_name as district_name,
+               COALESCE(CAST(bv."LOCAL_DEPOSIT" AS NUMERIC), 0) as local_deposit,
+               COALESCE(CAST(bv."FCY" AS NUMERIC), 0) as fcy
+        FROM public.branches b
+        LEFT JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+        LEFT JOIN public.branch_vital bv ON b.branch_code = bv."COMPANY_CODE"
+        WHERE b.branch_code IS NOT NULL AND b.branch_code <> ''
+        ORDER BY district_name, b.branch_name
+      `;
+      const allBranchesRes = await pool.query(allBranchesQuery);
+      result.branchBreakdown = allBranchesRes.rows;
 
     } else if (scope === "own_district") {
       // The district name is expected to be in user.subprocess
@@ -68,7 +106,8 @@ export const getPerformanceData = async (req, res) => {
                SUM(COALESCE(CAST(bv."FCY" AS NUMERIC), 0)) as fcy
         FROM public.branch_vital bv
         JOIN public.branches b ON b.branch_code = bv."COMPANY_CODE"
-        WHERE b.subprocess_id = $1
+        JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+        WHERE sp.subprocess_name = $1
       `;
       const summaryRes = await pool.query(summaryQuery, [districtName]);
       result.summary = {
@@ -78,24 +117,52 @@ export const getPerformanceData = async (req, res) => {
 
       const branchesQuery = `
         SELECT b.branch_name, b.branch_code,
+               sp.subprocess_name as district_name,
                COALESCE(CAST(bv."LOCAL_DEPOSIT" AS NUMERIC), 0) as local_deposit, 
                COALESCE(CAST(bv."FCY" AS NUMERIC), 0) as fcy
         FROM public.branches b
+        JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
         LEFT JOIN public.branch_vital bv ON b.branch_code = bv."COMPANY_CODE"
-        WHERE b.subprocess_id = $1
+        WHERE sp.subprocess_name = $1
+        ORDER BY b.branch_name
       `;
       const branchesRes = await pool.query(branchesQuery, [districtName]);
       result.branchBreakdown = branchesRes.rows;
 
+      // Area Managers of this district — actuals rolled up from their
+      // mapped branches (each AM maps to a single district)
+      const amQuery = `
+        SELECT amu.user_name, amu.full_name as am_name,
+               COUNT(DISTINCT b.id) as branch_count,
+               STRING_AGG(DISTINCT sp.subprocess_name, ', ' ORDER BY sp.subprocess_name) as district_name,
+               SUM(COALESCE(CAST(bv."LOCAL_DEPOSIT" AS NUMERIC), 0)) as local_deposit,
+               SUM(COALESCE(CAST(bv."FCY" AS NUMERIC), 0)) as fcy
+        FROM public.users amu
+        JOIN public.area_manager_branch_mapping amb ON amb.area_manager_user_id = amu.id
+        JOIN public.branches b ON amb.branch_id = b.id
+        JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+        LEFT JOIN public.branch_vital bv ON b.branch_code = bv."COMPANY_CODE"
+        WHERE amu.title = 'Area Manager'
+          AND sp.subprocess_name = $1
+        GROUP BY amu.user_name, amu.full_name
+        ORDER BY amu.full_name
+      `;
+      const amRes = await pool.query(amQuery, [districtName]);
+      result.areaManagerBreakdown = amRes.rows;
+
     } else if (scope === "assigned_branches") {
       const branchesQuery = `
         SELECT b.branch_name, b.branch_code,
+               sp.subprocess_name as district_name,
                COALESCE(CAST(bv."LOCAL_DEPOSIT" AS NUMERIC), 0) as local_deposit, 
                COALESCE(CAST(bv."FCY" AS NUMERIC), 0) as fcy
         FROM public.area_manager_branch_mapping amb
+        JOIN public.users amu ON amu.id = amb.area_manager_user_id
         JOIN public.branches b ON amb.branch_id = b.id
+        LEFT JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
         LEFT JOIN public.branch_vital bv ON b.branch_code = bv."COMPANY_CODE"
-        WHERE amb.area_manager_user_id = $1
+        WHERE amu.user_name = $1
+        ORDER BY b.branch_name
       `;
       const branchesRes = await pool.query(branchesQuery, [username]);
       result.branchBreakdown = branchesRes.rows;
@@ -108,6 +175,24 @@ export const getPerformanceData = async (req, res) => {
         totalFcy += Number(row.fcy);
       });
       result.summary = { local_deposit: totalDep, fcy: totalFcy };
+
+      // The requesting AM's own rollup row ("own scope" visibility)
+      const amQuery = `
+        SELECT amu.user_name, amu.full_name as am_name,
+               COUNT(DISTINCT b.id) as branch_count,
+               STRING_AGG(DISTINCT sp.subprocess_name, ', ' ORDER BY sp.subprocess_name) as district_name,
+               SUM(COALESCE(CAST(bv."LOCAL_DEPOSIT" AS NUMERIC), 0)) as local_deposit,
+               SUM(COALESCE(CAST(bv."FCY" AS NUMERIC), 0)) as fcy
+        FROM public.users amu
+        JOIN public.area_manager_branch_mapping amb ON amb.area_manager_user_id = amu.id
+        JOIN public.branches b ON amb.branch_id = b.id
+        LEFT JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+        LEFT JOIN public.branch_vital bv ON b.branch_code = bv."COMPANY_CODE"
+        WHERE amu.user_name = $1
+        GROUP BY amu.user_name, amu.full_name
+      `;
+      const amRes = await pool.query(amQuery, [username]);
+      result.areaManagerBreakdown = amRes.rows;
 
     } else if (scope === "own_branch") {
       // Need company_code from the user object
@@ -124,6 +209,20 @@ export const getPerformanceData = async (req, res) => {
         local_deposit: summaryRes.rows[0]?.local_deposit || 0,
         fcy: summaryRes.rows[0]?.fcy || 0
       };
+
+      // Own branch row ("own branch" visibility)
+      const branchQuery = `
+        SELECT b.branch_name, b.branch_code,
+               sp.subprocess_name as district_name,
+               COALESCE(CAST(bv."LOCAL_DEPOSIT" AS NUMERIC), 0) as local_deposit,
+               COALESCE(CAST(bv."FCY" AS NUMERIC), 0) as fcy
+        FROM public.branches b
+        LEFT JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+        LEFT JOIN public.branch_vital bv ON b.branch_code = bv."COMPANY_CODE"
+        WHERE b.branch_code = $1
+      `;
+      const branchRes = await pool.query(branchQuery, [company_code]);
+      result.branchBreakdown = branchRes.rows;
     }
 
     res.status(200).json(result);

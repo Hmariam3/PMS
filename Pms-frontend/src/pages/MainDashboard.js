@@ -18,9 +18,15 @@ import {
   TableHead,
   TableRow,
   Grid,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
+import LocationCityIcon from "@mui/icons-material/LocationCity";
+import GroupsIcon from "@mui/icons-material/Groups";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+import SearchIcon from "@mui/icons-material/Search";
 import axiosOriginal from "axios";
 import { AuthContext } from "../AuthContext";
 import { toast } from "react-toastify";
@@ -93,7 +99,7 @@ const resolveScope = (title = "", position = "", organization = "") => {
   )
     return "enterprise_all";
   if (
-    title === "District Director" ||
+    (title && /^Director.*District$/i.test(title)) ||
     ((position === "Director" || position === "Senior Director") &&
       organization === "Do")
   )
@@ -105,7 +111,7 @@ const resolveScope = (title = "", position = "", organization = "") => {
 
 const SCOPE_META = {
   enterprise: { label: "Enterprise — Bank-Wide View", icon: "🏦" },
-  csuite: { label: "Executive — Bank-Wide View", icon: "🏦" },
+  csuite: { label: "Executive — Bank-Wide Aggregates", icon: "📊" },
   all_districts: { label: "All Districts View", icon: "🗺️" },
   enterprise_all: { label: "Enterprise — Full Visibility", icon: "🔭" },
   own_district: { label: "District View", icon: "🏢" },
@@ -321,164 +327,345 @@ const KpiCard = ({ icon, label, target, actual, rate, quarterRatio }) => {
   );
 };
 
-// ─── Breakdown Table Component ────────────────────────────────────────────────
-const BreakdownTable = ({ title, subtitle, rows, emptyMsg }) => (
-  <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e2e8f0", overflow: "hidden" }}>
-    <Box sx={{ px: 3, py: 2, bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
-      <Typography variant="subtitle1" fontWeight="800" color="#1e293b">
-        {title}
-      </Typography>
-      <Typography variant="caption" color="#94a3b8">
-        {subtitle || "Achievement vs. expected pace — colour-coded by performance band"}
-      </Typography>
-    </Box>
-    <TableContainer sx={{ maxHeight: 520 }}>
-      <Table size="small" stickyHeader>
-        <TableHead>
-          <TableRow>
-            {[
-              "#",
-              "Name",
-              "Dep. Target",
-              "Dep. Actual",
-              "Deposit Achievement",
-              "FCY Target",
-              "FCY Actual",
-              "FCY Achievement",
-            ].map((h) => (
-              <TableCell
-                key={h}
-                sx={{
-                  bgcolor: "#f1f5f9",
-                  fontWeight: 800,
-                  color: "#64748b",
-                  fontSize: "0.68rem",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
-                  py: 1.5,
-                  whiteSpace: "nowrap",
-                }}
+// ─── Aggregate Breakdown Card ────────────────────────────────────────────────
+// Sums target/actual across every row of one breakdown table, so the card is
+// always consistent with the table rendered below it.
+const AggregateCard = ({ icon, label, unitLabel, rows, quarterRatio }) => {
+  const sums = (rows || []).reduce(
+    (acc, r) => ({
+      depT: acc.depT + (Number(r.depositTarget) || 0),
+      depA: acc.depA + (Number(r.depositActual) || 0),
+      fcyT: acc.fcyT + (Number(r.fcyTarget) || 0),
+      fcyA: acc.fcyA + (Number(r.fcyActual) || 0),
+    }),
+    { depT: 0, depA: 0, fcyT: 0, fcyA: 0 }
+  );
+
+  const metrics = [
+    { name: "Deposit", target: sums.depT, actual: sums.depA },
+    { name: "FCY", target: sums.fcyT, actual: sums.fcyA },
+  ];
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        borderRadius: 3,
+        border: "1px solid #e2e8f0",
+        height: "100%",
+        overflow: "hidden",
+        transition: "transform 0.2s, box-shadow 0.2s",
+        "&:hover": { transform: "translateY(-4px)", boxShadow: "0 12px 32px rgba(15,23,42,0.08)" },
+      }}
+    >
+      {/* Header */}
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ p: 2, pb: 1.5 }}>
+        <Avatar sx={{ bgcolor: "#eef2ff", color: "#1a56db", width: 42, height: 42 }}>
+          {icon}
+        </Avatar>
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="subtitle2" fontWeight="800" color="#1e293b" sx={{ lineHeight: 1.2 }}>
+            {label}
+          </Typography>
+          <Typography variant="caption" color="#94a3b8">
+            {(rows || []).length} {unitLabel} · aggregate target vs. actual
+          </Typography>
+        </Box>
+      </Stack>
+      <Divider sx={{ borderColor: "#e2e8f0" }} />
+
+      {metrics.map((m, mi) => {
+        const expected = m.target * quarterRatio;
+        const rate = expected > 0 ? (m.actual / expected) * 100 : m.actual > 0 ? 100 : 0;
+        const gap = m.actual - expected;
+        const color = getBandColor(rate);
+
+        return (
+          <Box key={m.name} sx={{ p: 2, pb: mi === metrics.length - 1 ? 2 : 1.5 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
+              <Typography
+                variant="caption"
+                fontWeight="800"
+                color="#64748b"
+                sx={{ textTransform: "uppercase", letterSpacing: 0.8, fontSize: "0.62rem" }}
               >
-                {h}
-              </TableCell>
-            ))}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows && rows.length > 0 ? (
-            rows.map((row, idx) => {
-              const dc = getBandColor(row.depositRate);
-              const fc = getBandColor(row.fcyRate);
-              return (
-                <TableRow
-                  key={idx}
+                {m.name}
+              </Typography>
+              <Chip
+                label={getBandLabel(rate)}
+                size="small"
+                sx={{
+                  bgcolor: color,
+                  color: needsDarkText(rate) ? "#7a5c00" : "#fff",
+                  fontWeight: 800,
+                  fontSize: "0.6rem",
+                  height: 22,
+                  borderRadius: 1.5,
+                }}
+              />
+            </Stack>
+
+            <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mb: 1 }}>
+              <Typography variant="h4" fontWeight="900" sx={{ color: "#0f172a", lineHeight: 1.1 }}>
+                {rate.toFixed(1)}
+              </Typography>
+              <Typography variant="body2" fontWeight="700" color="#64748b">
+                %
+              </Typography>
+            </Stack>
+
+            <LinearProgress
+              variant="determinate"
+              value={Math.min(Math.max(rate, 0), 100)}
+              sx={{
+                height: 8,
+                borderRadius: 4,
+                bgcolor: "#f1f5f9",
+                mb: 1,
+                "& .MuiLinearProgress-bar": { bgcolor: color, borderRadius: 4 },
+              }}
+            />
+
+            <Grid container spacing={1}>
+              {[
+                { label: "Qtr Target", value: fmtNum(m.target), accent: "#475569" },
+                { label: "Actual (YTD)", value: fmtNum(m.actual), accent: "#475569" },
+                {
+                  label: "Gap vs Expected",
+                  value: `${gap >= 0 ? "+" : ""}${fmtNum(gap)}`,
+                  accent: gap >= 0 ? "#00B050" : "#FF0000",
+                },
+              ].map((s) => (
+                <Grid item xs={4} key={s.label}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "#94a3b8", fontWeight: 600, display: "block", fontSize: "0.56rem" }}
+                  >
+                    {s.label}
+                  </Typography>
+                  <Typography variant="body2" fontWeight="800" sx={{ color: s.accent, lineHeight: 1.2 }}>
+                    {s.value}
+                  </Typography>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        );
+      })}
+    </Card>
+  );
+};
+
+// ─── Breakdown Table Component ────────────────────────────────────────────────
+const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false }) => {
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const filtered = (rows || []).filter((r) => {
+    if (!q) return true;
+    return [r.name, r.sub, r.district].some((v) =>
+      String(v || "").toLowerCase().includes(q)
+    );
+  });
+
+  const headers = [
+    "#",
+    "Name",
+    ...(showDistrict ? ["District"] : []),
+    "Dep. Target",
+    "Dep. Actual",
+    "Deposit Achievement",
+    "FCY Target",
+    "FCY Actual",
+    "FCY Achievement",
+  ];
+
+  return (
+    <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+      <Box sx={{ px: 3, py: 2, bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          alignItems={{ xs: "stretch", sm: "flex-end" }}
+          justifyContent="space-between"
+          spacing={1.5}
+        >
+          <Box>
+            <Typography variant="subtitle1" fontWeight="800" color="#1e293b">
+              {title}
+            </Typography>
+            <Typography variant="caption" color="#94a3b8">
+              {subtitle || "Achievement vs. expected pace — colour-coded by performance band"}
+              {q && ` · Showing ${filtered.length} of ${(rows || []).length}`}
+            </Typography>
+          </Box>
+          <TextField
+            size="small"
+            placeholder="Search…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            sx={{
+              minWidth: 220,
+              "& .MuiOutlinedInput-root": {
+                bgcolor: "#fff",
+                fontSize: "0.82rem",
+                borderRadius: 2,
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ fontSize: "1.1rem", color: "#94a3b8" }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Stack>
+      </Box>
+      <TableContainer sx={{ maxHeight: 520 }}>
+        <Table size="small" stickyHeader>
+          <TableHead>
+            <TableRow>
+              {headers.map((h) => (
+                <TableCell
+                  key={h}
                   sx={{
-                    bgcolor: idx % 2 === 0 ? "#fff" : "#fafafa",
-                    "&:hover": { bgcolor: "#f0f7ff" },
-                    transition: "background 0.15s",
+                    bgcolor: "#f1f5f9",
+                    fontWeight: 800,
+                    color: "#64748b",
+                    fontSize: "0.68rem",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                    py: 1.5,
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  <TableCell sx={{ color: "#cbd5e1", fontWeight: 700, fontSize: "0.78rem", py: 1.2 }}>
-                    {idx + 1}
-                  </TableCell>
-                  <TableCell sx={{ py: 1.2 }}>
-                    <Typography variant="body2" fontWeight="700" color="#1e293b" sx={{ fontSize: "0.85rem" }}>
-                      {row.name}
-                    </Typography>
-                    {row.sub && (
-                      <Typography variant="caption" color="#94a3b8" sx={{ display: "block" }}>
-                        {row.sub}
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                    {fmtNum(row.depositTarget)}
-                  </TableCell>
-                  <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                    {fmtNum(row.depositActual)}
-                  </TableCell>
-                  <TableCell sx={{ minWidth: 170 }}>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={Math.min(Math.max(row.depositRate, 0), 100)}
-                        sx={{
-                          flex: 1,
-                          height: 7,
-                          borderRadius: 4,
-                          bgcolor: "#e2e8f0",
-                          "& .MuiLinearProgress-bar": { bgcolor: dc, borderRadius: 4 },
-                        }}
-                      />
-                      <Chip
-                        label={`${row.depositRate.toFixed(1)}%`}
-                        size="small"
-                        sx={{
-                          bgcolor: dc,
-                          color: needsDarkText(row.depositRate) ? "#7a5c00" : "#fff",
-                          fontWeight: 800,
-                          fontSize: "0.68rem",
-                          height: 22,
-                          minWidth: 62,
-                          borderRadius: 1,
-                        }}
-                      />
-                    </Stack>
-                  </TableCell>
-                  <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                    {fmtNum(row.fcyTarget)}
-                  </TableCell>
-                  <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                    {fmtNum(row.fcyActual)}
-                  </TableCell>
-                  <TableCell sx={{ minWidth: 170 }}>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={Math.min(Math.max(row.fcyRate, 0), 100)}
-                        sx={{
-                          flex: 1,
-                          height: 7,
-                          borderRadius: 4,
-                          bgcolor: "#e2e8f0",
-                          "& .MuiLinearProgress-bar": { bgcolor: fc, borderRadius: 4 },
-                        }}
-                      />
-                      <Chip
-                        label={`${row.fcyRate.toFixed(1)}%`}
-                        size="small"
-                        sx={{
-                          bgcolor: fc,
-                          color: needsDarkText(row.fcyRate) ? "#7a5c00" : "#fff",
-                          fontWeight: 800,
-                          fontSize: "0.68rem",
-                          height: 22,
-                          minWidth: 62,
-                          borderRadius: 1,
-                        }}
-                      />
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          ) : (
-            <TableRow>
-              <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-                <Typography variant="body2" color="#94a3b8" fontWeight="600">
-                  {emptyMsg || "No data available."}
-                </Typography>
-                <Typography variant="caption" color="#cbd5e1" sx={{ display: "block", mt: 0.5 }}>
-                  Data will appear once the API endpoint is connected for this view.
-                </Typography>
-              </TableCell>
+                  {h}
+                </TableCell>
+              ))}
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  </Card>
-);
+          </TableHead>
+          <TableBody>
+            {filtered.length > 0 ? (
+              filtered.map((row, idx) => {
+                const dc = getBandColor(row.depositRate);
+                const fc = getBandColor(row.fcyRate);
+                return (
+                  <TableRow
+                    key={idx}
+                    sx={{
+                      bgcolor: idx % 2 === 0 ? "#fff" : "#fafafa",
+                      "&:hover": { bgcolor: "#f0f7ff" },
+                      transition: "background 0.15s",
+                    }}
+                  >
+                    <TableCell sx={{ color: "#cbd5e1", fontWeight: 700, fontSize: "0.78rem", py: 1.2 }}>
+                      {idx + 1}
+                    </TableCell>
+                    <TableCell sx={{ py: 1.2 }}>
+                      <Typography variant="body2" fontWeight="700" color="#1e293b" sx={{ fontSize: "0.85rem" }}>
+                        {row.name}
+                      </Typography>
+                      {row.sub && (
+                        <Typography variant="caption" color="#94a3b8" sx={{ display: "block" }}>
+                          {row.sub}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    {showDistrict && (
+                      <TableCell sx={{ color: "#475569", fontSize: "0.78rem", whiteSpace: "nowrap" }}>
+                        {row.district || "—"}
+                      </TableCell>
+                    )}
+                    <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      {fmtNum(row.depositTarget)}
+                    </TableCell>
+                    <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      {fmtNum(row.depositActual)}
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 170 }}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(Math.max(row.depositRate, 0), 100)}
+                          sx={{
+                            flex: 1,
+                            height: 7,
+                            borderRadius: 4,
+                            bgcolor: "#e2e8f0",
+                            "& .MuiLinearProgress-bar": { bgcolor: dc, borderRadius: 4 },
+                          }}
+                        />
+                        <Chip
+                          label={`${row.depositRate.toFixed(1)}%`}
+                          size="small"
+                          sx={{
+                            bgcolor: dc,
+                            color: needsDarkText(row.depositRate) ? "#7a5c00" : "#fff",
+                            fontWeight: 800,
+                            fontSize: "0.68rem",
+                            height: 22,
+                            minWidth: 62,
+                            borderRadius: 1,
+                          }}
+                        />
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      {fmtNum(row.fcyTarget)}
+                    </TableCell>
+                    <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      {fmtNum(row.fcyActual)}
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 170 }}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(Math.max(row.fcyRate, 0), 100)}
+                          sx={{
+                            flex: 1,
+                            height: 7,
+                            borderRadius: 4,
+                            bgcolor: "#e2e8f0",
+                            "& .MuiLinearProgress-bar": { bgcolor: fc, borderRadius: 4 },
+                          }}
+                        />
+                        <Chip
+                          label={`${row.fcyRate.toFixed(1)}%`}
+                          size="small"
+                          sx={{
+                            bgcolor: fc,
+                            color: needsDarkText(row.fcyRate) ? "#7a5c00" : "#fff",
+                            fontWeight: 800,
+                            fontSize: "0.68rem",
+                            height: 22,
+                            minWidth: 62,
+                            borderRadius: 1,
+                          }}
+                        />
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={headers.length} align="center" sx={{ py: 6 }}>
+                  <Typography variant="body2" color="#94a3b8" fontWeight="600">
+                    {emptyMsg || "No data available."}
+                  </Typography>
+                  <Typography variant="caption" color="#cbd5e1" sx={{ display: "block", mt: 0.5 }}>
+                    {(rows || []).length > 0 && q
+                      ? "No rows match your search."
+                      : "Data will appear once the API endpoint is connected for this view."}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Card>
+  );
+};
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 const MainDashboard = () => {
@@ -488,6 +675,7 @@ const MainDashboard = () => {
   const [depositData, setDepositData] = useState({ target: 0, actual: 0, rate: 0 });
   const [fcyData, setFcyData] = useState({ target: 0, actual: 0, rate: 0 });
   const [districtBreakdown, setDistrictBreakdown] = useState([]);
+  const [amBreakdown, setAmBreakdown] = useState([]);
   const [branchBreakdown, setBranchBreakdown] = useState([]);
 
   const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
@@ -535,6 +723,21 @@ const MainDashboard = () => {
       const expectedDep = depTarget * quarterRatio;
       const expectedFcy = fcyTarget * quarterRatio;
 
+      // Per-district / per-branch target lookups returned alongside the
+      // summary so breakdown rows show real achievement rates.
+      const districtTargetMap = {};
+      (targetRes.data?.districtTargets || []).forEach((d) => {
+        if (d?.district_name) districtTargetMap[d.district_name] = d;
+      });
+      const branchTargetMap = {};
+      (targetRes.data?.branchTargets || []).forEach((b) => {
+        if (b?.branch_code) branchTargetMap[b.branch_code] = b;
+      });
+      const amTargetMap = {};
+      (targetRes.data?.areaManagerTargets || []).forEach((a) => {
+        if (a?.user_name) amTargetMap[a.user_name] = a;
+      });
+
 
       // Fetch actuals from our new dashboard API
       const perfRes = await axios.post(`${baseUrl}/maindashboard/performance`, requestData);
@@ -545,14 +748,13 @@ const MainDashboard = () => {
       const fcyActual = Number(perfData.summary?.fcy) || 0;
 
       if (perfData.districtBreakdown && perfData.districtBreakdown.length > 0) {
-        const mappedDistricts = perfData.districtBreakdown.map(d => {
-          // For now, setting target to 0 for districts until district target API is clear
-          const dt = 0;
+        const mappedDistricts = perfData.districtBreakdown.map((d) => {
+          const dt = Number(districtTargetMap[d.district_name]?.deposit_target) || 0;
           const da = Number(d.local_deposit) || 0;
           const expd = dt * quarterRatio;
           const dr = expd > 0 ? (da / expd) * 100 : (da > 0 ? 100 : 0);
 
-          const ft = 0;
+          const ft = Number(districtTargetMap[d.district_name]?.fcy_target) || 0;
           const fa = Number(d.fcy) || 0;
           const expf = ft * quarterRatio;
           const fr = expf > 0 ? (fa / expf) * 100 : (fa > 0 ? 100 : 0);
@@ -570,14 +772,45 @@ const MainDashboard = () => {
         setDistrictBreakdown(mappedDistricts);
       }
 
+      if (perfData.areaManagerBreakdown && perfData.areaManagerBreakdown.length > 0) {
+        const mappedAMs = perfData.areaManagerBreakdown.map((a) => {
+          const at = amTargetMap[a.user_name] || {};
+          const dt = Number(at.deposit_target) || 0;
+          const da = Number(a.local_deposit) || 0;
+          const expd = dt * quarterRatio;
+          const dr = expd > 0 ? (da / expd) * 100 : (da > 0 ? 100 : 0);
+
+          const ft = Number(at.fcy_target) || 0;
+          const fa = Number(a.fcy) || 0;
+          const expf = ft * quarterRatio;
+          const fr = expf > 0 ? (fa / expf) * 100 : (fa > 0 ? 100 : 0);
+
+          return {
+            name: a.am_name || a.user_name,
+            sub: `${a.branch_count || 0} branch${a.branch_count === 1 ? "" : "es"}`,
+            district: a.district_name,
+            depositTarget: dt,
+            depositActual: da,
+            depositRate: dr,
+            fcyTarget: ft,
+            fcyActual: fa,
+            fcyRate: fr,
+          };
+        });
+        setAmBreakdown(mappedAMs);
+      } else {
+        setAmBreakdown([]);
+      }
+
       if (perfData.branchBreakdown && perfData.branchBreakdown.length > 0) {
-        const mappedBranches = perfData.branchBreakdown.map(b => {
-          const dt = 0;
+        const mappedBranches = perfData.branchBreakdown.map((b) => {
+          const bt = branchTargetMap[b.branch_code] || {};
+          const dt = Number(bt.deposit_target) || 0;
           const da = Number(b.local_deposit) || 0;
           const expd = dt * quarterRatio;
           const dr = expd > 0 ? (da / expd) * 100 : (da > 0 ? 100 : 0);
 
-          const ft = 0;
+          const ft = Number(bt.fcy_target) || 0;
           const fa = Number(b.fcy) || 0;
           const expf = ft * quarterRatio;
           const fr = expf > 0 ? (fa / expf) * 100 : (fa > 0 ? 100 : 0);
@@ -585,6 +818,7 @@ const MainDashboard = () => {
           return {
             name: b.branch_name || b.branch_code,
             sub: b.branch_code,
+            district: b.district_name,
             depositTarget: dt,
             depositActual: da,
             depositRate: dr,
@@ -594,6 +828,8 @@ const MainDashboard = () => {
           };
         });
         setBranchBreakdown(mappedBranches);
+      } else {
+        setBranchBreakdown([]);
       }
 
       // Achievement rates vs. expected pace
@@ -615,8 +851,27 @@ const MainDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const showDistrictTable = ["enterprise", "csuite", "all_districts", "enterprise_all"].includes(scope);
-  const showBranchTable = scope === "own_district" || scope === "assigned_branches";
+  // ── Visibility matrix (per business requirement) ────────────────────────────
+  // District table: enterprise-level scopes only (CEO, Chief Commercial Officer,
+  // District Coordination trio, Talent trio).
+  // C-Suite (other Chiefs): aggregate cards only — no breakdown tables.
+  // District Director: AMs of own district + branches of own district.
+  // Area Manager: own performance row + assigned branches.
+  // Branch Manager: own branch row only.
+  const isEnterpriseLevel = ["enterprise", "all_districts", "enterprise_all"].includes(scope);
+  const showDistrictTable = isEnterpriseLevel;
+  const showAmTable =
+    isEnterpriseLevel || scope === "own_district" || scope === "assigned_branches";
+  const showBranchTable =
+    isEnterpriseLevel ||
+    scope === "own_district" ||
+    scope === "assigned_branches" ||
+    scope === "own_branch";
+  // Aggregate cards: all three for enterprise-level scopes (incl. C-Suite),
+  // AM + branch aggregates for District Directors, branch aggregate for AMs.
+  const showDistrictAggregate = ["enterprise", "csuite", "all_districts", "enterprise_all"].includes(scope);
+  const showAmAggregate = showDistrictAggregate || scope === "own_district";
+  const showBranchAggregate = showAmAggregate || scope === "assigned_branches";
 
   // ── Loading state ─────────────────────────────────────────────────────────
   if (loading) {
@@ -810,6 +1065,51 @@ const MainDashboard = () => {
         </Grid>
       </Grid>
 
+      {/* ── AGGREGATE CARDS PER BREAKDOWN ───────────────────────────────────── */}
+      {(showDistrictAggregate || showAmAggregate || showBranchAggregate) && (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {showDistrictAggregate && (
+            <Grid item xs={12} md={4}>
+              <AggregateCard
+                icon={<LocationCityIcon />}
+                label="Aggregate District Performance"
+                unitLabel="districts"
+                rows={districtBreakdown}
+                quarterRatio={quarterRatio}
+              />
+            </Grid>
+          )}
+          {showAmAggregate && (
+            <Grid item xs={12} md={showDistrictAggregate ? 4 : 6}>
+              <AggregateCard
+                icon={<GroupsIcon />}
+                label="Aggregate Area Manager Performance"
+                unitLabel="area managers"
+                rows={amBreakdown}
+                quarterRatio={quarterRatio}
+              />
+            </Grid>
+          )}
+          {showBranchAggregate && (
+            <Grid item xs={12} md={showDistrictAggregate ? 4 : 6}>
+              <AggregateCard
+                icon={<StorefrontIcon />}
+                label={
+                  isEnterpriseLevel
+                    ? "Aggregate Branch Performance"
+                    : scope === "own_district"
+                      ? "Aggregate Branch Performance — Your District"
+                      : "Aggregate Branch Performance — Assigned Branches"
+                }
+                unitLabel="branches"
+                rows={branchBreakdown}
+                quarterRatio={quarterRatio}
+              />
+            </Grid>
+          )}
+        </Grid>
+      )}
+
       {/* ── DISTRICT BREAKDOWN TABLE ──────────────────────────────────────── */}
       {showDistrictTable && (
         <Box sx={{ mb: 4 }}>
@@ -822,17 +1122,41 @@ const MainDashboard = () => {
         </Box>
       )}
 
-      {/* ── BRANCH BREAKDOWN TABLE ────────────────────────────────────────── */}
+      {/* ── AREA MANAGERS BREAKDOWN TABLE ─────────────────────────────────── */}
+      {showAmTable && (
+        <Box sx={{ mb: 4 }}>
+          <BreakdownTable
+            title={
+              isEnterpriseLevel
+                ? "Area Managers Breakdown — Deposit & FCY"
+                : scope === "own_district"
+                  ? "Area Managers — Your District"
+                  : "Your Performance — Area Manager Scope"
+            }
+            subtitle="Actuals rolled up from each manager's assigned branches — colour-coded by performance band"
+            rows={amBreakdown}
+            showDistrict={isEnterpriseLevel}
+            emptyMsg="Area Managers breakdown will appear here once branch mappings and vitals are loaded."
+          />
+        </Box>
+      )}
+
+      {/* ── BRANCH BREAKDOWN TABLE (all / district / assigned / own) ───────── */}
       {showBranchTable && (
         <Box sx={{ mb: 4 }}>
           <BreakdownTable
             title={
-              scope === "own_district"
-                ? "Branch Performance — Your District"
-                : "Assigned Branches — Deposit & FCY Performance"
+              isEnterpriseLevel
+                ? "All Branches Breakdown — Deposit & FCY"
+                : scope === "own_district"
+                  ? "Branch Performance — Your District"
+                  : scope === "assigned_branches"
+                    ? "Assigned Branches — Deposit & FCY Performance"
+                    : "Your Branch — Deposit & FCY Performance"
             }
             subtitle="Branch-level achievement rate vs. expected quarterly pace"
             rows={branchBreakdown}
+            showDistrict={isEnterpriseLevel}
             emptyMsg="Branch-level breakdown will appear here once the API is connected."
           />
         </Box>
