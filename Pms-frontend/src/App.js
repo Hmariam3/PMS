@@ -9,6 +9,7 @@ import Footer from "./components/Footer";
 import Dashboard from "./pages/Dashboard";
 import MyDashboard from "./pages/MyDashboard";
 import DashboardTeam from "./pages/DashboardTeam";
+import MainDashboard from "./pages/MainDashboard";
 import Projects from "./pages/Projects";
 import Users from "./components/Users/UserList";
 import UserTransfer from "./components/Users/UserTransfer";
@@ -180,6 +181,15 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/maindashboard"
+              element={
+                <ProtectedRoute>
+                  <MainDashboard />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="/teamdashboard"
               element={

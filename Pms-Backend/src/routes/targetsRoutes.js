@@ -9,7 +9,8 @@ import {
   getTargetsSummaryByUser,
   getLoanCollectionTargetByUser,
   getCashTargetsByUser,
-  approveTarget
+  approveTarget,
+  getMainDashboardTargets
 } from "../controllers/targetsController.js";
 
 const router = express.Router();
@@ -23,4 +24,5 @@ router.post("/cashCollectionTargetByUser/", getCashTargetsByUser);
 router.put("/:id", updateTarget);
 router.delete("/:id", deleteTarget);
 router.put("/targetsapprove/:id", approveTarget);
+router.post("/MainDashboardTargets/", getMainDashboardTargets);
 export default router;

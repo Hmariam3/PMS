@@ -17,6 +17,7 @@ import {
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
+import DashboardCustomizeIcon from "@mui/icons-material/DashboardCustomize";
 
 // Icons for main categories
 import GroupWorkIcon from "@mui/icons-material/GroupWork";
@@ -64,6 +65,7 @@ const getNavLinks = (user) => {
   const orgUnit = user?.organization || "";
   const process = user?.process || "";
   const subprocess = user?.subprocess || "";
+  const title = user?.title || "";
 
   const isHaile = user?.UserName === "hailemariamk";
   const isAdmin = role === "Admin";
@@ -87,6 +89,25 @@ const getNavLinks = (user) => {
       path: "/",
       icon: <DashboardIcon />,
       show: isHO || (isDistrict && isDirector) || isVPOrCHF,
+    },
+    {
+      text: "Main Dashboard",
+      path: "/maindashboard",
+      icon: <DashboardCustomizeIcon />,
+      show: ["CEO", "Chief, Commercial Officer"].includes(position) ||
+        role?.toLowerCase().startsWith("chief") ||
+        [
+          "Director, District Coordination and Support",
+          "Manager, District Coordination",
+          "Manager, District Execution Monitoring",
+          "Senior Director, Talent Acquisition and Career Pathways",
+          "Director, Talent and Performance Management",
+          "Manager, Employee Performance Management",
+          "District Director",
+          "Area Manager",
+        ].includes(title) ||
+        title.includes("Branch Manager") ||
+        ((position === "Director" || position === "Senior Director") && orgUnit === "Do"),
     },
     {
       text: "My Dashboard",

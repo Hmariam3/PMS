@@ -892,3 +892,81 @@ export const getCashTargetsByUser = async (req, res) => {
     });
   }
 };
+
+/**
+ * getMainDashboardTargets
+ * Role-based target aggregation for the Main Dashboard.
+ *
+ * Rules (by user title):
+ *  - C-Suite / Chiefs / Enterprise Directors / All-Districts roles
+ *      → SUM of deposit_target + fcy_target for ALL users whose title
+ *        includes "District Director" (i.e. the bank-wide target that
+ *        flows through District Directors).
+ *  - District Director, Area Manager, Branch Manager, Individual
+ *      → only the requesting user's own approved target row.
+ */
+export const getMainDashboardTargets = async (req, res) => {
+  const { username, title } = req.body;
+
+  if (!username || !title) {
+    return res.status(400).json({ error: "UserName and title are required." });
+  }
+
+  const enterpriseTitles = [
+    "Chief Executive Officer",
+    "Chief, Commercial Officer",
+    "Director, District Coordination and Support",
+    "Manager, District Coordination",
+    "Manager, District Execution Monitoring",
+    "Senior Director, Talent Acquisition and Career Pathways",
+    "Director, Talent and Performance Management",
+    "Manager, Employee Performance Management",
+  ];
+
+  const isEnterprise =
+    enterpriseTitles.includes(title) ||
+    title.toLowerCase().startsWith("chief");
+
+  try {
+    let query;
+    let values;
+
+    if (isEnterprise) {
+      // Sum the targets of every user whose title includes "District Director"
+      // Those targets represent the bank-wide operational commitments.
+      query = `
+        SELECT
+          SUM(COALESCE(t.deposit_target, 0)) AS total_deposit,
+          SUM(COALESCE(t.fcy_target, 0))     AS total_fcy
+        FROM public.targets t
+        INNER JOIN public.users u ON t.user_name = u.user_name
+        WHERE u.title ILIKE 'Director%District'
+          AND t.status = 'Approved'
+      `;
+      values = [];
+    } else {
+      // District Director / Area Manager / Branch Manager / Individual
+      // → own target row only
+      query = `
+        SELECT
+          SUM(COALESCE(deposit_target, 0)) AS total_deposit,
+          SUM(COALESCE(fcy_target, 0))     AS total_fcy
+        FROM public.targets
+        WHERE user_name = $1
+          AND status = 'Approved'
+      `;
+      values = [username];
+    }
+
+    const result = await pool.query(query, values);
+    const row = result.rows[0] || {};
+
+    return res.status(200).json({
+      total_deposit: Number(row.total_deposit) || 0,
+      total_fcy: Number(row.total_fcy) || 0,
+    });
+  } catch (err) {
+    console.error("getMainDashboardTargets error:", err.message);
+    return res.status(500).json({ error: "Server error." });
+  }
+};

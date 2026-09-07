@@ -38,6 +38,7 @@ import engagementRoutes from "./routes/engagementRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import branchVitalRoutes from "./routes/branchVitalRoutes.js";
 import areaManagerBranchMappingRoutes from "./routes/areaManagerBranchMappingRoutes.js";
+import mainDashboardRoutes from "./routes/mainDashboardRoutes.js";
 
 const app = express();
 // Enable CORS
@@ -75,6 +76,7 @@ app.use("/api/loan", loanRoutes);
 app.use("/api/ifb", ifbRoutes);
 app.use("/api/branchgrade", branchGradeRoutes);
 app.use("/api/accountmappingfcy", accountMappingFCYRoutes);
+app.use("/api/maindashboard", mainDashboardRoutes);
 //cbs acccount
 app.use("/api/cbs", accountSoapRoutes);
 
