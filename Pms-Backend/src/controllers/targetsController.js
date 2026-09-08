@@ -1073,8 +1073,53 @@ export const getMainDashboardTargets = async (req, res) => {
         }
       });
       districtRows.forEach((r) => { r.loan_target = loanByDistrict[r.district_name] || 0; });
+
+      // Districts with no District Director target and no Area Managers
+      // (e.g. relationship-office districts) fall back to the summed
+      // Branch Manager targets of the branches under them — per metric,
+      // so only the missing values are filled.
+      const branchDistrictQuery = `
+        SELECT sp.subprocess_name AS district_name,
+               SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
+               SUM(COALESCE(t.fcy_target, 0))     AS fcy_target,
+               SUM(COALESCE(t.loan_collection, 0)) AS loan_target
+        FROM public.targets t
+        INNER JOIN public.users u ON u.user_name = t.user_name
+        INNER JOIN public.branches b ON b.branch_code = u.company_code
+        INNER JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+        WHERE u.title ILIKE 'Branch Manager%'
+          AND t.status = 'Approved'
+          AND b.branch_code IS NOT NULL AND b.branch_code <> ''
+        GROUP BY sp.subprocess_name
+      `;
+      const branchDistrictRes = await pool.query(branchDistrictQuery);
+      const branchTargetsByDistrict = {};
+      branchDistrictRes.rows.forEach((r) => {
+        branchTargetsByDistrict[r.district_name] = {
+          deposit_target: Number(r.deposit_target) || 0,
+          fcy_target: Number(r.fcy_target) || 0,
+          loan_target: Number(r.loan_target) || 0,
+        };
+      });
+      Object.keys(branchTargetsByDistrict).forEach((name) => {
+        if (!districtByName[name]) {
+          const row = { district_name: name, deposit_target: 0, fcy_target: 0, loan_target: 0 };
+          districtByName[name] = row;
+          districtRows.push(row);
+        }
+      });
+      districtRows.forEach((r) => {
+        const bt = branchTargetsByDistrict[r.district_name];
+        if (!bt) return;
+        if (!r.deposit_target) r.deposit_target = bt.deposit_target;
+        if (!r.fcy_target) r.fcy_target = bt.fcy_target;
+        if (!r.loan_target) r.loan_target = bt.loan_target;
+      });
       payload.districtTargets = districtRows;
-      // Bank-level loan target = the same AM-derived district loan targets
+      // Bank-level totals track the district rows so the KPI cards stay
+      // consistent with the district aggregate card
+      payload.total_deposit = districtRows.reduce((s, r) => s + r.deposit_target, 0);
+      payload.total_fcy = districtRows.reduce((s, r) => s + r.fcy_target, 0);
       payload.total_loan = districtRows.reduce((s, r) => s + r.loan_target, 0);
 
       // All branch targets bank-wide (Branch Manager target rows → branches)

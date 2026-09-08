@@ -274,10 +274,10 @@ const KpiCard = ({ icon, label, target, actual, rate, quarterRatio }) => {
           </Typography>
         </Stack>
 
-        {/* Stats — same style as the aggregate cards */}
+        {/* Stats — target shown as of today (pro-rated by days elapsed) */}
         <Grid container spacing={1}>
           {[
-            { label: "Qtr Target", value: fmtNum(target), accent: "#475569" },
+            { label: "Target (Today)", value: fmtNum(expected), accent: "#475569" },
             { label: "Actual (YTD)", value: fmtNum(actual), accent: "#475569" },
             {
               label: "Gap vs Expected",
@@ -419,7 +419,7 @@ const AggregateCard = ({ icon, label, unitLabel, rows, quarterRatio }) => {
 
               <Grid container spacing={1}>
                 {[
-                  { label: "Qtr Target", value: fmtNum(m.target), accent: "#475569" },
+                  { label: "Target (Today)", value: fmtNum(expected), accent: "#475569" },
                   { label: "Actual (YTD)", value: fmtNum(m.actual), accent: "#475569" },
                   {
                     label: "Gap vs Expected",
@@ -449,7 +449,7 @@ const AggregateCard = ({ icon, label, unitLabel, rows, quarterRatio }) => {
 };
 
 // ─── Breakdown Table Component ────────────────────────────────────────────────
-const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false }) => {
+const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false, quarterRatio = 1 }) => {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const filtered = (rows || []).filter((r) => {
@@ -463,16 +463,23 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false 
     "#",
     "Name",
     ...(showDistrict ? ["District"] : []),
-    "Dep. Target",
+    "Dep. Target (Today)",
     "Dep. Actual",
     "Deposit Achievement",
-    "FCY Target",
+    "FCY Target (Today)",
     "FCY Actual",
     "FCY Achievement",
-    "Loan Target",
+    "Loan Target (Today)",
     "Loan Actual",
     "Loan Achievement",
   ];
+
+  // First column of each metric group gets a divider line so Deposit / FCY /
+  // Loan read as three separate blocks
+  const groupSx = {
+    borderLeft: "2px solid #cbd5e1",
+    paddingLeft: 2.5,
+  };
 
   return (
     <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e2e8f0", overflow: "hidden" }}>
@@ -519,23 +526,29 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false 
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              {headers.map((h) => (
-                <TableCell
-                  key={h}
-                  sx={{
-                    bgcolor: "#f1f5f9",
-                    fontWeight: 800,
-                    color: "#64748b",
-                    fontSize: "0.68rem",
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                    py: 1.5,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {h}
-                </TableCell>
-              ))}
+              {headers.map((h, hi) => {
+                // column indexes where a new metric group starts (FCY, Loan)
+                const isFirstOfGroup =
+                  h === "FCY Target (Today)" || h === "Loan Target (Today)";
+                return (
+                  <TableCell
+                    key={h}
+                    sx={{
+                      bgcolor: "#f1f5f9",
+                      fontWeight: 800,
+                      color: "#64748b",
+                      fontSize: "0.68rem",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                      py: 1.5,
+                      whiteSpace: "nowrap",
+                      ...(isFirstOfGroup ? groupSx : {}),
+                    }}
+                  >
+                    {h}
+                  </TableCell>
+                );
+              })}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -572,7 +585,7 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false 
                       </TableCell>
                     )}
                     <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                      {fmtNum(row.depositTarget)}
+                      {fmtNum(row.depositTarget * quarterRatio)}
                     </TableCell>
                     <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
                       {fmtNum(row.depositActual)}
@@ -605,8 +618,8 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false 
                         />
                       </Stack>
                     </TableCell>
-                    <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                      {fmtNum(row.fcyTarget)}
+                    <TableCell sx={{ ...groupSx, color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      {fmtNum(row.fcyTarget * quarterRatio)}
                     </TableCell>
                     <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
                       {fmtNum(row.fcyActual)}
@@ -639,8 +652,8 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false 
                         />
                       </Stack>
                     </TableCell>
-                    <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                      {fmtNum(row.loanTarget)}
+                    <TableCell sx={{ ...groupSx, color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      {fmtNum(row.loanTarget * quarterRatio)}
                     </TableCell>
                     <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
                       {fmtNum(row.loanActual)}
@@ -1112,8 +1125,9 @@ const MainDashboard = () => {
         <Box sx={{ mb: 4 }}>
           <BreakdownTable
             title="District Performance Breakdown — Deposit & FCY"
-            subtitle="Each district's achievement rate vs. expected quarterly pace"
+            subtitle="Each district's achievement rate vs. expected pace to date"
             rows={districtBreakdown}
+            quarterRatio={quarterRatio}
             emptyMsg="District breakdown data will appear here once the bank-wide API is connected."
           />
         </Box>
@@ -1133,6 +1147,7 @@ const MainDashboard = () => {
             subtitle="Actuals rolled up from each manager's assigned branches — colour-coded by performance band"
             rows={amBreakdown}
             showDistrict={isEnterpriseLevel}
+            quarterRatio={quarterRatio}
             emptyMsg="Area Managers breakdown will appear here once branch mappings and vitals are loaded."
           />
         </Box>
@@ -1151,9 +1166,10 @@ const MainDashboard = () => {
                     ? "Assigned Branches — Deposit & FCY Performance"
                     : "Your Branch — Deposit & FCY Performance"
             }
-            subtitle="Branch-level achievement rate vs. expected quarterly pace"
+            subtitle="Branch-level achievement rate vs. expected pace to date"
             rows={branchBreakdown}
             showDistrict={isEnterpriseLevel}
+            quarterRatio={quarterRatio}
             emptyMsg="Branch-level breakdown will appear here once the API is connected."
           />
         </Box>

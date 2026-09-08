@@ -35,11 +35,14 @@ export const getPerformanceData = async (req, res) => {
     };
 
     if (scope === "enterprise" || scope === "all_districts") {
-      // Bank-level summary
+      // Bank-level summary — joined to branches so the KPI cards stay
+      // consistent with the district/AM/branch breakdowns (unmatched
+      // branch_vital rows, e.g. head-office adjustments, are excluded)
       const summaryQuery = `
-        SELECT SUM(COALESCE(CAST("LOCAL_DEPOSIT" AS NUMERIC), 0)) as local_deposit, 
-               SUM(COALESCE(CAST("FCY" AS NUMERIC), 0)) as fcy 
-        FROM public.branch_vital
+        SELECT SUM(COALESCE(CAST(bv."LOCAL_DEPOSIT" AS NUMERIC), 0)) as local_deposit, 
+               SUM(COALESCE(CAST(bv."FCY" AS NUMERIC), 0)) as fcy 
+        FROM public.branch_vital bv
+        JOIN public.branches b ON b.branch_code = bv."COMPANY_CODE"
       `;
       const summaryRes = await pool.query(summaryQuery);
       result.summary = {
@@ -101,8 +104,9 @@ export const getPerformanceData = async (req, res) => {
       // Kept in separate queries and merged by key — a straight join into the
       // queries above would double-count deposit/FCY where CO_CODE repeats.
       const loanSummaryRes = await pool.query(
-        `SELECT SUM(COALESCE(CAST("TOTAL_COLLECTION" AS NUMERIC), 0)) as loan_collection
-         FROM public."DW_LOAN_DUE_COLLECTION"`
+        `SELECT SUM(COALESCE(CAST(l."TOTAL_COLLECTION" AS NUMERIC), 0)) as loan_collection
+         FROM public."DW_LOAN_DUE_COLLECTION" l
+         JOIN public.branches b ON b.branch_code = l."CO_CODE"`
       );
       result.summary.loan_collection = Number(loanSummaryRes.rows[0]?.loan_collection) || 0;
 
