@@ -23,6 +23,7 @@ import {
 } from "@mui/material";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import LocationCityIcon from "@mui/icons-material/LocationCity";
 import GroupsIcon from "@mui/icons-material/Groups";
 import StorefrontIcon from "@mui/icons-material/Storefront";
@@ -107,17 +108,6 @@ const resolveScope = (title = "", position = "", organization = "") => {
   if (title === "Area Manager") return "assigned_branches";
   if (title.includes("Branch Manager")) return "own_branch";
   return "self";
-};
-
-const SCOPE_META = {
-  enterprise: { label: "Enterprise — Bank-Wide View", icon: "🏦" },
-  csuite: { label: "Executive — Bank-Wide Aggregates", icon: "📊" },
-  all_districts: { label: "All Districts View", icon: "🗺️" },
-  enterprise_all: { label: "Enterprise — Full Visibility", icon: "🔭" },
-  own_district: { label: "District View", icon: "🏢" },
-  assigned_branches: { label: "Assigned Branches View", icon: "🏪" },
-  own_branch: { label: "Branch View", icon: "🏬" },
-  self: { label: "Individual View", icon: "👤" },
 };
 
 // ─── Quarter Helpers ──────────────────────────────────────────────────────────
@@ -284,41 +274,27 @@ const KpiCard = ({ icon, label, target, actual, rate, quarterRatio }) => {
           </Typography>
         </Stack>
 
-        {/* Four stats */}
-        <Grid container spacing={1.5}>
+        {/* Stats — same style as the aggregate cards */}
+        <Grid container spacing={1}>
           {[
-            { label: "Qtr Target", value: fmtNum(target), sub: "ETB" },
-            { label: "Expected Today", value: fmtNum(expected), sub: `Day ${getDaysPassed()} / 90` },
-            { label: "Actual (YTD)", value: fmtNum(actual), sub: "ETB" },
+            { label: "Qtr Target", value: fmtNum(target), accent: "#475569" },
+            { label: "Actual (YTD)", value: fmtNum(actual), accent: "#475569" },
             {
               label: "Gap vs Expected",
               value: `${gap >= 0 ? "+" : ""}${fmtNum(gap)}`,
-              sub: gap >= 0 ? "▲ Ahead of pace" : "▼ Behind pace",
               accent: gap >= 0 ? "#00B050" : "#FF0000",
             },
-          ].map((item, i) => (
-            <Grid item xs={6} key={i}>
-              <Paper
-                elevation={0}
-                sx={{ p: 1.5, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e8ecf0" }}
+          ].map((s) => (
+            <Grid item xs={4} key={s.label}>
+              <Typography
+                variant="caption"
+                sx={{ color: "#94a3b8", fontWeight: 600, display: "block", fontSize: "0.56rem" }}
               >
-                <Typography
-                  variant="caption"
-                  sx={{ color: "#94a3b8", fontWeight: 600, display: "block", fontSize: "0.6rem", mb: 0.3 }}
-                >
-                  {item.label}
-                </Typography>
-                <Typography
-                  variant="subtitle2"
-                  fontWeight="800"
-                  sx={{ color: item.accent || "#1e293b", lineHeight: 1.2 }}
-                >
-                  {item.value}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "#cbd5e1", fontSize: "0.6rem" }}>
-                  {item.sub}
-                </Typography>
-              </Paper>
+                {s.label}
+              </Typography>
+              <Typography variant="body2" fontWeight="800" sx={{ color: s.accent, lineHeight: 1.2 }}>
+                {s.value}
+              </Typography>
             </Grid>
           ))}
         </Grid>
@@ -337,13 +313,16 @@ const AggregateCard = ({ icon, label, unitLabel, rows, quarterRatio }) => {
       depA: acc.depA + (Number(r.depositActual) || 0),
       fcyT: acc.fcyT + (Number(r.fcyTarget) || 0),
       fcyA: acc.fcyA + (Number(r.fcyActual) || 0),
+      loanT: acc.loanT + (Number(r.loanTarget) || 0),
+      loanA: acc.loanA + (Number(r.loanActual) || 0),
     }),
-    { depT: 0, depA: 0, fcyT: 0, fcyA: 0 }
+    { depT: 0, depA: 0, fcyT: 0, fcyA: 0, loanT: 0, loanA: 0 }
   );
 
   const metrics = [
     { name: "Deposit", target: sums.depT, actual: sums.depA },
     { name: "FCY", target: sums.fcyT, actual: sums.fcyA },
+    { name: "Loan Collection", target: sums.loanT, actual: sums.loanA },
   ];
 
   return (
@@ -374,84 +353,97 @@ const AggregateCard = ({ icon, label, unitLabel, rows, quarterRatio }) => {
       </Stack>
       <Divider sx={{ borderColor: "#e2e8f0" }} />
 
-      {metrics.map((m, mi) => {
-        const expected = m.target * quarterRatio;
-        const rate = expected > 0 ? (m.actual / expected) * 100 : m.actual > 0 ? 100 : 0;
-        const gap = m.actual - expected;
-        const color = getBandColor(rate);
+      {/* Metric aggregates side by side: Deposit | FCY | Loan Collection —
+          each panel takes exactly one-third of the card width */}
+      <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" } }}>
+        {metrics.map((m, mi) => {
+          const expected = m.target * quarterRatio;
+          const rate = expected > 0 ? (m.actual / expected) * 100 : m.actual > 0 ? 100 : 0;
+          const gap = m.actual - expected;
+          const color = getBandColor(rate);
 
-        return (
-          <Box key={m.name} sx={{ p: 2, pb: mi === metrics.length - 1 ? 2 : 1.5 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
-              <Typography
-                variant="caption"
-                fontWeight="800"
-                color="#64748b"
-                sx={{ textTransform: "uppercase", letterSpacing: 0.8, fontSize: "0.62rem" }}
-              >
-                {m.name}
-              </Typography>
-              <Chip
-                label={getBandLabel(rate)}
-                size="small"
+          return (
+            <Box
+              key={m.name}
+              sx={{
+                flex: "1 1 33.33%",
+                minWidth: 0,
+                p: 2,
+                borderLeft: { md: mi > 0 ? "1px solid #e2e8f0" : "none" },
+                borderTop: { xs: mi > 0 ? "1px solid #e2e8f0" : "none", md: "none" },
+              }}
+            >
+              <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.8 }}>
+                <Typography
+                  variant="caption"
+                  fontWeight="800"
+                  color="#64748b"
+                  sx={{ textTransform: "uppercase", letterSpacing: 0.8, fontSize: "0.62rem" }}
+                >
+                  {m.name}
+                </Typography>
+                <Chip
+                  label={getBandLabel(rate)}
+                  size="small"
+                  sx={{
+                    bgcolor: color,
+                    color: needsDarkText(rate) ? "#7a5c00" : "#fff",
+                    fontWeight: 800,
+                    fontSize: "0.6rem",
+                    height: 22,
+                    borderRadius: 1.5,
+                  }}
+                />
+              </Stack>
+
+              <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mb: 1 }}>
+                <Typography variant="h4" fontWeight="900" sx={{ color: "#0f172a", lineHeight: 1.1 }}>
+                  {rate.toFixed(1)}
+                </Typography>
+                <Typography variant="body2" fontWeight="700" color="#64748b">
+                  %
+                </Typography>
+              </Stack>
+
+              <LinearProgress
+                variant="determinate"
+                value={Math.min(Math.max(rate, 0), 100)}
                 sx={{
-                  bgcolor: color,
-                  color: needsDarkText(rate) ? "#7a5c00" : "#fff",
-                  fontWeight: 800,
-                  fontSize: "0.6rem",
-                  height: 22,
-                  borderRadius: 1.5,
+                  height: 8,
+                  borderRadius: 4,
+                  bgcolor: "#f1f5f9",
+                  mb: 1,
+                  "& .MuiLinearProgress-bar": { bgcolor: color, borderRadius: 4 },
                 }}
               />
-            </Stack>
 
-            <Stack direction="row" alignItems="baseline" spacing={0.5} sx={{ mb: 1 }}>
-              <Typography variant="h4" fontWeight="900" sx={{ color: "#0f172a", lineHeight: 1.1 }}>
-                {rate.toFixed(1)}
-              </Typography>
-              <Typography variant="body2" fontWeight="700" color="#64748b">
-                %
-              </Typography>
-            </Stack>
-
-            <LinearProgress
-              variant="determinate"
-              value={Math.min(Math.max(rate, 0), 100)}
-              sx={{
-                height: 8,
-                borderRadius: 4,
-                bgcolor: "#f1f5f9",
-                mb: 1,
-                "& .MuiLinearProgress-bar": { bgcolor: color, borderRadius: 4 },
-              }}
-            />
-
-            <Grid container spacing={1}>
-              {[
-                { label: "Qtr Target", value: fmtNum(m.target), accent: "#475569" },
-                { label: "Actual (YTD)", value: fmtNum(m.actual), accent: "#475569" },
-                {
-                  label: "Gap vs Expected",
-                  value: `${gap >= 0 ? "+" : ""}${fmtNum(gap)}`,
-                  accent: gap >= 0 ? "#00B050" : "#FF0000",
-                },
-              ].map((s) => (
-                <Grid item xs={4} key={s.label}>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "#94a3b8", fontWeight: 600, display: "block", fontSize: "0.56rem" }}
-                  >
-                    {s.label}
-                  </Typography>
-                  <Typography variant="body2" fontWeight="800" sx={{ color: s.accent, lineHeight: 1.2 }}>
-                    {s.value}
-                  </Typography>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        );
-      })}
+              <Grid container spacing={1}>
+                {[
+                  { label: "Qtr Target", value: fmtNum(m.target), accent: "#475569" },
+                  { label: "Actual (YTD)", value: fmtNum(m.actual), accent: "#475569" },
+                  {
+                    label: "Gap vs Expected",
+                    value: `${gap >= 0 ? "+" : ""}${fmtNum(gap)}`,
+                    accent: gap >= 0 ? "#00B050" : "#FF0000",
+                  },
+                ].map((s) => (
+                  <Grid item xs={4} key={s.label}>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "#94a3b8", fontWeight: 600, display: "block", fontSize: "0.56rem" }}
+                    >
+                      {s.label}
+                    </Typography>
+                    <Typography variant="body2" fontWeight="800" sx={{ color: s.accent, lineHeight: 1.2 }}>
+                      {s.value}
+                    </Typography>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          );
+        })}
+      </Box>
     </Card>
   );
 };
@@ -477,6 +469,9 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false 
     "FCY Target",
     "FCY Actual",
     "FCY Achievement",
+    "Loan Target",
+    "Loan Actual",
+    "Loan Achievement",
   ];
 
   return (
@@ -548,6 +543,7 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false 
               filtered.map((row, idx) => {
                 const dc = getBandColor(row.depositRate);
                 const fc = getBandColor(row.fcyRate);
+                const lc = getBandColor(row.loanRate);
                 return (
                   <TableRow
                     key={idx}
@@ -643,6 +639,40 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false 
                         />
                       </Stack>
                     </TableCell>
+                    <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      {fmtNum(row.loanTarget)}
+                    </TableCell>
+                    <TableCell sx={{ color: "#475569", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      {fmtNum(row.loanActual)}
+                    </TableCell>
+                    <TableCell sx={{ minWidth: 170 }}>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min(Math.max(row.loanRate, 0), 100)}
+                          sx={{
+                            flex: 1,
+                            height: 7,
+                            borderRadius: 4,
+                            bgcolor: "#e2e8f0",
+                            "& .MuiLinearProgress-bar": { bgcolor: lc, borderRadius: 4 },
+                          }}
+                        />
+                        <Chip
+                          label={`${row.loanRate.toFixed(1)}%`}
+                          size="small"
+                          sx={{
+                            bgcolor: lc,
+                            color: needsDarkText(row.loanRate) ? "#7a5c00" : "#fff",
+                            fontWeight: 800,
+                            fontSize: "0.68rem",
+                            height: 22,
+                            minWidth: 62,
+                            borderRadius: 1,
+                          }}
+                        />
+                      </Stack>
+                    </TableCell>
                   </TableRow>
                 );
               })
@@ -674,6 +704,7 @@ const MainDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [depositData, setDepositData] = useState({ target: 0, actual: 0, rate: 0 });
   const [fcyData, setFcyData] = useState({ target: 0, actual: 0, rate: 0 });
+  const [loanData, setLoanData] = useState({ target: 0, actual: 0, rate: 0 });
   const [districtBreakdown, setDistrictBreakdown] = useState([]);
   const [amBreakdown, setAmBreakdown] = useState([]);
   const [branchBreakdown, setBranchBreakdown] = useState([]);
@@ -687,7 +718,6 @@ const MainDashboard = () => {
     user?.position || "",
     user?.organization || ""
   );
-  const meta = SCOPE_META[scope] || SCOPE_META.self;
 
   const requestData = !user
     ? {}
@@ -720,8 +750,10 @@ const MainDashboard = () => {
       console.log("targetRes", targetRes.data);
       const depTarget = Number(targetRes.data?.total_deposit) || 0;
       const fcyTarget = Number(targetRes.data?.total_fcy) || 0;
+      const loanTarget = Number(targetRes.data?.total_loan) || 0;
       const expectedDep = depTarget * quarterRatio;
       const expectedFcy = fcyTarget * quarterRatio;
+      const expectedLoan = loanTarget * quarterRatio;
 
       // Per-district / per-branch target lookups returned alongside the
       // summary so breakdown rows show real achievement rates.
@@ -746,6 +778,7 @@ const MainDashboard = () => {
 
       const depActual = Number(perfData.summary?.local_deposit) || 0;
       const fcyActual = Number(perfData.summary?.fcy) || 0;
+      const loanActual = Number(perfData.summary?.loan_collection) || 0;
 
       if (perfData.districtBreakdown && perfData.districtBreakdown.length > 0) {
         const mappedDistricts = perfData.districtBreakdown.map((d) => {
@@ -759,6 +792,11 @@ const MainDashboard = () => {
           const expf = ft * quarterRatio;
           const fr = expf > 0 ? (fa / expf) * 100 : (fa > 0 ? 100 : 0);
 
+          const lt = Number(districtTargetMap[d.district_name]?.loan_target) || 0;
+          const la = Number(d.loan_collection) || 0;
+          const expl = lt * quarterRatio;
+          const lr = expl > 0 ? (la / expl) * 100 : (la > 0 ? 100 : 0);
+
           return {
             name: d.district_name,
             depositTarget: dt,
@@ -767,6 +805,9 @@ const MainDashboard = () => {
             fcyTarget: ft,
             fcyActual: fa,
             fcyRate: fr,
+            loanTarget: lt,
+            loanActual: la,
+            loanRate: lr,
           };
         });
         setDistrictBreakdown(mappedDistricts);
@@ -785,6 +826,11 @@ const MainDashboard = () => {
           const expf = ft * quarterRatio;
           const fr = expf > 0 ? (fa / expf) * 100 : (fa > 0 ? 100 : 0);
 
+          const lt = Number(at.loan_target) || 0;
+          const la = Number(a.loan_collection) || 0;
+          const expl = lt * quarterRatio;
+          const lr = expl > 0 ? (la / expl) * 100 : (la > 0 ? 100 : 0);
+
           return {
             name: a.am_name || a.user_name,
             sub: `${a.branch_count || 0} branch${a.branch_count === 1 ? "" : "es"}`,
@@ -795,6 +841,9 @@ const MainDashboard = () => {
             fcyTarget: ft,
             fcyActual: fa,
             fcyRate: fr,
+            loanTarget: lt,
+            loanActual: la,
+            loanRate: lr,
           };
         });
         setAmBreakdown(mappedAMs);
@@ -815,6 +864,11 @@ const MainDashboard = () => {
           const expf = ft * quarterRatio;
           const fr = expf > 0 ? (fa / expf) * 100 : (fa > 0 ? 100 : 0);
 
+          const lt = Number(bt.loan_target) || 0;
+          const la = Number(b.loan_collection) || 0;
+          const expl = lt * quarterRatio;
+          const lr = expl > 0 ? (la / expl) * 100 : (la > 0 ? 100 : 0);
+
           return {
             name: b.branch_name || b.branch_code,
             sub: b.branch_code,
@@ -825,6 +879,9 @@ const MainDashboard = () => {
             fcyTarget: ft,
             fcyActual: fa,
             fcyRate: fr,
+            loanTarget: lt,
+            loanActual: la,
+            loanRate: lr,
           };
         });
         setBranchBreakdown(mappedBranches);
@@ -835,9 +892,11 @@ const MainDashboard = () => {
       // Achievement rates vs. expected pace
       const depRate = expectedDep > 0 ? (depActual / expectedDep) * 100 : (depActual > 0 ? 100 : 0);
       const fcyRate = expectedFcy > 0 ? (fcyActual / expectedFcy) * 100 : (fcyActual > 0 ? 100 : 0);
+      const loanRate = expectedLoan > 0 ? (loanActual / expectedLoan) * 100 : (loanActual > 0 ? 100 : 0);
 
       setDepositData({ target: depTarget, actual: depActual, rate: depRate });
       setFcyData({ target: fcyTarget, actual: fcyActual, rate: fcyRate });
+      setLoanData({ target: loanTarget, actual: loanActual, rate: loanRate });
     } catch (err) {
       console.error("MainDashboard fetchData:", err);
       toast.error("Failed to load dashboard data.");
@@ -908,92 +967,26 @@ const MainDashboard = () => {
         p: { xs: 2, md: 3 },
       }}
     >
-      {/* ── HERO HEADER ───────────────────────────────────────────────────── */}
+      {/* ── QUARTER PERIOD STRIP ──────────────────────────────────────────── */}
       <Box
         sx={{
           mb: 3,
           borderRadius: 3,
           overflow: "hidden",
           position: "relative",
-          background: "linear-gradient(135deg, #0a2463 0%, #1a56db 55%, #0d9488 100%)",
-          boxShadow: "0 20px 60px rgba(26,86,219,0.28)",
+          bgcolor: "#0284c7",
+          boxShadow: "0 12px 32px rgba(2,132,199,0.25)",
         }}
       >
-        {/* Decorative blobs */}
-        <Box
-          sx={{
-            position: "absolute", top: -50, right: -50,
-            width: 240, height: 240, borderRadius: "50%",
-            background: "rgba(13,148,136,0.18)", filter: "blur(50px)", pointerEvents: "none",
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute", bottom: -30, left: "25%",
-            width: 180, height: 180, borderRadius: "50%",
-            background: "rgba(26,86,219,0.18)", filter: "blur(40px)", pointerEvents: "none",
-          }}
-        />
-
-        <Box sx={{ p: { xs: 2, md: 3.5 }, position: "relative", zIndex: 1 }}>
+        <Box sx={{ p: { xs: 2, md: 2.5 }, position: "relative", zIndex: 1 }}>
           <Stack
             direction={{ xs: "column", sm: "row" }}
-            alignItems={{ sm: "center" }}
+            alignItems={{ xs: "flex-start", sm: "center" }}
             justifyContent="space-between"
             spacing={2}
           >
-            {/* Left: Identity */}
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <Avatar
-                sx={{
-                  width: 58, height: 58, fontSize: "1.6rem",
-                  bgcolor: "rgba(255,255,255,0.15)",
-                  border: "2px solid rgba(255,255,255,0.25)",
-                }}
-              >
-                {meta.icon}
-              </Avatar>
-              <Box>
-                <Typography
-                  sx={{
-                    fontSize: "0.58rem", fontWeight: 800, letterSpacing: 2,
-                    color: "rgba(186,230,253,0.65)", textTransform: "uppercase",
-                  }}
-                >
-                  Main Dashboard · Deposit & FCY Performance
-                </Typography>
-                <Typography
-                  variant="h5"
-                  fontWeight="900"
-                  sx={{ color: "#fff", lineHeight: 1.2, mt: 0.3 }}
-                >
-                  {user?.FullName || user?.UserName || "Welcome"}
-                </Typography>
-                <Stack direction="row" spacing={1} sx={{ mt: 0.8, flexWrap: "wrap", gap: 0.5 }}>
-                  <Chip
-                    label={user?.title || user?.position || "User"}
-                    size="small"
-                    sx={{
-                      bgcolor: "rgba(255,255,255,0.15)", color: "#e0f2fe",
-                      fontWeight: 700, fontSize: "0.65rem",
-                      border: "1px solid rgba(255,255,255,0.2)", height: 22,
-                    }}
-                  />
-                  <Chip
-                    label={meta.label}
-                    size="small"
-                    sx={{
-                      bgcolor: "rgba(13,148,136,0.3)", color: "#99f6e4",
-                      fontWeight: 700, fontSize: "0.65rem",
-                      border: "1px solid rgba(13,148,136,0.35)", height: 22,
-                    }}
-                  />
-                </Stack>
-              </Box>
-            </Stack>
-
-            {/* Right: Quarter status */}
-            <Box sx={{ textAlign: { sm: "right" }, minWidth: 200 }}>
+            {/* Quarter info */}
+            <Box>
               <Typography
                 sx={{
                   color: "rgba(186,230,253,0.55)", fontSize: "0.6rem",
@@ -1002,36 +995,36 @@ const MainDashboard = () => {
               >
                 Quarter Period
               </Typography>
-              <Typography sx={{ color: "#fff", fontWeight: 900, fontSize: "1rem", mt: 0.2 }}>
-                Q1 FY 2026/27
-              </Typography>
-              <Typography sx={{ color: "rgba(186,230,253,0.75)", fontSize: "0.75rem" }}>
-                July 1 – September 30, 2026
-              </Typography>
-
-              {/* Quarter elapsed bar */}
-              <Box sx={{ mt: 1.2 }}>
-                <LinearProgress
-                  variant="determinate"
-                  value={(daysPassed / 90) * 100}
-                  sx={{
-                    height: 5, borderRadius: 3,
-                    bgcolor: "rgba(255,255,255,0.15)",
-                    "& .MuiLinearProgress-bar": { bgcolor: "#4ade80", borderRadius: 3 },
-                  }}
-                />
-                <Typography
-                  sx={{ color: "rgba(186,230,253,0.6)", fontSize: "0.62rem", mt: 0.5 }}
-                >
-                  Day {daysPassed} of 90 — {((daysPassed / 90) * 100).toFixed(0)}% of quarter elapsed
+              <Stack direction="row" alignItems="baseline" spacing={1.5} sx={{ mt: 0.2, flexWrap: "wrap", gap: 0.5 }}>
+                <Typography sx={{ color: "#fff", fontWeight: 900, fontSize: "1.05rem" }}>
+                  Q1 FY 2026/27
                 </Typography>
-              </Box>
-
-              <Divider sx={{ borderColor: "rgba(255,255,255,0.1)", my: 1 }} />
+                <Typography sx={{ color: "rgba(186,230,253,0.75)", fontSize: "0.8rem" }}>
+                  July 1 – September 30, 2026
+                </Typography>
+              </Stack>
               <Typography
-                sx={{ color: "rgba(186,230,253,0.4)", fontSize: "0.58rem", fontWeight: 600 }}
+                sx={{ color: "rgba(186,230,253,0.4)", fontSize: "0.58rem", fontWeight: 600, mt: 0.4 }}
               >
                 Cooperative Bank of Oromia · Performance Management System
+              </Typography>
+            </Box>
+
+            {/* Quarter elapsed bar */}
+            <Box sx={{ minWidth: { sm: 260 }, width: { xs: "100%", sm: "auto" } }}>
+              <LinearProgress
+                variant="determinate"
+                value={(daysPassed / 90) * 100}
+                sx={{
+                  height: 5, borderRadius: 3,
+                  bgcolor: "rgba(255,255,255,0.15)",
+                  "& .MuiLinearProgress-bar": { bgcolor: "#4ade80", borderRadius: 3 },
+                }}
+              />
+              <Typography
+                sx={{ color: "rgba(186,230,253,0.6)", fontSize: "0.62rem", mt: 0.5, textAlign: { sm: "right" } }}
+              >
+                Day {daysPassed} of 90 — {((daysPassed / 90) * 100).toFixed(0)}% of quarter elapsed
               </Typography>
             </Box>
           </Stack>
@@ -1041,9 +1034,9 @@ const MainDashboard = () => {
       {/* ── PERFORMANCE BAND LEGEND ───────────────────────────────────────── */}
       <BandLegend />
 
-      {/* ── KPI SUMMARY CARDS (Deposit & FCY) ───────────────────────────── */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
+      {/* ── KPI SUMMARY CARDS (Deposit · FCY · Loan) ─────────────────────── */}
+      <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 3, mb: 4 }}>
+        <Box sx={{ flex: "1 1 0", minWidth: 0 }}>
           <KpiCard
             icon={<AccountBalanceIcon />}
             label="Deposit Achievement"
@@ -1052,8 +1045,8 @@ const MainDashboard = () => {
             rate={depositData.rate}
             quarterRatio={quarterRatio}
           />
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </Box>
+        <Box sx={{ flex: "1 1 0", minWidth: 0 }}>
           <KpiCard
             icon={<CurrencyExchangeIcon />}
             label="FCY Achievement"
@@ -1062,52 +1055,56 @@ const MainDashboard = () => {
             rate={fcyData.rate}
             quarterRatio={quarterRatio}
           />
-        </Grid>
-      </Grid>
+        </Box>
+        <Box sx={{ flex: "1 1 0", minWidth: 0 }}>
+          <KpiCard
+            icon={<PaymentsIcon />}
+            label="Loan Collection Achievement"
+            target={loanData.target}
+            actual={loanData.actual}
+            rate={loanData.rate}
+            quarterRatio={quarterRatio}
+          />
+        </Box>
+      </Box>
 
-      {/* ── AGGREGATE CARDS PER BREAKDOWN ───────────────────────────────────── */}
+      {/* ── AGGREGATE CARDS PER BREAKDOWN (full-width rows) ────────────────── */}
       {(showDistrictAggregate || showAmAggregate || showBranchAggregate) && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Box sx={{ mb: 4, display: "flex", flexDirection: "column", gap: 3 }}>
           {showDistrictAggregate && (
-            <Grid item xs={12} md={4}>
-              <AggregateCard
-                icon={<LocationCityIcon />}
-                label="Aggregate District Performance"
-                unitLabel="districts"
-                rows={districtBreakdown}
-                quarterRatio={quarterRatio}
-              />
-            </Grid>
+            <AggregateCard
+              icon={<LocationCityIcon />}
+              label="Aggregate District Performance"
+              unitLabel="districts"
+              rows={districtBreakdown}
+              quarterRatio={quarterRatio}
+            />
           )}
           {showAmAggregate && (
-            <Grid item xs={12} md={showDistrictAggregate ? 4 : 6}>
-              <AggregateCard
-                icon={<GroupsIcon />}
-                label="Aggregate Area Manager Performance"
-                unitLabel="area managers"
-                rows={amBreakdown}
-                quarterRatio={quarterRatio}
-              />
-            </Grid>
+            <AggregateCard
+              icon={<GroupsIcon />}
+              label="Aggregate Area Manager Performance"
+              unitLabel="area managers"
+              rows={amBreakdown}
+              quarterRatio={quarterRatio}
+            />
           )}
           {showBranchAggregate && (
-            <Grid item xs={12} md={showDistrictAggregate ? 4 : 6}>
-              <AggregateCard
-                icon={<StorefrontIcon />}
-                label={
-                  isEnterpriseLevel
-                    ? "Aggregate Branch Performance"
-                    : scope === "own_district"
-                      ? "Aggregate Branch Performance — Your District"
-                      : "Aggregate Branch Performance — Assigned Branches"
-                }
-                unitLabel="branches"
-                rows={branchBreakdown}
-                quarterRatio={quarterRatio}
-              />
-            </Grid>
+            <AggregateCard
+              icon={<StorefrontIcon />}
+              label={
+                isEnterpriseLevel
+                  ? "Aggregate Branch Performance"
+                  : scope === "own_district"
+                    ? "Aggregate Branch Performance — Your District"
+                    : "Aggregate Branch Performance — Assigned Branches"
+              }
+              unitLabel="branches"
+              rows={branchBreakdown}
+              quarterRatio={quarterRatio}
+            />
           )}
-        </Grid>
+        </Box>
       )}
 
       {/* ── DISTRICT BREAKDOWN TABLE ──────────────────────────────────────── */}

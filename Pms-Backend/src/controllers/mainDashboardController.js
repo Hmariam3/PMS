@@ -56,7 +56,7 @@ export const getPerformanceData = async (req, res) => {
         FROM public.sub_processess sp
         LEFT JOIN public.branches b ON b.subprocess_id = sp.subprocess_id
         LEFT JOIN public.branch_vital bv ON b.branch_code = bv."COMPANY_CODE"
-        WHERE sp.subprocess_name ILIKE '%District%'
+        WHERE sp.subprocess_name ILIKE '%District'
         GROUP BY sp.subprocess_name
         ORDER BY sp.subprocess_name
       `;
@@ -96,6 +96,60 @@ export const getPerformanceData = async (req, res) => {
       `;
       const allBranchesRes = await pool.query(allBranchesQuery);
       result.branchBreakdown = allBranchesRes.rows;
+
+      // ── Loan collection actuals (DW_LOAN_DUE_COLLECTION, keyed by "CO_CODE").
+      // Kept in separate queries and merged by key — a straight join into the
+      // queries above would double-count deposit/FCY where CO_CODE repeats.
+      const loanSummaryRes = await pool.query(
+        `SELECT SUM(COALESCE(CAST("TOTAL_COLLECTION" AS NUMERIC), 0)) as loan_collection
+         FROM public."DW_LOAN_DUE_COLLECTION"`
+      );
+      result.summary.loan_collection = Number(loanSummaryRes.rows[0]?.loan_collection) || 0;
+
+      const loanDistrictRes = await pool.query(
+        `SELECT sp.subprocess_name as district_name,
+                SUM(COALESCE(CAST(l."TOTAL_COLLECTION" AS NUMERIC), 0)) as loan_collection
+         FROM public."DW_LOAN_DUE_COLLECTION" l
+         JOIN public.branches b ON b.branch_code = l."CO_CODE"
+         JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+         GROUP BY sp.subprocess_name`
+      );
+      const loanByDistrict = {};
+      loanDistrictRes.rows.forEach((r) => { loanByDistrict[r.district_name] = Number(r.loan_collection) || 0; });
+      result.districtBreakdown = result.districtBreakdown.map((d) => ({
+        ...d,
+        loan_collection: loanByDistrict[d.district_name] || 0,
+      }));
+
+      const loanBranchRes = await pool.query(
+        `SELECT "CO_CODE" as branch_code,
+                SUM(COALESCE(CAST("TOTAL_COLLECTION" AS NUMERIC), 0)) as loan_collection
+         FROM public."DW_LOAN_DUE_COLLECTION"
+         GROUP BY "CO_CODE"`
+      );
+      const loanByBranch = {};
+      loanBranchRes.rows.forEach((r) => { loanByBranch[r.branch_code] = Number(r.loan_collection) || 0; });
+      result.branchBreakdown = result.branchBreakdown.map((b) => ({
+        ...b,
+        loan_collection: loanByBranch[b.branch_code] || 0,
+      }));
+
+      const loanAmRes = await pool.query(
+        `SELECT amu.user_name,
+                SUM(COALESCE(CAST(l."TOTAL_COLLECTION" AS NUMERIC), 0)) as loan_collection
+         FROM public."DW_LOAN_DUE_COLLECTION" l
+         JOIN public.branches b ON b.branch_code = l."CO_CODE"
+         JOIN public.area_manager_branch_mapping amb ON amb.branch_id = b.id
+         JOIN public.users amu ON amu.id = amb.area_manager_user_id
+         WHERE amu.title = 'Area Manager'
+         GROUP BY amu.user_name`
+      );
+      const loanByAm = {};
+      loanAmRes.rows.forEach((r) => { loanByAm[r.user_name] = Number(r.loan_collection) || 0; });
+      result.areaManagerBreakdown = result.areaManagerBreakdown.map((a) => ({
+        ...a,
+        loan_collection: loanByAm[a.user_name] || 0,
+      }));
 
     } else if (scope === "own_district") {
       // The district name is expected to be in user.subprocess
@@ -150,6 +204,54 @@ export const getPerformanceData = async (req, res) => {
       const amRes = await pool.query(amQuery, [districtName]);
       result.areaManagerBreakdown = amRes.rows;
 
+      // ── Loan collection actuals for this district
+      const loanSummaryRes = await pool.query(
+        `SELECT SUM(COALESCE(CAST(l."TOTAL_COLLECTION" AS NUMERIC), 0)) as loan_collection
+         FROM public."DW_LOAN_DUE_COLLECTION" l
+         JOIN public.branches b ON b.branch_code = l."CO_CODE"
+         JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+         WHERE sp.subprocess_name = $1`,
+        [districtName]
+      );
+      result.summary.loan_collection = Number(loanSummaryRes.rows[0]?.loan_collection) || 0;
+
+      const loanBranchRes = await pool.query(
+        `SELECT l."CO_CODE" as branch_code,
+                SUM(COALESCE(CAST(l."TOTAL_COLLECTION" AS NUMERIC), 0)) as loan_collection
+         FROM public."DW_LOAN_DUE_COLLECTION" l
+         JOIN public.branches b ON b.branch_code = l."CO_CODE"
+         JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+         WHERE sp.subprocess_name = $1
+         GROUP BY l."CO_CODE"`,
+        [districtName]
+      );
+      const loanByBranch = {};
+      loanBranchRes.rows.forEach((r) => { loanByBranch[r.branch_code] = Number(r.loan_collection) || 0; });
+      result.branchBreakdown = result.branchBreakdown.map((b) => ({
+        ...b,
+        loan_collection: loanByBranch[b.branch_code] || 0,
+      }));
+
+      const loanAmRes = await pool.query(
+        `SELECT amu.user_name,
+                SUM(COALESCE(CAST(l."TOTAL_COLLECTION" AS NUMERIC), 0)) as loan_collection
+         FROM public."DW_LOAN_DUE_COLLECTION" l
+         JOIN public.branches b ON b.branch_code = l."CO_CODE"
+         JOIN public.area_manager_branch_mapping amb ON amb.branch_id = b.id
+         JOIN public.users amu ON amu.id = amb.area_manager_user_id
+         JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+         WHERE amu.title = 'Area Manager'
+           AND sp.subprocess_name = $1
+         GROUP BY amu.user_name`,
+        [districtName]
+      );
+      const loanByAm = {};
+      loanAmRes.rows.forEach((r) => { loanByAm[r.user_name] = Number(r.loan_collection) || 0; });
+      result.areaManagerBreakdown = result.areaManagerBreakdown.map((a) => ({
+        ...a,
+        loan_collection: loanByAm[a.user_name] || 0,
+      }));
+
     } else if (scope === "assigned_branches") {
       const branchesQuery = `
         SELECT b.branch_name, b.branch_code,
@@ -194,6 +296,34 @@ export const getPerformanceData = async (req, res) => {
       const amRes = await pool.query(amQuery, [username]);
       result.areaManagerBreakdown = amRes.rows;
 
+      // ── Loan collection actuals for the assigned branches
+      const loanBranchRes = await pool.query(
+        `SELECT l."CO_CODE" as branch_code,
+                SUM(COALESCE(CAST(l."TOTAL_COLLECTION" AS NUMERIC), 0)) as loan_collection
+         FROM public."DW_LOAN_DUE_COLLECTION" l
+         JOIN public.branches b ON b.branch_code = l."CO_CODE"
+         JOIN public.area_manager_branch_mapping amb ON amb.branch_id = b.id
+         JOIN public.users amu ON amu.id = amb.area_manager_user_id
+         WHERE amu.user_name = $1
+         GROUP BY l."CO_CODE"`,
+        [username]
+      );
+      const loanByBranch = {};
+      let loanTotal = 0;
+      loanBranchRes.rows.forEach((r) => {
+        loanByBranch[r.branch_code] = Number(r.loan_collection) || 0;
+        loanTotal += Number(r.loan_collection) || 0;
+      });
+      result.summary.loan_collection = loanTotal;
+      result.branchBreakdown = result.branchBreakdown.map((b) => ({
+        ...b,
+        loan_collection: loanByBranch[b.branch_code] || 0,
+      }));
+      result.areaManagerBreakdown = result.areaManagerBreakdown.map((a) => ({
+        ...a,
+        loan_collection: loanTotal,
+      }));
+
     } else if (scope === "own_branch") {
       // Need company_code from the user object
       const { company_code } = req.body;
@@ -223,6 +353,20 @@ export const getPerformanceData = async (req, res) => {
       `;
       const branchRes = await pool.query(branchQuery, [company_code]);
       result.branchBreakdown = branchRes.rows;
+
+      // ── Loan collection actual for the branch
+      const loanRes = await pool.query(
+        `SELECT SUM(COALESCE(CAST("TOTAL_COLLECTION" AS NUMERIC), 0)) as loan_collection
+         FROM public."DW_LOAN_DUE_COLLECTION"
+         WHERE "CO_CODE" = $1`,
+        [company_code]
+      );
+      const loanVal = Number(loanRes.rows[0]?.loan_collection) || 0;
+      result.summary.loan_collection = loanVal;
+      result.branchBreakdown = result.branchBreakdown.map((b) => ({
+        ...b,
+        loan_collection: loanVal,
+      }));
     }
 
     res.status(200).json(result);

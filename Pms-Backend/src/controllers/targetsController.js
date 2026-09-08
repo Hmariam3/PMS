@@ -952,7 +952,8 @@ export const getMainDashboardTargets = async (req, res) => {
       query = `
         SELECT
           SUM(COALESCE(t.deposit_target, 0)) AS total_deposit,
-          SUM(COALESCE(t.fcy_target, 0))     AS total_fcy
+          SUM(COALESCE(t.fcy_target, 0))     AS total_fcy,
+          SUM(COALESCE(t.loan_collection, 0)) AS total_loan
         FROM public.targets t
         INNER JOIN public.users u ON t.user_name = u.user_name
         WHERE u.title ILIKE 'Director%District'
@@ -965,7 +966,8 @@ export const getMainDashboardTargets = async (req, res) => {
       query = `
         SELECT
           SUM(COALESCE(deposit_target, 0)) AS total_deposit,
-          SUM(COALESCE(fcy_target, 0))     AS total_fcy
+          SUM(COALESCE(fcy_target, 0))     AS total_fcy,
+          SUM(COALESCE(loan_collection, 0)) AS total_loan
         FROM public.targets
         WHERE user_name = $1
           AND status = 'Approved'
@@ -979,7 +981,37 @@ export const getMainDashboardTargets = async (req, res) => {
     const payload = {
       total_deposit: Number(row.total_deposit) || 0,
       total_fcy: Number(row.total_fcy) || 0,
+      total_loan: Number(row.total_loan) || 0,
     };
+
+    // District Directors don't set loan targets themselves — the Area Managers
+    // under their district do. If the DD's own row has no loan target, use the
+    // sum of his/her district's AMs' approved loan targets.
+    if (isOwnDistrict && subprocess && !payload.total_loan) {
+      const amLoanSumQuery = `
+        SELECT SUM(x.loan_target) AS total_loan
+        FROM (
+          SELECT u.id, SUM(COALESCE(t.loan_collection, 0)) AS loan_target
+          FROM public.targets t
+          INNER JOIN public.users u ON u.user_name = t.user_name
+          WHERE u.title = 'Area Manager'
+            AND t.status = 'Approved'
+          GROUP BY u.id
+        ) x
+        INNER JOIN (
+          SELECT DISTINCT amb.area_manager_user_id, b.subprocess_id
+          FROM public.area_manager_branch_mapping amb
+          INNER JOIN public.branches b ON b.id = amb.branch_id
+        ) m ON m.area_manager_user_id = x.id
+        INNER JOIN public.sub_processess sp ON sp.subprocess_id = m.subprocess_id
+        WHERE sp.subprocess_name = $1
+      `;
+      const amLoanSumRes = await pool.query(amLoanSumQuery, [subprocess]);
+      const amLoan = Number(amLoanSumRes.rows[0]?.total_loan) || 0;
+      if (amLoan > 0) {
+        payload.total_loan = amLoan;
+      }
+    }
 
     // ── Per-district targets (enterprise / all-districts views) ──────────────
     // District Director target rows grouped by the district in users.subprocess.
@@ -996,11 +1028,54 @@ export const getMainDashboardTargets = async (req, res) => {
         GROUP BY u.subprocess
       `;
       const districtRes = await pool.query(districtQuery);
-      payload.districtTargets = districtRes.rows.map((r) => ({
+      const districtRows = districtRes.rows.map((r) => ({
         district_name: r.district_name,
         deposit_target: Number(r.deposit_target) || 0,
         fcy_target: Number(r.fcy_target) || 0,
+        loan_target: 0,
       }));
+
+      // Districts' loan targets: District Directors do not set loan targets —
+      // the Area Managers under each district do. Sum each district's AMs'
+      // approved loan_collection rows (pre-aggregated per AM so the branch
+      // mappings don't multiply the target).
+      const districtLoanQuery = `
+        SELECT sp.subprocess_name AS district_name,
+               SUM(x.loan_target) AS loan_target
+        FROM (
+          SELECT u.id, SUM(COALESCE(t.loan_collection, 0)) AS loan_target
+          FROM public.targets t
+          INNER JOIN public.users u ON u.user_name = t.user_name
+          WHERE u.title = 'Area Manager'
+            AND t.status = 'Approved'
+          GROUP BY u.id
+        ) x
+        INNER JOIN (
+          SELECT DISTINCT amb.area_manager_user_id, b.subprocess_id
+          FROM public.area_manager_branch_mapping amb
+          INNER JOIN public.branches b ON b.id = amb.branch_id
+        ) m ON m.area_manager_user_id = x.id
+        INNER JOIN public.sub_processess sp ON sp.subprocess_id = m.subprocess_id
+        GROUP BY sp.subprocess_name
+      `;
+      const districtLoanRes = await pool.query(districtLoanQuery);
+      const loanByDistrict = {};
+      districtLoanRes.rows.forEach((r) => {
+        loanByDistrict[r.district_name] = Number(r.loan_target) || 0;
+      });
+      const districtByName = {};
+      districtRows.forEach((r) => { districtByName[r.district_name] = r; });
+      Object.keys(loanByDistrict).forEach((name) => {
+        if (!districtByName[name]) {
+          const row = { district_name: name, deposit_target: 0, fcy_target: 0, loan_target: 0 };
+          districtByName[name] = row;
+          districtRows.push(row);
+        }
+      });
+      districtRows.forEach((r) => { r.loan_target = loanByDistrict[r.district_name] || 0; });
+      payload.districtTargets = districtRows;
+      // Bank-level loan target = the same AM-derived district loan targets
+      payload.total_loan = districtRows.reduce((s, r) => s + r.loan_target, 0);
 
       // All branch targets bank-wide (Branch Manager target rows → branches)
       const allBranchQuery = `
@@ -1008,7 +1083,8 @@ export const getMainDashboardTargets = async (req, res) => {
           b.branch_code,
           b.branch_name,
           SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
-          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target
+          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target,
+          SUM(COALESCE(t.loan_collection, 0)) AS loan_target
         FROM public.targets t
         INNER JOIN public.users u ON u.user_name = t.user_name
         INNER JOIN public.branches b ON b.branch_code = u.company_code
@@ -1023,6 +1099,7 @@ export const getMainDashboardTargets = async (req, res) => {
         branch_name: r.branch_name,
         deposit_target: Number(r.deposit_target) || 0,
         fcy_target: Number(r.fcy_target) || 0,
+        loan_target: Number(r.loan_target) || 0,
       }));
 
       // Area Manager targets = each AM's own approved target row (it already
@@ -1031,7 +1108,8 @@ export const getMainDashboardTargets = async (req, res) => {
         SELECT
           u.user_name,
           SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
-          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target
+          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target,
+          SUM(COALESCE(t.loan_collection, 0)) AS loan_target
         FROM public.targets t
         INNER JOIN public.users u ON u.user_name = t.user_name
         WHERE u.title = 'Area Manager'
@@ -1043,6 +1121,7 @@ export const getMainDashboardTargets = async (req, res) => {
         user_name: r.user_name,
         deposit_target: Number(r.deposit_target) || 0,
         fcy_target: Number(r.fcy_target) || 0,
+        loan_target: Number(r.loan_target) || 0,
       }));
     }
 
@@ -1054,7 +1133,8 @@ export const getMainDashboardTargets = async (req, res) => {
           b.branch_code,
           b.branch_name,
           SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
-          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target
+          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target,
+          SUM(COALESCE(t.loan_collection, 0)) AS loan_target
         FROM public.targets t
         INNER JOIN public.users u ON u.user_name = t.user_name
         INNER JOIN public.branches b ON b.branch_code = u.company_code
@@ -1070,6 +1150,7 @@ export const getMainDashboardTargets = async (req, res) => {
         branch_name: r.branch_name,
         deposit_target: Number(r.deposit_target) || 0,
         fcy_target: Number(r.fcy_target) || 0,
+        loan_target: Number(r.loan_target) || 0,
       }));
 
       // Area Managers of this district — their own approved target rows
@@ -1078,7 +1159,8 @@ export const getMainDashboardTargets = async (req, res) => {
         SELECT
           u.user_name,
           SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
-          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target
+          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target,
+          SUM(COALESCE(t.loan_collection, 0)) AS loan_target
         FROM public.targets t
         INNER JOIN public.users u ON u.user_name = t.user_name
         WHERE u.title = 'Area Manager'
@@ -1098,6 +1180,7 @@ export const getMainDashboardTargets = async (req, res) => {
         user_name: r.user_name,
         deposit_target: Number(r.deposit_target) || 0,
         fcy_target: Number(r.fcy_target) || 0,
+        loan_target: Number(r.loan_target) || 0,
       }));
     } else if (isAreaManager) {
       const branchQuery = `
@@ -1105,7 +1188,8 @@ export const getMainDashboardTargets = async (req, res) => {
           b.branch_code,
           b.branch_name,
           SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
-          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target
+          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target,
+          SUM(COALESCE(t.loan_collection, 0)) AS loan_target
         FROM public.targets t
         INNER JOIN public.users u ON u.user_name = t.user_name
         INNER JOIN public.branches b ON b.branch_code = u.company_code
@@ -1122,6 +1206,7 @@ export const getMainDashboardTargets = async (req, res) => {
         branch_name: r.branch_name,
         deposit_target: Number(r.deposit_target) || 0,
         fcy_target: Number(r.fcy_target) || 0,
+        loan_target: Number(r.loan_target) || 0,
       }));
 
       // The AM's own target row ("own scope" visibility — it is already the
@@ -1131,6 +1216,7 @@ export const getMainDashboardTargets = async (req, res) => {
           user_name: username,
           deposit_target: payload.total_deposit,
           fcy_target: payload.total_fcy,
+          loan_target: payload.total_loan,
         },
       ];
     }
@@ -1142,6 +1228,7 @@ export const getMainDashboardTargets = async (req, res) => {
           branch_code: company_code,
           deposit_target: payload.total_deposit,
           fcy_target: payload.total_fcy,
+          loan_target: payload.total_loan,
         },
       ];
     }
