@@ -779,3 +779,30 @@ export const searchAccountMappingsByUser = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+// ✅ Get Remittance and Cash Purchase Actual by Branch Code
+export const getRemittanceActualByBranchCode = async (req, res) => {
+  const { branch_code } = req.params;
+
+  if (!branch_code) {
+    return res.status(400).json({ error: "branch_code is required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT "ID", "DISTRICT", "BRANCH", "BRANCH_CODE", "REMITTANCE_AND_CASH_PURCHASE_ACTUAL"
+       FROM public."Remittanceandcashpurchase"
+       WHERE "BRANCH_CODE" = $1`,
+      [branch_code]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "No record found for the given branch code" });
+    }
+
+    res.status(200).json(result.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};

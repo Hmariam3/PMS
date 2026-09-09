@@ -66,6 +66,7 @@ const getNavLinks = (user) => {
   const process = user?.process || "";
   const subprocess = user?.subprocess || "";
   const title = user?.title || "";
+  const team = user?.team || "";
 
   const isHaile = user?.UserName === "hailemariamk";
   const isAdmin = role === "Admin";
@@ -94,20 +95,22 @@ const getNavLinks = (user) => {
       text: "Main Dashboard",
       path: "/maindashboard",
       icon: <DashboardCustomizeIcon />,
-      show: ["CEO", "Chief, Commercial Officer"].includes(position) ||
-        role?.toLowerCase().startsWith("chief") ||
+      show:
         [
+          "Chief Executive Officer",
+          "Chief, Commercial Officer",
           "Director, District Coordination and Support",
           "Manager, District Coordination",
           "Manager, District Execution Monitoring",
           "Senior Director, Talent Acquisition and Career Pathways",
           "Director, Talent and Performance Management",
           "Manager, Employee Performance Management",
-          "District Director",
           "Area Manager",
         ].includes(title) ||
         title.includes("Branch Manager") ||
-        ((position === "Director" || position === "Senior Director") && orgUnit === "Do"),
+        (title.startsWith("Director") && title.endsWith("District")) ||
+        (title.includes("Manager Operation Management") && (team.includes("Eco") || team.includes("Micro"))) ||
+        ((position === "CEO" || position === "CHF") && orgUnit === "Ho"),
     },
     {
       text: "My Dashboard",

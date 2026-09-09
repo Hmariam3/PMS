@@ -204,7 +204,7 @@ const DashboardTeam = () => {
       } else {
         try {
           if (
-            (singleUser.title === "Branch Manager I" || singleUser.title === "Branch Manager II" || singleUser.title === "Branch Manager III" || singleUser.title === "Branch Manager IV" || (singleUser.title?.includes('Manager Operation Management') && singleUser.team?.includes('Eco'))) &&
+            (singleUser.title === "Branch Manager I" || singleUser.title === "Branch Manager II" || singleUser.title === "Branch Manager III" || singleUser.title === "Branch Manager IV" || (singleUser.title?.includes('Manager Operation Management') && (singleUser.team?.includes('Eco') || singleUser.team?.includes('Micro')))) &&
             singleUser.organization === "Branch"
           ) {
             const BranchManageraccountRes = await axios.post(
@@ -247,6 +247,9 @@ const DashboardTeam = () => {
       if (singleUser.title === 'Area Manager') {
         fcyRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
         fcyRes.data = { total_difference: fcyRes.data.total_fcy };
+      } else if (singleUser.title === 'Customer Service Officer' || (singleUser.title?.includes('Manager Operation Management') && !(singleUser.team?.includes('Eco') || singleUser.team?.includes('Micro')))) {
+        const remittanceRes = await axios.get(`${baseUrl}/accountmapping/remittance-actual/${requestData.company_code}`).catch(() => ({ data: {} }));
+        fcyRes = { data: { total_difference: Number(remittanceRes.data?.REMITTANCE_AND_CASH_PURCHASE_ACTUAL) || 0 } };
       } else {
         fcyRes = await axios.post(
           `${baseUrl}/fcy/fcyBalanceDifference`,
@@ -346,7 +349,7 @@ const DashboardTeam = () => {
 
       let totalfcy = 0;
       if (
-        (singleUser.title === "Branch Manager I" || singleUser.title === "Branch Manager II" || singleUser.title === "Branch Manager III" || singleUser.title === "Branch Manager IV" || (singleUser.title?.includes('Manager Operation Management') && singleUser.team?.includes('Eco'))) &&
+        (singleUser.title === "Branch Manager I" || singleUser.title === "Branch Manager II" || singleUser.title === "Branch Manager III" || singleUser.title === "Branch Manager IV" || (singleUser.title?.includes('Manager Operation Management') && (singleUser.team?.includes('Eco') || singleUser.team?.includes('Micro')))) &&
         singleUser.organization === "Branch") {
         const BranchManageraccountRes = await axios.post(
           `${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`,

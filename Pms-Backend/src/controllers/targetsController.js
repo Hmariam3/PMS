@@ -1,5 +1,41 @@
 import pool from "../db.js";
 
+/**
+ * Per-branch representative target row (exactly one row per branch).
+ *
+ * Who represents a branch:
+ *   1. Its Branch Manager (BM precedence), otherwise —
+ *   2. On Eco / Micro branches, the Manager Operation Management whose team
+ *      matches the branch. When several MOMs hold targets on the same branch
+ *      there is no way to tell who operates as the branch manager, so the one
+ *      with the GREATER target (deposit, then FCY, then loan) is taken —
+ *      never summed.
+ * DISTINCT ON (branch id) + the ORDER BY below implement both rules.
+ */
+const BRANCH_TARGET_HOLDERS_VIEW = `
+  SELECT DISTINCT ON (b.id)
+         b.id AS branch_id,
+         b.branch_code,
+         b.branch_name,
+         b.subprocess_id,
+         sp.subprocess_name AS district_name,
+         COALESCE(t.deposit_target, 0) AS deposit_target,
+         COALESCE(t.fcy_target, 0)     AS fcy_target,
+         COALESCE(t.loan_collection, 0) AS loan_target
+  FROM public.branches b
+  INNER JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+  INNER JOIN public.users u ON u.company_code = b.branch_code
+  INNER JOIN public.targets t ON t.user_name = u.user_name AND t.status = 'Approved'
+  WHERE b.branch_code IS NOT NULL AND b.branch_code <> ''
+    AND (u.title ILIKE 'Branch Manager%'
+     OR (u.title ILIKE 'Manager Operation Management%'
+         AND (u.team ILIKE '%Eco%' OR u.team ILIKE '%Micro%')))
+  ORDER BY b.id,
+           (u.title ILIKE 'Branch Manager%') DESC,
+           COALESCE(t.deposit_target, 0) DESC,
+           COALESCE(t.fcy_target, 0) DESC,
+           COALESCE(t.loan_collection, 0) DESC`;
+
 // Get all targets
 export const getAllTargets = async (req, res) => {
   try {
@@ -894,6 +930,114 @@ export const getCashTargetsByUser = async (req, res) => {
 };
 
 /**
+ * buildDistrictTargetRows
+ * Per-district target rows (deposit / FCY / loan) with the layered fallback:
+ *   1. District Director approved targets (deposit, FCY) — they set their own
+ *   2. Loan targets: the sum of Branch Manager / Eco-MOM loan targets of the
+ *      district's branches (District Directors don't set loan targets)
+ *   3. Fallbacks per metric when a layer is missing: AM rollup for loan,
+ *      DD row for deposit/FCY — only zero values get filled.
+ * Optionally scoped to a single district name.
+ */
+const buildDistrictTargetRows = async (districtName = null) => {
+  // 1) District Director deposit/FCY targets grouped by district
+  let ddQuery = `
+    SELECT u.subprocess AS district_name,
+           SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
+           SUM(COALESCE(t.fcy_target, 0))     AS fcy_target
+    FROM public.targets t
+    INNER JOIN public.users u ON t.user_name = u.user_name
+    WHERE u.title ILIKE 'Director%District'
+      AND t.status = 'Approved'`;
+  const ddValues = [];
+  if (districtName) {
+    ddQuery += ` AND u.subprocess = $1`;
+    ddValues.push(districtName);
+  }
+  ddQuery += ` GROUP BY u.subprocess`;
+  const ddRes = await pool.query(ddQuery, ddValues);
+  const rows = ddRes.rows.map((r) => ({
+    district_name: r.district_name,
+    deposit_target: Number(r.deposit_target) || 0,
+    fcy_target: Number(r.fcy_target) || 0,
+    loan_target: 0,
+  }));
+  const byName = {};
+  rows.forEach((r) => { byName[r.district_name] = r; });
+
+  // 2) Loan targets: District Directors don't set them — the Branch Managers
+  // (and Eco MOMs) of the district's branches do. Sum their loan targets.
+  // Deposit/FCY only fill in where the DD row is missing (zero), per metric.
+  // (and Eco / Micro MOMs) of the district's branches do. One representative
+  // row per branch (see BRANCH_TARGET_HOLDERS_VIEW), summed per district.
+  // Deposit/FCY only fill in where the DD row is missing (zero), per metric.
+  let bmQuery = `
+    SELECT h.district_name,
+           SUM(h.deposit_target) AS deposit_target,
+           SUM(h.fcy_target)     AS fcy_target,
+           SUM(h.loan_target)    AS loan_target
+    FROM (${BRANCH_TARGET_HOLDERS_VIEW}) h`;
+  const bmValues = [];
+  if (districtName) {
+    bmQuery += ` WHERE h.district_name = $1`;
+    bmValues.push(districtName);
+  }
+  bmQuery += ` GROUP BY h.district_name`;
+  const bmRes = await pool.query(bmQuery, bmValues);
+  bmRes.rows.forEach((r) => {
+    if (!byName[r.district_name]) {
+      const row = { district_name: r.district_name, deposit_target: 0, fcy_target: 0, loan_target: 0 };
+      byName[r.district_name] = row;
+      rows.push(row);
+    }
+    const row = byName[r.district_name];
+    if (!row.deposit_target) row.deposit_target = Number(r.deposit_target) || 0;
+    if (!row.fcy_target) row.fcy_target = Number(r.fcy_target) || 0;
+    if (!row.loan_target) row.loan_target = Number(r.loan_target) || 0;
+  });
+
+  // 3) Fallback for loan only: if a district's branches carry no loan targets,
+  // use the Area Managers' approved loan targets instead. Pre-aggregated per
+  // AM so the mappings don't multiply the total.
+  let amLoanQuery = `
+    SELECT sp.subprocess_name AS district_name,
+           SUM(x.loan_target) AS loan_target
+    FROM (
+      SELECT u.id, SUM(COALESCE(t.loan_collection, 0)) AS loan_target
+      FROM public.targets t
+      INNER JOIN public.users u ON u.user_name = t.user_name
+      WHERE u.title = 'Area Manager'
+        AND t.status = 'Approved'
+      GROUP BY u.id
+    ) x
+    INNER JOIN (
+      SELECT DISTINCT amb.area_manager_user_id, b.subprocess_id
+      FROM public.area_manager_branch_mapping amb
+      INNER JOIN public.branches b ON b.id = amb.branch_id
+    ) m ON m.area_manager_user_id = x.id
+    INNER JOIN public.sub_processess sp ON sp.subprocess_id = m.subprocess_id`;
+  const amValues = [];
+  if (districtName) {
+    amLoanQuery += ` WHERE sp.subprocess_name = $1`;
+    amValues.push(districtName);
+  }
+  amLoanQuery += ` GROUP BY sp.subprocess_name`;
+  const amLoanRes = await pool.query(amLoanQuery, amValues);
+  amLoanRes.rows.forEach((r) => {
+    if (!byName[r.district_name]) {
+      const row = { district_name: r.district_name, deposit_target: 0, fcy_target: 0, loan_target: 0 };
+      byName[r.district_name] = row;
+      rows.push(row);
+    }
+    if (!byName[r.district_name].loan_target) {
+      byName[r.district_name].loan_target = Number(r.loan_target) || 0;
+    }
+  });
+
+  return rows;
+};
+
+/**
  * getMainDashboardTargets
  * Role-based target aggregation for the Main Dashboard.
  *
@@ -914,7 +1058,7 @@ export const getCashTargetsByUser = async (req, res) => {
  *      → only the requesting user's own approved target row.
  */
 export const getMainDashboardTargets = async (req, res) => {
-  const { username, title, position, organization, subprocess, company_code } = req.body;
+  const { username, title, position, organization, subprocess, team, company_code } = req.body;
 
   if (!username || !title) {
     return res.status(400).json({ error: "UserName and title are required." });
@@ -937,6 +1081,7 @@ export const getMainDashboardTargets = async (req, res) => {
 
   const isOwnDistrict =
     title === "District Director" ||
+    (title.startsWith("Director") && title.endsWith("District")) ||
     ((position === "Director" || position === "Senior Director") &&
       organization === "Do");
 
@@ -984,137 +1129,51 @@ export const getMainDashboardTargets = async (req, res) => {
       total_loan: Number(row.total_loan) || 0,
     };
 
-    // District Directors don't set loan targets themselves — the Area Managers
-    // under their district do. If the DD's own row has no loan target, use the
-    // sum of his/her district's AMs' approved loan targets.
+    // District Directors don't set loan targets themselves — the Branch
+    // Managers / Eco-Micro MOMs of their district's branches do (one
+    // representative row per branch). If the DD's own row has no loan target,
+    // use the sum of their branches' loan targets; fall back to the district's
+    // AMs' loan targets if branches have none.
     if (isOwnDistrict && subprocess && !payload.total_loan) {
-      const amLoanSumQuery = `
-        SELECT SUM(x.loan_target) AS total_loan
-        FROM (
-          SELECT u.id, SUM(COALESCE(t.loan_collection, 0)) AS loan_target
-          FROM public.targets t
-          INNER JOIN public.users u ON u.user_name = t.user_name
-          WHERE u.title = 'Area Manager'
-            AND t.status = 'Approved'
-          GROUP BY u.id
-        ) x
-        INNER JOIN (
-          SELECT DISTINCT amb.area_manager_user_id, b.subprocess_id
-          FROM public.area_manager_branch_mapping amb
-          INNER JOIN public.branches b ON b.id = amb.branch_id
-        ) m ON m.area_manager_user_id = x.id
-        INNER JOIN public.sub_processess sp ON sp.subprocess_id = m.subprocess_id
-        WHERE sp.subprocess_name = $1
+      const branchLoanSumQuery = `
+        SELECT SUM(h.loan_target) AS total_loan
+        FROM (${BRANCH_TARGET_HOLDERS_VIEW}) h
+        WHERE h.district_name = $1
       `;
-      const amLoanSumRes = await pool.query(amLoanSumQuery, [subprocess]);
-      const amLoan = Number(amLoanSumRes.rows[0]?.total_loan) || 0;
-      if (amLoan > 0) {
-        payload.total_loan = amLoan;
+      const branchLoanSumRes = await pool.query(branchLoanSumQuery, [subprocess]);
+      const branchLoan = Number(branchLoanSumRes.rows[0]?.total_loan) || 0;
+      if (branchLoan > 0) {
+        payload.total_loan = branchLoan;
+      } else {
+        const amLoanSumQuery = `
+          SELECT SUM(x.loan_target) AS total_loan
+          FROM (
+            SELECT u.id, SUM(COALESCE(t.loan_collection, 0)) AS loan_target
+            FROM public.targets t
+            INNER JOIN public.users u ON u.user_name = t.user_name
+            WHERE u.title = 'Area Manager'
+              AND t.status = 'Approved'
+            GROUP BY u.id
+          ) x
+          INNER JOIN (
+            SELECT DISTINCT amb.area_manager_user_id, b.subprocess_id
+            FROM public.area_manager_branch_mapping amb
+            INNER JOIN public.branches b ON b.id = amb.branch_id
+          ) m ON m.area_manager_user_id = x.id
+          INNER JOIN public.sub_processess sp ON sp.subprocess_id = m.subprocess_id
+          WHERE sp.subprocess_name = $1
+        `;
+        const amLoanSumRes = await pool.query(amLoanSumQuery, [subprocess]);
+        const amLoan = Number(amLoanSumRes.rows[0]?.total_loan) || 0;
+        if (amLoan > 0) {
+          payload.total_loan = amLoan;
+        }
       }
     }
 
     // ── Per-district targets (enterprise / all-districts views) ──────────────
-    // District Director target rows grouped by the district in users.subprocess.
     if (isEnterprise) {
-      const districtQuery = `
-        SELECT
-          u.subprocess AS district_name,
-          SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
-          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target
-        FROM public.targets t
-        INNER JOIN public.users u ON t.user_name = u.user_name
-        WHERE u.title ILIKE 'Director%District'
-          AND t.status = 'Approved'
-        GROUP BY u.subprocess
-      `;
-      const districtRes = await pool.query(districtQuery);
-      const districtRows = districtRes.rows.map((r) => ({
-        district_name: r.district_name,
-        deposit_target: Number(r.deposit_target) || 0,
-        fcy_target: Number(r.fcy_target) || 0,
-        loan_target: 0,
-      }));
-
-      // Districts' loan targets: District Directors do not set loan targets —
-      // the Area Managers under each district do. Sum each district's AMs'
-      // approved loan_collection rows (pre-aggregated per AM so the branch
-      // mappings don't multiply the target).
-      const districtLoanQuery = `
-        SELECT sp.subprocess_name AS district_name,
-               SUM(x.loan_target) AS loan_target
-        FROM (
-          SELECT u.id, SUM(COALESCE(t.loan_collection, 0)) AS loan_target
-          FROM public.targets t
-          INNER JOIN public.users u ON u.user_name = t.user_name
-          WHERE u.title = 'Area Manager'
-            AND t.status = 'Approved'
-          GROUP BY u.id
-        ) x
-        INNER JOIN (
-          SELECT DISTINCT amb.area_manager_user_id, b.subprocess_id
-          FROM public.area_manager_branch_mapping amb
-          INNER JOIN public.branches b ON b.id = amb.branch_id
-        ) m ON m.area_manager_user_id = x.id
-        INNER JOIN public.sub_processess sp ON sp.subprocess_id = m.subprocess_id
-        GROUP BY sp.subprocess_name
-      `;
-      const districtLoanRes = await pool.query(districtLoanQuery);
-      const loanByDistrict = {};
-      districtLoanRes.rows.forEach((r) => {
-        loanByDistrict[r.district_name] = Number(r.loan_target) || 0;
-      });
-      const districtByName = {};
-      districtRows.forEach((r) => { districtByName[r.district_name] = r; });
-      Object.keys(loanByDistrict).forEach((name) => {
-        if (!districtByName[name]) {
-          const row = { district_name: name, deposit_target: 0, fcy_target: 0, loan_target: 0 };
-          districtByName[name] = row;
-          districtRows.push(row);
-        }
-      });
-      districtRows.forEach((r) => { r.loan_target = loanByDistrict[r.district_name] || 0; });
-
-      // Districts with no District Director target and no Area Managers
-      // (e.g. relationship-office districts) fall back to the summed
-      // Branch Manager targets of the branches under them — per metric,
-      // so only the missing values are filled.
-      const branchDistrictQuery = `
-        SELECT sp.subprocess_name AS district_name,
-               SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
-               SUM(COALESCE(t.fcy_target, 0))     AS fcy_target,
-               SUM(COALESCE(t.loan_collection, 0)) AS loan_target
-        FROM public.targets t
-        INNER JOIN public.users u ON u.user_name = t.user_name
-        INNER JOIN public.branches b ON b.branch_code = u.company_code
-        INNER JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
-        WHERE u.title ILIKE 'Branch Manager%'
-          AND t.status = 'Approved'
-          AND b.branch_code IS NOT NULL AND b.branch_code <> ''
-        GROUP BY sp.subprocess_name
-      `;
-      const branchDistrictRes = await pool.query(branchDistrictQuery);
-      const branchTargetsByDistrict = {};
-      branchDistrictRes.rows.forEach((r) => {
-        branchTargetsByDistrict[r.district_name] = {
-          deposit_target: Number(r.deposit_target) || 0,
-          fcy_target: Number(r.fcy_target) || 0,
-          loan_target: Number(r.loan_target) || 0,
-        };
-      });
-      Object.keys(branchTargetsByDistrict).forEach((name) => {
-        if (!districtByName[name]) {
-          const row = { district_name: name, deposit_target: 0, fcy_target: 0, loan_target: 0 };
-          districtByName[name] = row;
-          districtRows.push(row);
-        }
-      });
-      districtRows.forEach((r) => {
-        const bt = branchTargetsByDistrict[r.district_name];
-        if (!bt) return;
-        if (!r.deposit_target) r.deposit_target = bt.deposit_target;
-        if (!r.fcy_target) r.fcy_target = bt.fcy_target;
-        if (!r.loan_target) r.loan_target = bt.loan_target;
-      });
+      const districtRows = await buildDistrictTargetRows();
       payload.districtTargets = districtRows;
       // Bank-level totals track the district rows so the KPI cards stay
       // consistent with the district aggregate card
@@ -1122,21 +1181,16 @@ export const getMainDashboardTargets = async (req, res) => {
       payload.total_fcy = districtRows.reduce((s, r) => s + r.fcy_target, 0);
       payload.total_loan = districtRows.reduce((s, r) => s + r.loan_target, 0);
 
-      // All branch targets bank-wide (Branch Manager target rows → branches)
+      // All branch targets bank-wide — one representative target row per
+      // branch (BM, or greatest-target MOM on Eco/Micro branches)
       const allBranchQuery = `
         SELECT
-          b.branch_code,
-          b.branch_name,
-          SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
-          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target,
-          SUM(COALESCE(t.loan_collection, 0)) AS loan_target
-        FROM public.targets t
-        INNER JOIN public.users u ON u.user_name = t.user_name
-        INNER JOIN public.branches b ON b.branch_code = u.company_code
-        WHERE u.title ILIKE 'Branch Manager%'
-          AND t.status = 'Approved'
-          AND b.branch_code IS NOT NULL
-        GROUP BY b.branch_code, b.branch_name
+          h.branch_code,
+          h.branch_name,
+          h.deposit_target,
+          h.fcy_target,
+          h.loan_target
+        FROM (${BRANCH_TARGET_HOLDERS_VIEW}) h
       `;
       const allBranchRes = await pool.query(allBranchQuery);
       payload.branchTargets = allBranchRes.rows.map((r) => ({
@@ -1175,19 +1229,13 @@ export const getMainDashboardTargets = async (req, res) => {
     if (isOwnDistrict && subprocess) {
       const branchQuery = `
         SELECT
-          b.branch_code,
-          b.branch_name,
-          SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
-          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target,
-          SUM(COALESCE(t.loan_collection, 0)) AS loan_target
-        FROM public.targets t
-        INNER JOIN public.users u ON u.user_name = t.user_name
-        INNER JOIN public.branches b ON b.branch_code = u.company_code
-        INNER JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
-        WHERE u.title ILIKE 'Branch Manager%'
-          AND sp.subprocess_name = $1
-          AND t.status = 'Approved'
-        GROUP BY b.branch_code, b.branch_name
+          h.branch_code,
+          h.branch_name,
+          h.deposit_target,
+          h.fcy_target,
+          h.loan_target
+        FROM (${BRANCH_TARGET_HOLDERS_VIEW}) h
+        WHERE h.district_name = $1
       `;
       const branchRes = await pool.query(branchQuery, [subprocess]);
       payload.branchTargets = branchRes.rows.map((r) => ({
@@ -1197,6 +1245,9 @@ export const getMainDashboardTargets = async (req, res) => {
         fcy_target: Number(r.fcy_target) || 0,
         loan_target: Number(r.loan_target) || 0,
       }));
+
+      // The district's own target row (for the district breakdown table)
+      payload.districtTargets = await buildDistrictTargetRows(subprocess);
 
       // Area Managers of this district — their own approved target rows
       // (each already covers all branches assigned to them)
@@ -1230,20 +1281,15 @@ export const getMainDashboardTargets = async (req, res) => {
     } else if (isAreaManager) {
       const branchQuery = `
         SELECT
-          b.branch_code,
-          b.branch_name,
-          SUM(COALESCE(t.deposit_target, 0)) AS deposit_target,
-          SUM(COALESCE(t.fcy_target, 0))     AS fcy_target,
-          SUM(COALESCE(t.loan_collection, 0)) AS loan_target
-        FROM public.targets t
-        INNER JOIN public.users u ON u.user_name = t.user_name
-        INNER JOIN public.branches b ON b.branch_code = u.company_code
-        INNER JOIN public.area_manager_branch_mapping amb ON amb.branch_id = b.id
+          h.branch_code,
+          h.branch_name,
+          h.deposit_target,
+          h.fcy_target,
+          h.loan_target
+        FROM (${BRANCH_TARGET_HOLDERS_VIEW}) h
+        INNER JOIN public.area_manager_branch_mapping amb ON amb.branch_id = h.branch_id
         INNER JOIN public.users amu ON amu.id = amb.area_manager_user_id
-        WHERE u.title ILIKE 'Branch Manager%'
-          AND amu.user_name = $1
-          AND t.status = 'Approved'
-        GROUP BY b.branch_code, b.branch_name
+        WHERE amu.user_name = $1
       `;
       const branchRes = await pool.query(branchQuery, [username]);
       payload.branchTargets = branchRes.rows.map((r) => ({
@@ -1264,10 +1310,29 @@ export const getMainDashboardTargets = async (req, res) => {
           loan_target: payload.total_loan,
         },
       ];
+
+      // The AM's district targets (for the district breakdown table)
+      const amDistRes = await pool.query(
+        `SELECT DISTINCT sp.subprocess_name AS district_name
+         FROM public.area_manager_branch_mapping amb
+         INNER JOIN public.branches b ON b.id = amb.branch_id
+         INNER JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+         INNER JOIN public.users amu ON amu.id = amb.area_manager_user_id
+         WHERE amu.user_name = $1`,
+        [username]
+      );
+      const amDistrict = amDistRes.rows[0]?.district_name;
+      if (amDistrict) {
+        payload.districtTargets = await buildDistrictTargetRows(amDistrict);
+      }
     }
 
-    // ── Own-branch target (Branch Manager view) ──────────────────────────────
-    if (title.includes("Branch Manager") && company_code) {
+    // ── Own-branch target (Branch Manager / Eco- or Micro-MOM view) ─────────────────────
+    if (
+      (title.includes("Branch Manager") ||
+        (title.includes("Manager Operation Management") && (team?.includes?.("Eco") || team?.includes?.("Micro")))) &&
+      company_code
+    ) {
       payload.branchTargets = [
         {
           branch_code: company_code,

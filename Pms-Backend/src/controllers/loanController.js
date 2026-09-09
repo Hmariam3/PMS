@@ -272,7 +272,7 @@ export const getLoanBalanceDifferenceByUser = async (req, res) => {
       query = `
         SELECT 
           SUM(COALESCE(d."TOTAL_COLLECTION", 0))   AS total_difference
-        FROM public."DW_LOAN_DUE_COLLECTION"
+        FROM public."DW_LOAN_DUE_COLLECTION" d
       `;
       values = [];
     } else {

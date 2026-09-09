@@ -150,7 +150,7 @@ const MyDashboard = () => {
 
       if (type === "deposit" && totalDeposit > 0) {
         let accountBalance = 0;
-        if ((requestData.title === 'Branch Manager I' || requestData.title === 'Branch Manager II' || requestData.title === 'Branch Manager III' || requestData.title === 'Branch Manager IV' || (requestData.title?.includes('Manager Operation Management') && requestData.team?.includes('Eco'))) && requestData.organization === 'Branch') {
+        if ((requestData.title === 'Branch Manager I' || requestData.title === 'Branch Manager II' || requestData.title === 'Branch Manager III' || requestData.title === 'Branch Manager IV' || (requestData.title?.includes('Manager Operation Management') && (requestData.team?.includes('Eco') || requestData.team?.includes('Micro')))) && requestData.organization === 'Branch') {
           const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`, requestData).catch(() => ({ data: {} }));
           accountBalance = Number(r.data?.local_deposit) || 0;
         } else if ((requestData.position === "Director" || requestData.position === "Senior Director") && requestData.organization === "Do") {
@@ -168,7 +168,7 @@ const MyDashboard = () => {
 
       if (type === "fcy" && totalFcyTarget > 0) {
         let fcyBalance = 0;
-        if ((requestData.title === 'Branch Manager I' || requestData.title === 'Branch Manager II' || requestData.title === 'Branch Manager III' || requestData.title === 'Branch Manager IV' || (requestData.title?.includes('Manager Operation Management') && requestData.team?.includes('Eco'))) && requestData.organization === 'Branch') {
+        if ((requestData.title === 'Branch Manager I' || requestData.title === 'Branch Manager II' || requestData.title === 'Branch Manager III' || requestData.title === 'Branch Manager IV' || (requestData.title?.includes('Manager Operation Management') && (requestData.team?.includes('Eco') || requestData.team?.includes('Micro')))) && requestData.organization === 'Branch') {
           const r = await axios.post(`${baseUrl}/accountmapping/getBalanceDifferenceByUserforManagers/`, requestData).catch(() => ({ data: {} }));
           fcyBalance = Number(r.data?.fcy) || 0;
         } else if ((requestData.position === "Director" || requestData.position === "Senior Director") && requestData.organization === "Do") {
@@ -177,6 +177,9 @@ const MyDashboard = () => {
         } else if (requestData.title === 'Area Manager') {
           const AreaManagerRes = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
           fcyBalance = Number(AreaManagerRes.data.total_fcy) || 0;
+        } else if (requestData.title === 'Customer Service Officer' || (requestData.title?.includes('Manager Operation Management') && !(requestData.team?.includes('Eco') || requestData.team?.includes('Micro')))) {
+          const remittanceRes = await axios.get(`${baseUrl}/accountmapping/remittance-actual/${requestData.company_code}`).catch(() => ({ data: {} }));
+          fcyBalance = Number(remittanceRes.data?.REMITTANCE_AND_CASH_PURCHASE_ACTUAL) || 0;
         } else {
           const r = await axios.post(`${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`, requestData).catch(() => ({ data: {} }));
           fcyBalance = Number(r.data?.total_difference) || 0;

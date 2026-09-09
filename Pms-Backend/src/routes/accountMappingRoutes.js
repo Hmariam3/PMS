@@ -11,6 +11,7 @@ import {
   searchAccountMappingsByUser,
   getBalanceDifferenceByUserforManagers,
   getBalanceDifferenceByUserforDistrictDirectors,
+  getRemittanceActualByBranchCode,
 } from "../controllers/accountMappingController.js";
 import { upload } from "../middleware/upload.js";
 const router = express.Router();
@@ -26,5 +27,8 @@ router.post("/getBalanceDifferenceByUserforManagers", getBalanceDifferenceByUser
 router.post("/getBalanceDifferenceByUserforDistrictDirectors", getBalanceDifferenceByUserforDistrictDirectors);
 // Bulk Excel import with iterative validation
 router.post("/import-excel", upload.single("file"), importExcelAccountMapping);
+
+// Get Remittance and Cash Purchase Actual by Branch Code
+router.get("/remittance-actual/:branch_code", getRemittanceActualByBranchCode);
 
 export default router;

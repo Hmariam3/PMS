@@ -5,7 +5,7 @@ import pool from "../db.js";
  * User passes their title, position, and organization in the request body.
  */
 export const getPerformanceData = async (req, res) => {
-  const { username, title, position, organization, subprocess } = req.body;
+  const { username, title, position, organization, subprocess, team } = req.body;
 
   if (!username) {
     return res.status(400).json({ error: "UserName is required." });
@@ -18,11 +18,17 @@ export const getPerformanceData = async (req, res) => {
     scope = "enterprise";
   } else if (["Director, District Coordination and Support", "Manager, District Coordination", "Manager, District Execution Monitoring"].includes(title)) {
     scope = "all_districts";
-  } else if (title === "District Director" || ((position === "Director" || position === "Senior Director") && organization === "Do")) {
+  } else if (title === "District Director" ||
+    (title?.startsWith("Director") && title?.endsWith("District")) ||
+    ((position === "Director" || position === "Senior Director") && organization === "Do")) {
     scope = "own_district";
   } else if (title === "Area Manager") {
     scope = "assigned_branches";
-  } else if (title?.includes("Branch Manager")) {
+  } else if (title?.includes("Branch Manager") ||
+    (title?.includes("Manager Operation Management") &&
+      (team?.includes?.("Eco") || team?.includes?.("Micro")))) {
+    // On "Eco" / "Micro" branches the Manager Operation Management acts as
+    // the branch manager, so they get the branch-level view
     scope = "own_branch";
   }
 
@@ -256,6 +262,25 @@ export const getPerformanceData = async (req, res) => {
         loan_collection: loanByAm[a.user_name] || 0,
       }));
 
+      // District-level row so the district breakdown table shows the DD's
+      // own district (sums of the district's branch rows)
+      const distTotals = result.branchBreakdown.reduce(
+        (acc, b) => ({
+          local_deposit: acc.local_deposit + (Number(b.local_deposit) || 0),
+          fcy: acc.fcy + (Number(b.fcy) || 0),
+          loan_collection: acc.loan_collection + (Number(b.loan_collection) || 0),
+        }),
+        { local_deposit: 0, fcy: 0, loan_collection: 0 }
+      );
+      result.districtBreakdown = [
+        {
+          district_name: districtName,
+          local_deposit: distTotals.local_deposit,
+          fcy: distTotals.fcy,
+          loan_collection: distTotals.loan_collection,
+        },
+      ];
+
     } else if (scope === "assigned_branches") {
       const branchesQuery = `
         SELECT b.branch_name, b.branch_code,
@@ -327,6 +352,41 @@ export const getPerformanceData = async (req, res) => {
         ...a,
         loan_collection: loanTotal,
       }));
+
+      // District-level row for the AM's district — covers ALL branches of the
+      // district, not only the ones assigned to this AM
+      const amDistrictName = amRes.rows[0]?.district_name;
+      if (amDistrictName && !amDistrictName.includes(",")) {
+        const distRes = await pool.query(
+          `SELECT sp.subprocess_name AS district_name,
+                  SUM(COALESCE(CAST(bv."LOCAL_DEPOSIT" AS NUMERIC), 0)) AS local_deposit,
+                  SUM(COALESCE(CAST(bv."FCY" AS NUMERIC), 0)) AS fcy
+           FROM public.sub_processess sp
+           LEFT JOIN public.branches b ON b.subprocess_id = sp.subprocess_id
+           LEFT JOIN public.branch_vital bv ON b.branch_code = bv."COMPANY_CODE"
+           WHERE sp.subprocess_name = $1
+           GROUP BY sp.subprocess_name`,
+          [amDistrictName]
+        );
+        const loanDistRes = await pool.query(
+          `SELECT SUM(COALESCE(CAST(l."TOTAL_COLLECTION" AS NUMERIC), 0)) AS loan_collection
+           FROM public."DW_LOAN_DUE_COLLECTION" l
+           JOIN public.branches b ON b.branch_code = l."CO_CODE"
+           JOIN public.sub_processess sp ON sp.subprocess_id = b.subprocess_id
+           WHERE sp.subprocess_name = $1`,
+          [amDistrictName]
+        );
+        if (distRes.rows[0]) {
+          result.districtBreakdown = [
+            {
+              district_name: amDistrictName,
+              local_deposit: distRes.rows[0].local_deposit,
+              fcy: distRes.rows[0].fcy,
+              loan_collection: Number(loanDistRes.rows[0]?.loan_collection) || 0,
+            },
+          ];
+        }
+      }
 
     } else if (scope === "own_branch") {
       // Need company_code from the user object

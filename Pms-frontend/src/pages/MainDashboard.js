@@ -78,10 +78,11 @@ const getBandLabel = (rate) => {
 const needsDarkText = (rate) => rate >= 75 && rate < 100;
 
 // ─── Role Scope Resolution (title-based per visibility matrix) ────────────────
-const resolveScope = (title = "", position = "", organization = "") => {
+const resolveScope = (title = "", position = "", organization = "", team = "") => {
   if (["Chief Executive Officer", "Chief, Commercial Officer"].includes(title))
     return "enterprise";
-  if (title.toLowerCase().startsWith("chief"))
+  // C-Suite Executive Management: other Chiefs (position CEO/CHF at Head Office)
+  if ((position === "CEO" || position === "CHF") && organization === "Ho")
     return "csuite";
   if (
     [
@@ -107,6 +108,10 @@ const resolveScope = (title = "", position = "", organization = "") => {
     return "own_district";
   if (title === "Area Manager") return "assigned_branches";
   if (title.includes("Branch Manager")) return "own_branch";
+  // On "Eco" branches the Manager Operation Management acts as the branch
+  // manager, so they get the branch-level view
+  if (title.includes("Manager Operation Management") && (team.includes("Eco") || team.includes("Micro")))
+    return "own_branch";
   return "self";
 };
 
@@ -729,7 +734,8 @@ const MainDashboard = () => {
   const scope = resolveScope(
     user?.title || "",
     user?.position || "",
-    user?.organization || ""
+    user?.organization || "",
+    user?.team || ""
   );
 
   const requestData = !user
@@ -924,26 +930,26 @@ const MainDashboard = () => {
   }, [user]);
 
   // ── Visibility matrix (per business requirement) ────────────────────────────
-  // District table: enterprise-level scopes only (CEO, Chief Commercial Officer,
-  // District Coordination trio, Talent trio).
-  // C-Suite (other Chiefs): aggregate cards only — no breakdown tables.
-  // District Director: AMs of own district + branches of own district.
-  // Area Manager: own performance row + assigned branches.
-  // Branch Manager: own branch row only.
+  // Enterprise titles (CEO, CCO, District Coordination trio, Talent trio):
+  //   3 KPI cards + District / Area Manager / Branch breakdowns + aggregates.
+  // C-Suite (position CEO/CHF at Ho): 3 KPI cards + aggregate cards only.
+  // District Director: 3 KPI cards + District / AM / Branch breakdowns.
+  // Area Manager: 3 KPI cards + District / AM / Branch breakdowns.
+  // Branch Manager (incl. Eco MOMs): 3 KPI cards + Branch breakdown only.
   const isEnterpriseLevel = ["enterprise", "all_districts", "enterprise_all"].includes(scope);
-  const showDistrictTable = isEnterpriseLevel;
-  const showAmTable =
-    isEnterpriseLevel || scope === "own_district" || scope === "assigned_branches";
+  const showDistrictTable = isEnterpriseLevel || scope === "own_district" || scope === "assigned_branches";
+  const showAmTable = isEnterpriseLevel || scope === "own_district" || scope === "assigned_branches";
   const showBranchTable =
     isEnterpriseLevel ||
     scope === "own_district" ||
     scope === "assigned_branches" ||
     scope === "own_branch";
   // Aggregate cards: all three for enterprise-level scopes (incl. C-Suite),
-  // AM + branch aggregates for District Directors, branch aggregate for AMs.
-  const showDistrictAggregate = ["enterprise", "csuite", "all_districts", "enterprise_all"].includes(scope);
-  const showAmAggregate = showDistrictAggregate || scope === "own_district";
-  const showBranchAggregate = showAmAggregate || scope === "assigned_branches";
+  // all three for DD/AM too (their tables feed them), branch-only otherwise.
+  const showDistrictAggregate =
+    isEnterpriseLevel || scope === "csuite" || scope === "own_district" || scope === "assigned_branches";
+  const showAmAggregate = showDistrictAggregate;
+  const showBranchAggregate = showDistrictAggregate || scope === "own_branch";
 
   // ── Loading state ─────────────────────────────────────────────────────────
   if (loading) {

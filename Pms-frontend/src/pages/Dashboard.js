@@ -224,6 +224,9 @@ const Dashboard = () => {
       if (requestData.title === 'Area Manager') {
         fcyResMapped = await axios.post(`${baseUrl}/area-manager-branch/area-manager-performance`, requestData);
         fcyResMapped.data.total_difference = fcyResMapped.data.total_fcy;
+      } else if (requestData.title === 'Customer Service Officer' || (requestData.title?.includes('Manager Operation Management') && !(requestData.team?.includes('Eco') || requestData.team?.includes('Micro')))) {
+        const remittanceRes = await axios.get(`${baseUrl}/accountmapping/remittance-actual/${requestData.company_code}`).catch(() => ({ data: {} }));
+        fcyResMapped = { data: { total_difference: Number(remittanceRes.data?.REMITTANCE_AND_CASH_PURCHASE_ACTUAL) || 0 } };
       } else {
         fcyResMapped = await axios.post(
           `${baseUrl}/fcy/fcyBalanceDifferenceByUserMapped`,
