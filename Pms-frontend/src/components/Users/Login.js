@@ -109,14 +109,32 @@ const Login = () => {
 
             login(userdata);
 
+            // Main Dashboard visibility — same title-based rule as the sidebar
+            const title = userdata.title || "";
+            const team = userdata.team || "";
+            const position = userdata.position || "";
             const orgUnit = userdata.organization || "";
-            const pos = userdata.position || "";
-            const isHO = orgUnit.toUpperCase() === "HO";
-            const isDistrict = orgUnit.toLowerCase() === "do";
-            const isDirector = pos.toLowerCase().includes("director");
 
-            if (isHO || (isDistrict && isDirector)) {
-              navigate("/");
+            const canSeeMainDashboard =
+              [
+                "Chief Executive Officer",
+                "Chief, Commercial Officer",
+                "Director, District Coordination and Support",
+                "Manager, District Coordination",
+                "Manager, District Execution Monitoring",
+                "Senior Director, Talent Acquisition and Career Pathways",
+                "Director, Talent and Performance Management",
+                "Manager, Employee Performance Management",
+                "Area Manager",
+              ].includes(title) ||
+              title.includes("Branch Manager") ||
+              (title.startsWith("Director") && title.endsWith("District")) ||
+              (title.includes("Manager Operation Management") &&
+                (team.includes("Eco") || team.includes("Micro"))) ||
+              ((position === "CEO" || position === "CHF") && orgUnit === "Ho");
+
+            if (canSeeMainDashboard) {
+              navigate("/maindashboard");
             } else {
               navigate("/mydashboard");
             }

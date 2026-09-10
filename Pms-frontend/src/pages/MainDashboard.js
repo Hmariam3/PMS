@@ -101,7 +101,7 @@ const resolveScope = (title = "", position = "", organization = "", team = "") =
   )
     return "enterprise_all";
   if (
-    (title && /^Director.*District$/i.test(title)) ||
+    (title.startsWith("Director") && title.endsWith("District")) ||
     ((position === "Director" || position === "Senior Director") &&
       organization === "Do")
   )

@@ -86,12 +86,6 @@ const getNavLinks = (user) => {
 
   return [
     {
-      text: "OKR Dashboard",
-      path: "/",
-      icon: <DashboardIcon />,
-      show: isHO || (isDistrict && isDirector) || isVPOrCHF,
-    },
-    {
       text: "Main Dashboard",
       path: "/maindashboard",
       icon: <DashboardCustomizeIcon />,
@@ -117,6 +111,12 @@ const getNavLinks = (user) => {
       path: "/mydashboard",
       icon: <AssessmentIcon />,
       show: true,
+    },
+    {
+      text: "OKR Dashboard",
+      path: "/",
+      icon: <DashboardIcon />,
+      show: isHO || (isDistrict && isDirector) || isVPOrCHF,
     },
     {
       text: "Team Dashboard",

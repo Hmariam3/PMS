@@ -41,13 +41,21 @@ const AccountVariationReport = () => {
   const [loading, setLoading] = useState(false);
   const [tabValue, setTabValue] = useState(0);
 
+  // Quarter progress — targets shown "as of today" are pro-rated by this
+  const getQuarterRatio = () => {
+    const start = new Date("2026-07-01");
+    const today = new Date();
+    const days = Math.floor((today - start) / 86_400_000) + 1;
+    return Math.max(0, Math.min(days, 90)) / 90;
+  };
+  const quarterRatio = getQuarterRatio();
+
   // Data states
   const [localData, setLocalData] = useState([]);
   const [fcyData, setFcyData] = useState([]);
   const [loanData, setLoanData] = useState([]);
   const [fcyGenData, setFcyGenData] = useState([]);
   const [manualCashData, setManualCashData] = useState([]);
-  const [crmCashData, setCrmCashData] = useState([]);
   const [loanCollectionBranchData, setLoanCollectionBranchData] = useState([]);
 
   // Pagination & Search
@@ -78,7 +86,6 @@ const AccountVariationReport = () => {
         case "loan": setLoanData(res.data); break;
         case "fcy-gen": setFcyGenData(res.data); break;
         case "manual-cash": setManualCashData(res.data); break;
-        case "crm-cash": setCrmCashData(res.data); break;
         case "loan-collection-branch": setLoanCollectionBranchData(res.data); break;
         default: break;
       }
@@ -90,14 +97,18 @@ const AccountVariationReport = () => {
     }
   };
 
+  // Tab order → backend tabType
+  const tabTypes = ["local", "fcy-gen", "loan-collection-branch", "manual-cash", "loan", "fcy"];
+
   useEffect(() => {
-    if (tabValue === 0 && localData.length === 0) fetchReportData("local");
-    else if (tabValue === 1 && fcyData.length === 0) fetchReportData("fcy");
-    else if (tabValue === 2 && loanData.length === 0) fetchReportData("loan");
-    else if (tabValue === 3 && fcyGenData.length === 0) fetchReportData("fcy-gen");
-    else if (tabValue === 4 && manualCashData.length === 0) fetchReportData("manual-cash");
-    else if (tabValue === 5 && crmCashData.length === 0) fetchReportData("crm-cash");
-    else if (tabValue === 6 && loanCollectionBranchData.length === 0) fetchReportData("loan-collection-branch");
+    const type = tabTypes[tabValue];
+    if (type === "local" && localData.length === 0) fetchReportData("local");
+    else if (type === "fcy" && fcyData.length === 0) fetchReportData("fcy");
+    else if (type === "loan" && loanData.length === 0) fetchReportData("loan");
+    else if (type === "fcy-gen" && fcyGenData.length === 0) fetchReportData("fcy-gen");
+    else if (type === "manual-cash" && manualCashData.length === 0) fetchReportData("manual-cash");
+    else if (type === "loan-collection-branch" && loanCollectionBranchData.length === 0) fetchReportData("loan-collection-branch");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabValue]);
 
   const handleTabChange = (event, newValue) => {
@@ -135,7 +146,8 @@ const AccountVariationReport = () => {
   // ─── Table Configs ──────────────────────────────────────────────────────────
   const tablesConfig = [
     {
-      title: "Local Account Variation",
+      title: "Local Account Achievement",
+      type: "local",
       data: localData,
       cols: [
         { key: "user_name", label: "User Name" },
@@ -149,12 +161,80 @@ const AccountVariationReport = () => {
         { key: "total_beginning_balance", label: "Beginning Balance" },
         { key: "total_current_balance", label: "Current Balance" },
         { key: "deposit_target", label: "Deposit Target" },
-        { key: "variation", label: "Variation (Amount)" },
-        { key: "variation_percent", label: "Variation (%)" }
+        { key: "deposit_target_today", label: "Deposit Target (Today)" },
+        { key: "variation", label: "Achievement Amount" },
+        { key: "variation_percent", label: "Achievement Percentage" }
       ]
     },
     {
-      title: "FCY Account Variation",
+      title: "FCY Generation",
+      type: "fcy-gen",
+      data: fcyGenData,
+      cols: [
+        { key: "user_name", label: "User Name" },
+        { key: "full_name", label: "Full Name" },
+        { key: "position", label: "Position" },
+        { key: "title", label: "Title" },
+        { key: "process", label: "Process" },
+        { key: "subprocess", label: "Subprocess" },
+        { key: "branch", label: "Branch" },
+        { key: "fcy_generation_count", label: "FCY Gen Count" },
+        { key: "fcy_target", label: "FCY Target" },
+        { key: "fcy_target_today", label: "FCY Target (Today)" },
+        { key: "total_amount", label: "Achievement Amount" },
+        { key: "achievement_percent", label: "Achievement Percentage" }
+      ]
+    },
+    {
+      title: "Loan Collection Per Branch",
+      type: "loan-collection-branch",
+      data: loanCollectionBranchData,
+      cols: [
+        { key: "PROCESS", label: "Process" },
+        { key: "SUBPROCESS", label: "Subprocess" },
+        { key: "BRANCH_NAME", label: "Branch Name" },
+        { key: "CO_CODE", label: "CO Code" },
+        { key: "TOTAL_COLLECTION", label: "Total Collection" }
+        // { key: "LOAN_DUE_COLLECTION", label: "Loan Due Collection" },
+      ]
+    },
+    {
+      title: "Manual Cash Collection per Branch",
+      type: "manual-cash",
+      data: manualCashData,
+      cols: [
+        // { key: "DISTRICT_NAME", label: "District Name" },
+        { key: "PROCESS", label: "Process" },
+        { key: "SUBPROCESS", label: "Subprocess" },
+        { key: "BRANCH_NAME", label: "Branch Name" },
+        { key: "BRANCH_CODE", label: "Branch Code" },
+        { key: "TOTAL_CASH_CREDIT", label: "Total Cash Credit" },
+
+      ]
+    },
+    {
+      title: "Mapped Loan Account Achievement",
+      type: "loan",
+      data: loanData,
+      cols: [
+        { key: "user_name", label: "User Name" },
+        { key: "full_name", label: "Full Name" },
+        { key: "position", label: "Position" },
+        { key: "title", label: "Title" },
+        { key: "process", label: "Process" },
+        { key: "subprocess", label: "Subprocess" },
+        { key: "branch", label: "Branch" },
+        { key: "loan_accounts_count", label: "Accounts Count" },
+        { key: "loan_collection_target", label: "Loan Collection Target" },
+        { key: "loan_collection_target_today", label: "Loan Collection Target (Today)" },
+        { key: "total_collected_balance", label: "Achievement Amount" },
+        { key: "achievement_percent", label: "Achievement Percentage" },
+        { key: "total_outstanding_balance", label: "Total Outstanding" }
+      ]
+    },
+    {
+      title: "Mapped FCY Account Achievement",
+      type: "fcy",
       data: fcyData,
       cols: [
         { key: "user_name", label: "User Name" },
@@ -169,85 +249,19 @@ const AccountVariationReport = () => {
         { key: "total_current_balance", label: "Current Balance" },
         { key: "total_lcy_closing_balance", label: "Achievement (LCY Closing)" }
       ]
-    },
-    {
-      title: "Loan Collection",
-      data: loanData,
-      cols: [
-        { key: "user_name", label: "User Name" },
-        { key: "full_name", label: "Full Name" },
-        { key: "position", label: "Position" },
-        { key: "title", label: "Title" },
-        { key: "process", label: "Process" },
-        { key: "subprocess", label: "Subprocess" },
-        { key: "branch", label: "Branch" },
-        { key: "loan_accounts_count", label: "Accounts Count" },
-        { key: "loan_collection_target", label: "Loan Collection Target" },
-        { key: "total_collected_balance", label: "Total Collected (Achievement)" },
-        { key: "total_outstanding_balance", label: "Total Outstanding" }
-      ]
-    },
-    {
-      title: "FCY Generation",
-      data: fcyGenData,
-      cols: [
-        { key: "user_name", label: "User Name" },
-        { key: "full_name", label: "Full Name" },
-        { key: "position", label: "Position" },
-        { key: "title", label: "Title" },
-        { key: "process", label: "Process" },
-        { key: "subprocess", label: "Subprocess" },
-        { key: "branch", label: "Branch" },
-        { key: "fcy_generation_count", label: "FCY Gen Count" },
-        { key: "fcy_target", label: "FCY Target" },
-        { key: "total_amount", label: "Total Amount (Achievement)" }
-      ]
-    },
-    {
-      title: "Manual Cash Collection per Branch",
-      data: manualCashData,
-      cols: [
-        // { key: "DISTRICT_NAME", label: "District Name" },
-        { key: "PROCESS", label: "Process" },
-        { key: "SUBPROCESS", label: "Subprocess" },
-        { key: "BRANCH_NAME", label: "Branch Name" },
-        { key: "BRANCH_CODE", label: "Branch Code" },
-        { key: "TOTAL_CASH_CREDIT", label: "Total Cash Credit" },
-
-      ]
-    },
-    {
-      title: "Cash Collection by CRM per Branch",
-      data: crmCashData,
-      cols: [
-        { key: "PROCESS", label: "Process" },
-        { key: "SUBPROCESS", label: "Subprocess" },
-        { key: "BRANCH_NAME", label: "Branch Name" },
-        { key: "BRANCH_CODE", label: "Branch Code" },
-        { key: "TOTAL_COLLECTED_CASH", label: "Total Collected Cash" }
-
-      ]
-    },
-    {
-      title: "Loan Collection Per Branch",
-      data: loanCollectionBranchData,
-      cols: [
-        { key: "PROCESS", label: "Process" },
-        { key: "SUBPROCESS", label: "Subprocess" },
-        { key: "BRANCH_NAME", label: "Branch Name" },
-        { key: "CO_CODE", label: "CO Code" },
-        { key: "TOTAL_COLLECTION", label: "Total Collection" }
-        // { key: "LOAN_DUE_COLLECTION", label: "Loan Due Collection" },
-      ]
     }
   ];
 
   const currentConfig = tablesConfig[tabValue];
 
-  // Map Data (calculating percentages for Local tab dynamically)
+  // Map Data — per-tab achievement calculations against the target as of today
   const mappedData = currentConfig.data.map(row => {
     let newRow = { ...row };
-    if (tabValue === 0) {
+    if (currentConfig.type === "local") {
+      // Deposit target pro-rated to today (quarter target × days elapsed / 90)
+      const todayTarget = (Number(row.deposit_target) || 0) * quarterRatio;
+      newRow.deposit_target_today = todayTarget;
+
       if (row.total_beginning_balance === null && row.total_current_balance === null) {
         newRow.variation = null;
         newRow.variation_percent = null;
@@ -255,10 +269,23 @@ const AccountVariationReport = () => {
         const beg = Number(row.total_beginning_balance) || 0;
         const cur = Number(row.total_current_balance) || 0;
         const varAmt = Number(row.variation) || (cur - beg);
-        const varPct = beg === 0 ? (varAmt > 0 ? 100 : 0) : (varAmt / beg) * 100;
+        // Achievement % is measured against the target as of today
+        const varPct = todayTarget === 0 ? (varAmt > 0 ? 100 : 0) : (varAmt / todayTarget) * 100;
         newRow.variation = varAmt;
         newRow.variation_percent = `${varPct.toFixed(2)}%`;
       }
+    } else if (currentConfig.type === "fcy-gen") {
+      const todayTarget = (Number(row.fcy_target) || 0) * quarterRatio;
+      newRow.fcy_target_today = todayTarget;
+      const achv = Number(row.total_amount) || 0;
+      const pct = todayTarget === 0 ? (achv > 0 ? 100 : 0) : (achv / todayTarget) * 100;
+      newRow.achievement_percent = `${pct.toFixed(2)}%`;
+    } else if (currentConfig.type === "loan") {
+      const todayTarget = (Number(row.loan_collection_target) || 0) * quarterRatio;
+      newRow.loan_collection_target_today = todayTarget;
+      const achv = Number(row.total_collected_balance) || 0;
+      const pct = todayTarget === 0 ? (achv > 0 ? 100 : 0) : (achv / todayTarget) * 100;
+      newRow.achievement_percent = `${pct.toFixed(2)}%`;
     }
     return newRow;
   });
@@ -269,6 +296,46 @@ const AccountVariationReport = () => {
       String(val).toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
+
+  // ─── Aggregate strip (Local / FCY Generation / Mapped Loan tabs) ────────────
+  // Sums over the individual rows currently shown in the table.
+  const AGG_CONFIG = {
+    local: {
+      targetKey: "deposit_target", todayKey: "deposit_target_today", achievementKey: "variation",
+      targetLabel: "Aggregate Deposit Target", todayLabel: "Aggregate Deposit Target (Today)",
+    },
+    "fcy-gen": {
+      targetKey: "fcy_target", todayKey: "fcy_target_today", achievementKey: "total_amount",
+      targetLabel: "Aggregate FCY Target", todayLabel: "Aggregate FCY Target (Today)",
+    },
+    loan: {
+      targetKey: "loan_collection_target", todayKey: "loan_collection_target_today", achievementKey: "total_collected_balance",
+      targetLabel: "Aggregate Loan Collection Target", todayLabel: "Aggregate Loan Collection Target (Today)",
+    },
+  };
+  const aggDef = AGG_CONFIG[currentConfig.type];
+  const aggregates = aggDef
+    ? (() => {
+        // Branch Managers / Eco-Micro MOMs and District Directors set the
+        // targets of their branches / districts, so their rows duplicate the
+        // targets (and mapped achievements) of the staff below them. For the
+        // aggregates only the accountable individual rows count — position
+        // CRM or Individual — the table itself stays unfiltered.
+        const aggRows = filteredRows.filter(
+          (r) => r.position === "CRM" || r.position === "Individual"
+        );
+        const target = aggRows.reduce((s, r) => s + (Number(r[aggDef.targetKey]) || 0), 0);
+        const targetToday = aggRows.reduce((s, r) => s + (Number(r[aggDef.todayKey]) || 0), 0);
+        const achievement = aggRows.reduce((s, r) => s + (Number(r[aggDef.achievementKey]) || 0), 0);
+        const percent = targetToday !== 0
+          ? (achievement / targetToday) * 100
+          : (achievement > 0 ? 100 : 0);
+        return { target, targetToday, achievement, percent };
+      })()
+    : null;
+  const fmtAgg = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const aggPercentColor = (p) =>
+    p >= 100 ? "success.main" : p >= 75 ? "warning.main" : "error.main";
 
   // ─── Excel Export ───────────────────────────────────────────────────────────
   const exportToExcelStyled = async () => {
@@ -383,15 +450,52 @@ const AccountVariationReport = () => {
             variant="scrollable"
             scrollButtons="auto"
           >
-            <Tab label="Local Account Variation" {...a11yProps(0)} />
-            <Tab label="FCY Account Variation" {...a11yProps(1)} />
-            <Tab label="Loan Collection" {...a11yProps(2)} />
-            <Tab label="FCY Generation" {...a11yProps(3)} />
-            <Tab label="Manual Cash Collection per Branch" {...a11yProps(4)} />
-            <Tab label="Cash Collection by CRM per Branch" {...a11yProps(5)} />
-            <Tab label="Loan Collection Per Branch" {...a11yProps(6)} />
+            <Tab label="Local Account Achievement" {...a11yProps(0)} />
+            <Tab label="FCY Generation" {...a11yProps(1)} />
+            <Tab label="Loan Collection Per Branch" {...a11yProps(2)} />
+            <Tab label="Manual Cash Collection per Branch" {...a11yProps(3)} />
+            <Tab label="Mapped Loan Account Achievement" {...a11yProps(4)} />
+            <Tab label="Mapped FCY Account Achievement" {...a11yProps(5)} />
           </Tabs>
         </Box>
+
+        {/* ── Aggregate strip — sums of the individual rows shown in the table ── */}
+        {aggDef && aggregates && (
+          <Box sx={{ display: "flex", gap: 2, p: 2, flexWrap: { xs: "wrap", md: "nowrap" }, bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+            {[
+              { label: aggDef.targetLabel, value: fmtAgg(aggregates.target), color: "#1e293b" },
+              { label: aggDef.todayLabel, value: fmtAgg(aggregates.targetToday), color: "#1d4ed8" },
+              {
+                label: "Aggregate Achievement Amount",
+                value: fmtAgg(aggregates.achievement),
+                color: aggregates.achievement >= 0 ? "success.main" : "error.main",
+              },
+              {
+                label: "Aggregate Achievement Percentage",
+                value: `${aggregates.percent.toFixed(2)}%`,
+                color: aggPercentColor(aggregates.percent),
+              },
+            ].map((card) => (
+              <Box
+                key={card.label}
+                sx={{
+                  flex: "1 1 0", minWidth: 0,
+                  px: 2, py: 1.5,
+                  bgcolor: "#fff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 2,
+                }}
+              >
+                <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 700, display: "block", fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  {card.label}
+                </Typography>
+                <Typography variant="subtitle1" fontWeight="800" sx={{ color: card.color, lineHeight: 1.3 }}>
+                  {card.value}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
 
         <Box sx={{ p: 0 }}>
           <TableContainer sx={{ maxHeight: "70vh", overflowX: "auto" }}>
@@ -428,14 +532,18 @@ const AccountVariationReport = () => {
                       {currentConfig.cols.map((c, i) => {
                         let val = row[c.key];
                         if (val === null || val === undefined || val === "") val = "—";
-                        else if (typeof val === "number") val = val.toLocaleString();
+                        else if (/^-?\d+(\.\d+)?$/.test(String(val).trim())) {
+                          // numeric values (numbers or numeric strings from the
+                          // API) render comma-separated
+                          val = Number(val).toLocaleString(undefined, { maximumFractionDigits: 2 });
+                        }
 
                         let color = "inherit";
                         let fontWeight = 400;
                         if (c.key === "variation") {
                           color = row[c.key] >= 0 ? "success.main" : "error.main";
                           fontWeight = "bold";
-                        } else if (c.key === "variation_percent") {
+                        } else if (c.key === "variation_percent" || c.key === "achievement_percent") {
                           color = parseFloat(row[c.key]) >= 0 ? "success.main" : "error.main";
                           fontWeight = "bold";
                         } else if (c.key === "total_lcy_closing_balance" || c.key === "total_collected_balance" || c.key === "total_amount") {
