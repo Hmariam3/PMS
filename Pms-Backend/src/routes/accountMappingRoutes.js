@@ -12,6 +12,7 @@ import {
   getBalanceDifferenceByUserforManagers,
   getBalanceDifferenceByUserforDistrictDirectors,
   getRemittanceActualByBranchCode,
+  getMichuCollectionByUser,
 } from "../controllers/accountMappingController.js";
 import { upload } from "../middleware/upload.js";
 const router = express.Router();
@@ -30,5 +31,8 @@ router.post("/import-excel", upload.single("file"), importExcelAccountMapping);
 
 // Get Remittance and Cash Purchase Actual by Branch Code
 router.get("/remittance-actual/:branch_code", getRemittanceActualByBranchCode);
+
+// Get Michu Collection By User
+router.post("/getMichuCollectionByUser", getMichuCollectionByUser);
 
 export default router;

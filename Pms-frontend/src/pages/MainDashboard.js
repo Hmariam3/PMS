@@ -766,7 +766,7 @@ const MainDashboard = () => {
         `${baseUrl}/targets/MainDashboardTargets/`,
         requestData
       );
-      console.log("targetRes", targetRes.data);
+      // console.log("targetRes", targetRes.data);
       const depTarget = Number(targetRes.data?.total_deposit) || 0;
       const fcyTarget = Number(targetRes.data?.total_fcy) || 0;
       const loanTarget = Number(targetRes.data?.total_loan) || 0;
@@ -792,7 +792,7 @@ const MainDashboard = () => {
 
       // Fetch actuals from our new dashboard API
       const perfRes = await axios.post(`${baseUrl}/maindashboard/performance`, requestData);
-      console.log("perfRes", perfRes.data);
+      // console.log("perfRes", perfRes.data);
       const perfData = perfRes.data || {};
 
       const depActual = Number(perfData.summary?.local_deposit) || 0;

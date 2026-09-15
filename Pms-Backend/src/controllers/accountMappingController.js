@@ -806,3 +806,29 @@ export const getRemittanceActualByBranchCode = async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+// =====================================================
+// Get Michu Collection By User
+// =====================================================
+export const getMichuCollectionByUser = async (req, res) => {
+  const { user_id } = req.body;
+
+  try {
+    const query = `
+      SELECT "ID", "USER_NAME", "T24_ID", "BRANCH_CODE", "MICHU_COLLECTION", "PROCESS", "SUBPROCESS", "CREATED_AT"
+      FROM public."MichuCollection"
+      WHERE "USER_NAME" = $1
+    `;
+    const values = [user_id];
+
+    const result = await pool.query(query, values);
+
+    res.status(200).json({
+      data: result.rows,
+      total_michu_collection: result.rows[0]?.MICHU_COLLECTION || 0
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+};

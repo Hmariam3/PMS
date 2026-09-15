@@ -80,6 +80,7 @@ const getNavLinks = (user) => {
   const isManager = position === "Manager";
   const isVPOrCHF = position.includes("VP") || position.includes("CHF");
   const isIFB = process === "Interest Free Banking";
+  const isIS = process === "Information System";
   const isCorporate = subprocess === "Corporate Banking" || subprocess === "NGO and Institutional Banking" || subprocess === "Cooperatives Business" || subprocess === "Agri Business" || subprocess === "Product Director by Division" || subprocess === "District Coordination and Support";
 
 
@@ -105,6 +106,7 @@ const getNavLinks = (user) => {
         (title.startsWith("Director") && title.endsWith("District")) ||
         (title.includes("Manager Operation Management") && (team.includes("Eco") || team.includes("Micro"))) ||
         ((position === "CEO" || position === "CHF") && orgUnit === "Ho"),
+      isIS, isAdmin,
     },
     {
       text: "My Dashboard",
@@ -192,7 +194,25 @@ const getNavLinks = (user) => {
       children: [
         { text: "User Targets Report", path: "/reports/user-targets", icon: <AssessmentIcon />, show: true },
         { text: "Account Mapping Report", path: "/reports/account-mapping", icon: <AssessmentIcon />, show: isAdmin || isDo },
-        { text: "Financial Achievement", path: "/reports/account-variation", icon: <AssessmentIcon />, show: isAdmin },
+        {
+          text: "Financial Achievement", path: "/reports/account-variation", icon: <AssessmentIcon />,
+          show: [
+            "Chief Executive Officer",
+            "Chief, Commercial Officer",
+            "Director, District Coordination and Support",
+            "Manager, District Coordination",
+            "Manager, District Execution Monitoring",
+            "Senior Director, Talent Acquisition and Career Pathways",
+            "Director, Talent and Performance Management",
+            "Manager, Employee Performance Management",
+            "Area Manager",
+          ].includes(title) ||
+            title.includes("Branch Manager") ||
+            (title.startsWith("Director") && title.endsWith("District")) ||
+            (title.includes("Manager Operation Management") && (team.includes("Eco") || team.includes("Micro"))) ||
+            ((position === "CEO" || position === "CHF") && orgUnit === "Ho"),
+          isIS, isAdmin,
+        },
         { text: "FCY Deposit", path: "/reports/fcy-deposit", icon: <AssessmentIcon />, show: isAdmin },
         { text: "Evaluation Result Report", path: "/reports/evaluation-result", icon: <AssessmentIcon />, show: true },
         { text: "Raw Evaluation Report", path: "/reports/raw-evaluations", icon: <AssessmentIcon />, show: isAdmin },

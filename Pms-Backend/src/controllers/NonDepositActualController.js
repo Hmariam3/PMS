@@ -1091,3 +1091,29 @@ export const getBranchInternalAccountsSummary = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// =====================================================
+// Get Michu Recruitment By User
+// =====================================================
+export const getMichuRecruitmentByUser = async (req, res) => {
+  const { user_id } = req.body;
+
+  try {
+    const query = `
+      SELECT "ID", "USER_NAME", "T24_ID", "CBS_USER_NAME", "BRANCH_CODE", "MICHU_RECRUITMENT", "PROCESS", "SUBPROCESS", "CREATED_AT"
+      FROM public."MichuRecruitment"
+      WHERE "USER_NAME" = $1
+    `;
+    const values = [user_id];
+
+    const result = await pool.query(query, values);
+
+    res.status(200).json({
+      data: result.rows,
+      total_michu_recruitment: result.rows[0]?.MICHU_RECRUITMENT || 0
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+};

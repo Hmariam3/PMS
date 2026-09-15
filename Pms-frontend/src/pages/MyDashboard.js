@@ -208,10 +208,11 @@ const MyDashboard = () => {
         return { actual: Number(r.data?.total_cash_collection) || 0, target: cash_collectionTarget };
       }
 
-      if (type === "CRM Deposit" && michu_loan_collectionTarget > 0) {
-        const r = await axios.post(`${baseUrl}/nondeposit/getCRMCashDepositSummaryByUser/`, requestData);
-        return { actual: Number(r.data?.total_crm_cash) || 0, target: michu_loan_collectionTarget };
+      if (type === "Michu Loan Collection" && michu_loan_collectionTarget > 0) {
+        const r = await axios.post(`${baseUrl}/accountmapping/getMichuCollectionByUser`, requestData);
+        return { actual: Number(r.data?.total_michu_collection) || 0, target: michu_loan_collectionTarget };
       }
+
 
       if (type === "account" && newAccountTarget > 0) {
         if (requestData.title === 'Area Manager') {
@@ -315,10 +316,17 @@ const MyDashboard = () => {
         return { actual: r.data?.OUT_OF_100 || 0, target: 100 };
       }
 
+      if (type === "Michu Unique Recruitment") {
+        const r = await axios.post(`${baseUrl}/nondeposit/getMichuRecruitmentByUser`, requestData);
+        return { actual: Number(r.data?.total_michu_recruitment) || 0, target: michu_unique_recruitmentTarget };
+      }
+
+
+
       // User-input metrics (no system actual)
       if (type === "Merchant Recruitment") return { actual: null, target: merchant_recruitmentTarget };
       if (type === "Agent Recruitment") return { actual: null, target: agent_recruitmentTarget };
-      if (type === "Michu Unique Recruitment") return { actual: null, target: michu_unique_recruitmentTarget };
+      // if (type === "Michu Unique Recruitment") return { actual: null, target: michu_unique_recruitmentTarget };
       if (type === "Coopay Ebirr Activation") return { actual: null, target: coopay_ebirr_activationTarget };
       if (type === "ATM CRM Uptime Rate") return { actual: null, target: atm_crm_uptime_rateTarget };
       if (type === "Cash Book") return { actual: null, target: cash_balance_accuracy_rateTarget };
@@ -431,6 +439,7 @@ const MyDashboard = () => {
         gl: "GL", spm: "SPM", "branch vital": "Branch Vital",
         "district map": "District Map",
         "michu unique recruitment": "Michu Unique Recruitment",
+        "michu loan collection": "Michu Loan Collection",
         "coopay ebirr activation": "Coopay Ebirr Activation",
         "cash book": "Cash Book",
         "customer satisfaction": "Customer Satisfaction",
@@ -442,6 +451,7 @@ const MyDashboard = () => {
       };
 
       const metricsPromises = assignedMetrics.map(async (metric) => {
+
         const calcFor = metric.calculated_for?.toLowerCase().trim() || "";
         const type = TYPE_MAP[calcFor] || calcFor;
         const icon = ICON_MAP[calcFor] || ICON_MAP.default;
@@ -456,14 +466,16 @@ const MyDashboard = () => {
           actual = null;
         } else {
           const result = await fetchSystemData(type, requestData, targetsCache);
+
           target = (result.target || 0) * quarterRatio;
           actual = result.actual || 0;
         }
 
         const rate = target > 0 && actual !== null ? (actual / target) * 100 : 0;
-
+        // console.log("rate", rate);
         let targetTo = target === 0 ? 1 : target;
         let score = 0;
+
         if (actual !== null) {
           const scoreObj = calculateMetricScore(metric, actual, targetTo);
           score = scoreObj.score || 0;
@@ -483,11 +495,14 @@ const MyDashboard = () => {
         };
       });
 
+
       const resolved = await Promise.all(metricsPromises);
       setMetricsData(resolved);
 
       const validMetrics = resolved.filter(m => m.actual !== null);
+      // console.log("validMetrics", validMetrics);
       const totalScore = validMetrics.reduce((sum, m) => sum + (Number(m.score) || 0), 0);
+      // console.log("totalScore", totalScore);
       setOverallAverage(totalScore);
     } catch (err) {
       console.error("Dashboard fetch error:", err);

@@ -105,6 +105,7 @@ const Login = () => {
               company_code: checkUser.data.company_code,
               cbsusername: checkUser.data.cbsusername,
               role: checkUser.data.role,
+
             };
 
             login(userdata);
@@ -114,6 +115,8 @@ const Login = () => {
             const team = userdata.team || "";
             const position = userdata.position || "";
             const orgUnit = userdata.organization || "";
+            const role = userdata.role || "";
+            const process = userdata.process || "";
 
             const canSeeMainDashboard =
               [
@@ -131,7 +134,7 @@ const Login = () => {
               (title.startsWith("Director") && title.endsWith("District")) ||
               (title.includes("Manager Operation Management") &&
                 (team.includes("Eco") || team.includes("Micro"))) ||
-              ((position === "CEO" || position === "CHF") && orgUnit === "Ho");
+              ((position === "CEO" || position === "CHF") && orgUnit === "Ho") || process === "Information System" || role === "Admin";
 
             if (canSeeMainDashboard) {
               navigate("/maindashboard");

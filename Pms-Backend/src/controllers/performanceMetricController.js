@@ -296,6 +296,7 @@ export const getMetricsByTitleName = async (req, res) => {
           pm.input_by,
           pm.calculated_for,
           pm.calculated_with,
+          pm.cap,
           o.objective_name,
           t.title_name
        FROM public.performance_metrics pm

@@ -155,6 +155,7 @@ const PerformanceMetricList = ({ member }) => {
       // console.log("loantarget", LoantargetRes.data);
       const totalDeposit = Number(targetRes.data.total_deposit) || 0;
       const totalFcyTarget = Number(targetRes.data.total_fcy) || 0;
+      const michuloancollectionTarget = Number(targetRes.data.michu_loan_collection) || 0;
 
       let totalLoanTarget = 0;
       if (userinfo.process === "Interest Free Banking" || userinfo.process === "Agri and Cooperative Business" || (userinfo.process === "Growth and Operations" && userinfo.organization === "Ho")) {
@@ -167,6 +168,9 @@ const PerformanceMetricList = ({ member }) => {
 
       const cash_collectionTarget = Number(cashTargetRes.data.cash_collection) || 0;
       const michu_loan_collectionTarget = Number(cashTargetRes.data.michu_loan_collection) || 0;
+
+
+
 
       if (totalDeposit > 0) {
         if (type === "deposit") {
@@ -291,14 +295,13 @@ const PerformanceMetricList = ({ member }) => {
         }
       }
 
+      // new added for Michu Loan Collection
       if (michu_loan_collectionTarget > 0) {
-        if (type === "CRM Deposit") {
-          const CRMDepositRes = await axios.post(`${baseUrl}/nondeposit/getCRMCashDepositSummaryByUser/`, requestData);
-          return { actual: Number(CRMDepositRes.data.total_crm_cash) || 0, target: michu_loan_collectionTarget };
+        if (type === "Michu Loan Collection") {
+          const michuloancollectionres = await axios.post(`${baseUrl}/accountmapping/getMichuCollectionByUser`, requestData);
+          return { actual: michuloancollectionres.data.total_michu_collection || 0, target: michu_loan_collectionTarget };
         }
       }
-
-
 
 
 
@@ -478,6 +481,14 @@ const PerformanceMetricList = ({ member }) => {
           return { actual: glRes?.data?.internal_account_value || 0, target: gl };
         }
       }
+
+      // new added for Michu unique recruitment
+      if (michu_unique_recruitmentTarget > 0) {
+        if (type === "Michu Unique Recruitment") {
+          const michuUniqueRecruitmentRes = await axios.post(`${baseUrl}/nondeposit/getMichuRecruitmentByUser`, requestData);
+          return { actual: michuUniqueRecruitmentRes.data.total_michu_recruitment || 0, target: michu_unique_recruitmentTarget };
+        }
+      }
       // for SPM
       if (type === "SPM") {
 
@@ -573,10 +584,7 @@ const PerformanceMetricList = ({ member }) => {
       }
 
 
-      if (type === "Michu Unique Recruitment") {
 
-        return { actual: 0, target: michu_unique_recruitmentTarget };
-      }
 
       if (type === "Coopay Ebirr Activation") {
 
@@ -668,6 +676,7 @@ const PerformanceMetricList = ({ member }) => {
     else if (lowerCalcFor === "spm") type = "SPM";
     else if (lowerCalcFor === "branch vital") type = "Branch Vital";
     else if (lowerCalcFor === "district map") type = "District Map";
+    else if (lowerCalcFor === "michu loan collection") type = "Michu Loan Collection";
     let evaluationValue = 0;
     let calculatedWeight = 0;
     if (metric.input_by === "System") {
