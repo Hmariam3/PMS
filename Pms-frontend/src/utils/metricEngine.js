@@ -2,6 +2,31 @@
 // compute each member's per-metric achievement exactly the way the employee
 // sees on their own dashboard.
 import { calculateMetricScore } from "./scoreCalculator";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import CurrencyExchangeIcon from "@mui/icons-material/CurrencyExchange";
+import PaidIcon from "@mui/icons-material/Paid";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import MoneyOffIcon from "@mui/icons-material/MoneyOff";
+import CreditCardIcon from "@mui/icons-material/CreditCard";
+import LightbulbIcon from "@mui/icons-material/Lightbulb";
+import StorefrontIcon from "@mui/icons-material/Storefront";
+import BadgeIcon from "@mui/icons-material/Badge";
+import StarIcon from "@mui/icons-material/Star";
+import AddBusinessIcon from "@mui/icons-material/AddBusiness";
+import GroupAddIcon from "@mui/icons-material/GroupAdd";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import MapIcon from "@mui/icons-material/Map";
+import PhoneAndroidIcon from "@mui/icons-material/PhoneAndroid";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
+import GroupsIcon from "@mui/icons-material/Groups";
+import FiberNewIcon from "@mui/icons-material/FiberNew";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import LocalAtmIcon from "@mui/icons-material/LocalAtm";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 
 // Quarter window used across the app
 export const quarterProgress = () => {
@@ -12,18 +37,33 @@ export const quarterProgress = () => {
   return { daysPassed, quarterRatio: daysPassed / 90 };
 };
 
+// Metric icons as MUI SVG elements — rendered directly wherever `{icon}` is used
 export const ICON_MAP = {
-  deposit: "💰", fcy: "💱", loan: "⚖️", account: "📈",
-  transaction: "📉", card: "💳", eeu: "💡",
-  "merchant transaction volume": "🏪", "agent transaction volume": "🧑‍💼",
-  "employee performance": "⭐", "merchant recruitment": "🤝",
-  "agent recruitment": "🤝", "cash collection": "💵",
-  "crm deposit": "🏦", gl: "📋", "branch vital": "🌿",
-  "district map": "🗺️", "digital transaction": "📱",
-  "transaction audit": "🔍", "customer engagement": "👥",
-  "new customer onboarding": "🆕", spm: "📊",
-  "avg txn per cso": "🧾", "atm crm uptime rate": "🖥️",
-  default: "📊"
+  deposit: <AttachMoneyIcon sx={{ fontSize: 22 }} />,
+  fcy: <CurrencyExchangeIcon sx={{ fontSize: 22 }} />,
+  loan: <PaidIcon sx={{ fontSize: 22 }} />,
+  account: <PersonAddIcon sx={{ fontSize: 22 }} />,
+  transaction: <MoneyOffIcon sx={{ fontSize: 22 }} />,
+  card: <CreditCardIcon sx={{ fontSize: 22 }} />,
+  eeu: <LightbulbIcon sx={{ fontSize: 22 }} />,
+  "merchant transaction volume": <StorefrontIcon sx={{ fontSize: 22 }} />,
+  "agent transaction volume": <BadgeIcon sx={{ fontSize: 22 }} />,
+  "employee performance": <StarIcon sx={{ fontSize: 22 }} />,
+  "merchant recruitment": <AddBusinessIcon sx={{ fontSize: 22 }} />,
+  "agent recruitment": <GroupAddIcon sx={{ fontSize: 22 }} />,
+  "cash collection": <PaymentsIcon sx={{ fontSize: 22 }} />,
+  "crm deposit": <AccountBalanceIcon sx={{ fontSize: 22 }} />,
+  gl: <AssignmentIcon sx={{ fontSize: 22 }} />,
+  "branch vital": <MonitorHeartIcon sx={{ fontSize: 22 }} />,
+  "district map": <MapIcon sx={{ fontSize: 22 }} />,
+  "digital transaction": <PhoneAndroidIcon sx={{ fontSize: 22 }} />,
+  "transaction audit": <FactCheckIcon sx={{ fontSize: 22 }} />,
+  "customer engagement": <GroupsIcon sx={{ fontSize: 22 }} />,
+  "new customer onboarding": <FiberNewIcon sx={{ fontSize: 22 }} />,
+  spm: <WarningAmberIcon sx={{ fontSize: 22 }} />,
+  "avg txn per cso": <ReceiptLongIcon sx={{ fontSize: 22 }} />,
+  "atm crm uptime rate": <LocalAtmIcon sx={{ fontSize: 22 }} />,
+  default: <AssessmentIcon sx={{ fontSize: 22 }} />,
 };
 
 export const TYPE_MAP = {
@@ -278,7 +318,6 @@ export const fetchSystemData = async (axios, baseUrl, type, requestData, targets
     // User-input metrics (no system actual)
     if (type === "Merchant Recruitment") return { actual: null, target: merchant_recruitmentTarget };
     if (type === "Agent Recruitment") return { actual: null, target: agent_recruitmentTarget };
-    if (type === "Michu Unique Recruitment") return { actual: null, target: michu_unique_recruitmentTarget };
     if (type === "Coopay Ebirr Activation") return { actual: null, target: coopay_ebirr_activationTarget };
     if (type === "ATM CRM Uptime Rate") return { actual: null, target: atm_crm_uptime_rateTarget };
     if (type === "Cash Book") return { actual: null, target: cash_balance_accuracy_rateTarget };
@@ -288,6 +327,8 @@ export const fetchSystemData = async (axios, baseUrl, type, requestData, targets
     if (type === "Audit Quality") return { actual: null, target: audit_report_qualityTarget };
     if (type === "Cash Surprise Cheque") return { actual: null, target: cash_surprise_checksTarget };
     if (type === "Employee Performance") return { actual: null, target: employee_perf_thresholdTarget };
+
+    // if (type === "Michu Unique Recruitment") return { actual: null, target: michu_unique_recruitmentTarget };
 
     return { actual: 0, target: 0 };
   } catch (err) {

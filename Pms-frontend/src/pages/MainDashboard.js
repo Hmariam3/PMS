@@ -79,7 +79,7 @@ const needsDarkText = (rate) => rate >= 75 && rate < 100;
 
 // ─── Role Scope Resolution (title-based per visibility matrix) ────────────────
 const resolveScope = (title = "", position = "", organization = "", team = "") => {
-  if (["Chief Executive Officer", "Chief, Commercial Officer"].includes(title))
+  if (["Chief Executive Officer", "Chief, Commercial Officer", "Enterprise System Operation and Application Developer"].includes(title))
     return "enterprise";
   // C-Suite Executive Management: other Chiefs (position CEO/CHF at Head Office)
   if ((position === "CEO" || position === "CHF") && organization === "Ho")
@@ -453,16 +453,80 @@ const AggregateCard = ({ icon, label, unitLabel, rows, quarterRatio }) => {
   );
 };
 
+// ─── Sort key helper ──────────────────────────────────────────────────────────
+const getSortValue = (row, sortKey) => {
+  if (sortKey === "deposit") return row.depositRate;
+  if (sortKey === "fcy") return row.fcyRate;
+  if (sortKey === "loan") return row.loanRate;
+  // "overall" = average of all three
+  return (row.depositRate + row.fcyRate + row.loanRate) / 3;
+};
+
+// ─── Top Performer Sort Buttons ───────────────────────────────────────────────
+// SVG icons for each sort option
+const IconOverall = ({ size = 15, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9H3l3 10h12l3-10h-3" />
+    <path d="M6 9V6a6 6 0 0 1 12 0v3" />
+    <line x1="12" y1="12" x2="12" y2="16" />
+    <line x1="10" y1="14" x2="14" y2="14" />
+  </svg>
+);
+const IconDeposit = ({ size = 15, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2" />
+    <path d="M16 7V5a2 2 0 0 0-4 0v2" />
+    <line x1="12" y1="12" x2="12" y2="16" />
+    <line x1="10" y1="14" x2="14" y2="14" />
+  </svg>
+);
+const IconFCY = ({ size = 15, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M14.5 9a3.5 3.5 0 1 0 0 6H12" />
+    <line x1="9" y1="12" x2="14" y2="12" />
+  </svg>
+);
+const IconLoan = ({ size = 15, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="8" y1="13" x2="16" y2="13" />
+    <line x1="8" y1="17" x2="13" y2="17" />
+  </svg>
+);
+
+const SORT_OPTIONS = [
+  { key: "overall",  label: "Overall",  Icon: IconOverall,  color: "#7c3aed", bg: "#ede9fe", activeBg: "#7c3aed" },
+  { key: "deposit",  label: "Deposit",  Icon: IconDeposit,  color: "#0369a1", bg: "#e0f2fe", activeBg: "#0369a1" },
+  { key: "fcy",      label: "FCY",      Icon: IconFCY,      color: "#0f766e", bg: "#ccfbf1", activeBg: "#0f766e" },
+  { key: "loan",     label: "Loan",     Icon: IconLoan,     color: "#b45309", bg: "#fef3c7", activeBg: "#b45309" },
+];
+
 // ─── Breakdown Table Component ────────────────────────────────────────────────
 const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false, quarterRatio = 1 }) => {
   const [query, setQuery] = useState("");
+  const [sortKey, setSortKey] = useState(null); // null = original order
+
   const q = query.trim().toLowerCase();
+
+  // Filter first
   const filtered = (rows || []).filter((r) => {
     if (!q) return true;
     return [r.name, r.sub, r.district].some((v) =>
       String(v || "").toLowerCase().includes(q)
     );
   });
+
+  // Sort if a sort key is active
+  const sorted = sortKey
+    ? [...filtered].sort((a, b) => getSortValue(b, sortKey) - getSortValue(a, sortKey))
+    : filtered;
+
+  // Top performer = first row after sort (only when sort is active)
+  const topPerformer = sortKey && sorted.length > 0 ? sorted[0] : null;
+  const topScore = topPerformer ? getSortValue(topPerformer, sortKey) : 0;
+  const activeOpt = SORT_OPTIONS.find((o) => o.key === sortKey);
 
   const headers = [
     "#",
@@ -488,6 +552,7 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false,
 
   return (
     <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #e2e8f0", overflow: "hidden" }}>
+      {/* ── Table header ─────────────────────────────────────────────────── */}
       <Box sx={{ px: 3, py: 2, bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
@@ -501,7 +566,7 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false,
             </Typography>
             <Typography variant="caption" color="#94a3b8">
               {subtitle || "Achievement vs. expected pace — colour-coded by performance band"}
-              {q && ` · Showing ${filtered.length} of ${(rows || []).length}`}
+              {q && ` · Showing ${sorted.length} of ${(rows || []).length}`}
             </Typography>
           </Box>
           <TextField
@@ -526,7 +591,248 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false,
             }}
           />
         </Stack>
+
+        {/* ── Top Performer sort buttons ────────────────────────────────── */}
+        <Stack
+          direction="row"
+          flexWrap="wrap"
+          gap={1}
+          alignItems="center"
+          sx={{ mt: 2 }}
+        >
+          <Typography
+            variant="caption"
+            sx={{ fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.8, fontSize: "0.62rem", mr: 0.5 }}
+          >
+            Sort by Top Performer:
+          </Typography>
+          {SORT_OPTIONS.map((opt) => {
+            const isActive = sortKey === opt.key;
+            return (
+              <Box
+                key={opt.key}
+                onClick={() => setSortKey(isActive ? null : opt.key)}
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 0.9,
+                  px: 2,
+                  py: 0.75,
+                  minWidth: 100,
+                  justifyContent: "center",
+                  borderRadius: 2,
+                  cursor: "pointer",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  letterSpacing: 0.3,
+                  border: `1.5px solid ${opt.color}`,
+                  bgcolor: isActive ? opt.activeBg : opt.bg,
+                  color: isActive ? "#fff" : opt.color,
+                  userSelect: "none",
+                  transition: "all 0.18s ease",
+                  boxShadow: isActive ? `0 4px 14px ${opt.color}50` : "none",
+                  transform: isActive ? "translateY(-1px)" : "none",
+                  "&:hover": {
+                    bgcolor: opt.activeBg,
+                    color: "#fff",
+                    boxShadow: `0 4px 14px ${opt.color}40`,
+                    transform: "translateY(-1px)",
+                  },
+                }}
+              >
+                <opt.Icon size={15} color="currentColor" />
+                {opt.label}
+                {isActive && (
+                  <Box
+                    component="span"
+                    sx={{
+                      ml: 0.2,
+                      fontSize: "0.58rem",
+                      bgcolor: "rgba(255,255,255,0.25)",
+                      px: 0.6,
+                      py: 0.1,
+                      borderRadius: 1,
+                      letterSpacing: 0.4,
+                    }}
+                  >
+                    ▼
+                  </Box>
+                )}
+              </Box>
+            );
+          })}
+          {sortKey && (
+            <Box
+              onClick={() => setSortKey(null)}
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                px: 1.2,
+                py: 0.5,
+                borderRadius: 2,
+                cursor: "pointer",
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                border: "1.5px solid #cbd5e1",
+                bgcolor: "#fff",
+                color: "#94a3b8",
+                userSelect: "none",
+                transition: "all 0.15s",
+                "&:hover": { bgcolor: "#f1f5f9", color: "#64748b" },
+              }}
+            >
+              ✕ Clear
+            </Box>
+          )}
+        </Stack>
+
+        {/* ── Top Performer banner (only when sort is active and data exists) */}
+        {topPerformer && activeOpt && (
+          <Box
+            sx={{
+              mt: 2,
+              px: 2.5,
+              py: 1.5,
+              borderRadius: 2.5,
+              background: `linear-gradient(120deg, ${activeOpt.activeBg}18 0%, ${activeOpt.activeBg}08 100%)`,
+              border: `1.5px solid ${activeOpt.color}30`,
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
+            {/* Trophy icon */}
+            <Box
+              sx={{
+                width: 38,
+                height: 38,
+                borderRadius: "50%",
+                bgcolor: activeOpt.activeBg,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.1rem",
+                flexShrink: 0,
+                boxShadow: `0 4px 12px ${activeOpt.color}40`,
+              }}
+            >
+              🏆
+            </Box>
+
+            {/* Leader info */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 800,
+                  color: activeOpt.color,
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                  fontSize: "0.58rem",
+                  display: "block",
+                }}
+              >
+                Top Performer · {activeOpt.label.replace(/^[^\w]+/, "").trim()}
+              </Typography>
+              <Typography
+                variant="subtitle2"
+                fontWeight="900"
+                color="#1e293b"
+                sx={{ lineHeight: 1.2, fontSize: "0.92rem" }}
+              >
+                {topPerformer.name}
+              </Typography>
+              {topPerformer.sub && (
+                <Typography variant="caption" color="#94a3b8">
+                  {topPerformer.sub}
+                  {topPerformer.district ? ` · ${topPerformer.district}` : ""}
+                </Typography>
+              )}
+            </Box>
+
+            {/* Score chips */}
+            <Stack direction="row" gap={1} flexWrap="wrap">
+              {sortKey === "overall" && (
+                <Box sx={{ textAlign: "center" }}>
+                  <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: "0.58rem", fontWeight: 700, display: "block" }}>
+                    OVERALL
+                  </Typography>
+                  <Chip
+                    label={`${topScore.toFixed(1)}%`}
+                    size="small"
+                    sx={{
+                      bgcolor: activeOpt.activeBg,
+                      color: "#fff",
+                      fontWeight: 900,
+                      fontSize: "0.78rem",
+                      height: 26,
+                      minWidth: 70,
+                      borderRadius: 1.5,
+                    }}
+                  />
+                </Box>
+              )}
+              <Box sx={{ textAlign: "center" }}>
+                <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: "0.58rem", fontWeight: 700, display: "block" }}>
+                  DEPOSIT
+                </Typography>
+                <Chip
+                  label={`${topPerformer.depositRate.toFixed(1)}%`}
+                  size="small"
+                  sx={{
+                    bgcolor: sortKey === "deposit" ? getBandColor(topPerformer.depositRate) : "#e2e8f0",
+                    color: sortKey === "deposit" ? (needsDarkText(topPerformer.depositRate) ? "#7a5c00" : "#fff") : "#475569",
+                    fontWeight: sortKey === "deposit" ? 900 : 700,
+                    fontSize: "0.72rem",
+                    height: 24,
+                    minWidth: 62,
+                    borderRadius: 1.5,
+                  }}
+                />
+              </Box>
+              <Box sx={{ textAlign: "center" }}>
+                <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: "0.58rem", fontWeight: 700, display: "block" }}>
+                  FCY
+                </Typography>
+                <Chip
+                  label={`${topPerformer.fcyRate.toFixed(1)}%`}
+                  size="small"
+                  sx={{
+                    bgcolor: sortKey === "fcy" ? getBandColor(topPerformer.fcyRate) : "#e2e8f0",
+                    color: sortKey === "fcy" ? (needsDarkText(topPerformer.fcyRate) ? "#7a5c00" : "#fff") : "#475569",
+                    fontWeight: sortKey === "fcy" ? 900 : 700,
+                    fontSize: "0.72rem",
+                    height: 24,
+                    minWidth: 62,
+                    borderRadius: 1.5,
+                  }}
+                />
+              </Box>
+              <Box sx={{ textAlign: "center" }}>
+                <Typography variant="caption" sx={{ color: "#94a3b8", fontSize: "0.58rem", fontWeight: 700, display: "block" }}>
+                  LOAN
+                </Typography>
+                <Chip
+                  label={`${topPerformer.loanRate.toFixed(1)}%`}
+                  size="small"
+                  sx={{
+                    bgcolor: sortKey === "loan" ? getBandColor(topPerformer.loanRate) : "#e2e8f0",
+                    color: sortKey === "loan" ? (needsDarkText(topPerformer.loanRate) ? "#7a5c00" : "#fff") : "#475569",
+                    fontWeight: sortKey === "loan" ? 900 : 700,
+                    fontSize: "0.72rem",
+                    height: 24,
+                    minWidth: 62,
+                    borderRadius: 1.5,
+                  }}
+                />
+              </Box>
+            </Stack>
+          </Box>
+        )}
       </Box>
+
+      {/* ── Table ────────────────────────────────────────────────────────────── */}
       <TableContainer sx={{ maxHeight: 520 }}>
         <Table size="small" stickyHeader>
           <TableHead>
@@ -557,25 +863,53 @@ const BreakdownTable = ({ title, subtitle, rows, emptyMsg, showDistrict = false,
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.length > 0 ? (
-              filtered.map((row, idx) => {
+            {sorted.length > 0 ? (
+              sorted.map((row, idx) => {
                 const dc = getBandColor(row.depositRate);
                 const fc = getBandColor(row.fcyRate);
                 const lc = getBandColor(row.loanRate);
+                const isTopRow = sortKey && idx === 0;
                 return (
                   <TableRow
                     key={idx}
                     sx={{
-                      bgcolor: idx % 2 === 0 ? "#fff" : "#fafafa",
-                      "&:hover": { bgcolor: "#f0f7ff" },
+                      bgcolor: isTopRow
+                        ? `${activeOpt?.activeBg}12`
+                        : idx % 2 === 0 ? "#fff" : "#fafafa",
+                      "&:hover": { bgcolor: isTopRow ? `${activeOpt?.activeBg}20` : "#f0f7ff" },
                       transition: "background 0.15s",
+                      ...(isTopRow ? { outline: `2px solid ${activeOpt?.color}30`, outlineOffset: "-1px" } : {}),
                     }}
                   >
-                    <TableCell sx={{ color: "#cbd5e1", fontWeight: 700, fontSize: "0.78rem", py: 1.2 }}>
-                      {idx + 1}
+                    {/* Rank cell: trophy for #1 when sorted */}
+                    <TableCell sx={{ fontWeight: 700, fontSize: "0.78rem", py: 1.2, minWidth: 36 }}>
+                      {isTopRow ? (
+                        <Box
+                          component="span"
+                          sx={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 26,
+                            height: 26,
+                            borderRadius: "50%",
+                            bgcolor: activeOpt?.activeBg,
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          🏆
+                        </Box>
+                      ) : (
+                        <Box component="span" sx={{ color: "#cbd5e1" }}>{idx + 1}</Box>
+                      )}
                     </TableCell>
                     <TableCell sx={{ py: 1.2 }}>
-                      <Typography variant="body2" fontWeight="700" color="#1e293b" sx={{ fontSize: "0.85rem" }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight={isTopRow ? "900" : "700"}
+                        color={isTopRow ? activeOpt?.color || "#1e293b" : "#1e293b"}
+                        sx={{ fontSize: "0.85rem" }}
+                      >
                         {row.name}
                       </Typography>
                       {row.sub && (

@@ -365,6 +365,39 @@ export const updateUser = async (req, res) => {
     if (result.rows.length === 0)
       return res.status(404).json({ error: "User not found" });
 
+    // ── Sync common fields to the employees table (reverse of updateEmployee) ──
+    // users → employees: process→process_name, subprocess→sub_process_name,
+    // team→branch_name, title→title, organization→organization_unit.
+    // Joined via mail_address = outlook_address. Values taken from the RETURNING
+    // row so only fields actually stored on the user are propagated.
+    const USER_TO_EMP_FIELD = {
+      process: "process_name",
+      subprocess: "sub_process_name",
+      team: "branch_name",
+      title: "title",
+      organization: "organization_unit",
+    };
+    try {
+      const updatedUser = result.rows[0];
+      const email = updatedUser?.mail_address;
+      const empSets = [];
+      const empVals = [];
+      Object.entries(USER_TO_EMP_FIELD).forEach(([userField, empField]) => {
+        empVals.push(updatedUser[userField] ?? null);
+        empSets.push(`${empField} = $${empVals.length}`);
+      });
+      if (email) {
+        empVals.push(email);
+        const syncRes = await pool.query(
+          `UPDATE public.employees SET ${empSets.join(", ")} WHERE outlook_address = $${empVals.length}`,
+          empVals
+        );
+        console.log(`user→employee sync: ${syncRes.rowCount} employee row(s) updated`);
+      }
+    } catch (syncErr) {
+      console.error("user→employee sync failed:", syncErr.message);
+    }
+
     res.json({
       message: "User updated successfully",
       user: result.rows[0],

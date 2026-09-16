@@ -335,98 +335,99 @@ export const getBalanceDifferenceByUser = async (req, res) => {
       `;
       values = [user_id];
     }
-    else if (position === "Manager") {
-      query = `
-        SELECT 
-          SUM(COALESCE(current_balance, 0)) - 
-          SUM(COALESCE(beginning_balance, 0)) AS total_difference
-        FROM public.accountmapping
-        WHERE team = $1
-      `;
-      fcyQuery = `
-        SELECT 
-          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
-          SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
-        FROM public.accountmappingfcy
-        WHERE team = $1
-      `;
-      values = [team];
-    } else if (position === "Director" || position === "Senior Director") {
-      query = `
-        SELECT 
-          SUM(COALESCE(current_balance, 0)) - 
-          SUM(COALESCE(beginning_balance, 0)) AS total_difference
-        FROM public.accountmapping
-        WHERE subprocess = $1
-      `;
-      fcyQuery = `
-        SELECT 
-          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
-          SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
-        FROM public.accountmappingfcy
-        WHERE subprocess = $1
-      `;
-      values = [subprocess];
-    }
-    // else if ((position === "Director" || position === "Senior Director") && (organization === "Do")) {
+    // else if (position === "Manager") {
     //   query = `
-    //       SELECT
-    //         SUM(COALESCE(bv."LOCAL_DEPOSIT", 0)) AS total_difference
-    //       FROM public.branch_vital bv
-    //       INNER JOIN (
-    //         SELECT DISTINCT company_code
-    //         FROM public.users
-    //         WHERE subprocess = $1
-    //           AND company_code IS NOT NULL
-    //       ) u
-    //         ON bv."COMPANY_CODE" = u.company_code
-    //     `;
-
+    //     SELECT 
+    //       SUM(COALESCE(current_balance, 0)) - 
+    //       SUM(COALESCE(beginning_balance, 0)) AS total_difference
+    //     FROM public.accountmapping
+    //     WHERE team = $1
+    //   `;
     //   fcyQuery = `
-    //       SELECT
-    //         SUM(COALESCE(bv."FCY", 0)) AS total_fcy
-    //       FROM public.branch_vital bv
-    //       INNER JOIN (
-    //         SELECT DISTINCT company_code
-    //         FROM public.users
-    //         WHERE subprocess = $1
-    //           AND company_code IS NOT NULL
-    //       ) u
-    //         ON bv."COMPANY_CODE" = u.company_code
-    //     `;
+    //     SELECT 
+    //       SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
+    //       SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
+    //     FROM public.accountmappingfcy
+    //     WHERE team = $1
+    //   `;
+    //   values = [team];
+    // } else if (position === "Director" || position === "Senior Director") {
+    //   query = `
+    //     SELECT 
+    //       SUM(COALESCE(current_balance, 0)) - 
+    //       SUM(COALESCE(beginning_balance, 0)) AS total_difference
+    //     FROM public.accountmapping
+    //     WHERE subprocess = $1
+    //   `;
+    //   fcyQuery = `
+    //     SELECT 
+    //       SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
+    //       SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
+    //     FROM public.accountmappingfcy
+    //     WHERE subprocess = $1
+    //   `;
     //   values = [subprocess];
     // }
-    else if (position === "VP" || position === "CHF") {
-      query = `
-        SELECT 
-          SUM(COALESCE(current_balance, 0)) - 
-          SUM(COALESCE(beginning_balance, 0)) AS total_difference
-        FROM public.accountmapping
-        WHERE process = $1
-      `;
-      fcyQuery = `
-        SELECT 
-          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
-          SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
-        FROM public.accountmappingfcy
-        WHERE process = $1
-      `;
-      values = [process];
-    } else if (position === "CEO") {
-      query = `
-        SELECT 
-          SUM(COALESCE(current_balance, 0)) - 
-          SUM(COALESCE(beginning_balance, 0)) AS total_difference
-        FROM public.accountmapping
-      `;
-      fcyQuery = `
-        SELECT 
-          SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
-          SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
-        FROM public.accountmappingfcy
-      `;
-      values = [];
-    } else {
+    // // else if ((position === "Director" || position === "Senior Director") && (organization === "Do")) {
+    // //   query = `
+    // //       SELECT
+    // //         SUM(COALESCE(bv."LOCAL_DEPOSIT", 0)) AS total_difference
+    // //       FROM public.branch_vital bv
+    // //       INNER JOIN (
+    // //         SELECT DISTINCT company_code
+    // //         FROM public.users
+    // //         WHERE subprocess = $1
+    // //           AND company_code IS NOT NULL
+    // //       ) u
+    // //         ON bv."COMPANY_CODE" = u.company_code
+    // //     `;
+
+    // //   fcyQuery = `
+    // //       SELECT
+    // //         SUM(COALESCE(bv."FCY", 0)) AS total_fcy
+    // //       FROM public.branch_vital bv
+    // //       INNER JOIN (
+    // //         SELECT DISTINCT company_code
+    // //         FROM public.users
+    // //         WHERE subprocess = $1
+    // //           AND company_code IS NOT NULL
+    // //       ) u
+    // //         ON bv."COMPANY_CODE" = u.company_code
+    // //     `;
+    // //   values = [subprocess];
+    // // }
+    // else if (position === "VP" || position === "CHF") {
+    //   query = `
+    //     SELECT 
+    //       SUM(COALESCE(current_balance, 0)) - 
+    //       SUM(COALESCE(beginning_balance, 0)) AS total_difference
+    //     FROM public.accountmapping
+    //     WHERE process = $1
+    //   `;
+    //   fcyQuery = `
+    //     SELECT 
+    //       SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
+    //       SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
+    //     FROM public.accountmappingfcy
+    //     WHERE process = $1
+    //   `;
+    //   values = [process];
+    // } else if (position === "CEO") {
+    //   query = `
+    //     SELECT 
+    //       SUM(COALESCE(current_balance, 0)) - 
+    //       SUM(COALESCE(beginning_balance, 0)) AS total_difference
+    //     FROM public.accountmapping
+    //   `;
+    //   fcyQuery = `
+    //     SELECT 
+    //       SUM(COALESCE("LCY_CLOSING_BALANCE", 0)) - 
+    //       SUM(COALESCE("LCY_BEGINIG_BALANCE", 0)) AS total_fcy
+    //     FROM public.accountmappingfcy
+    //   `;
+    //   values = [];
+    // } 
+    else {
       return res.status(400).json({ error: "Invalid position" });
     }
 

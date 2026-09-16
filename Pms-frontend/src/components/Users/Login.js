@@ -129,6 +129,7 @@ const Login = () => {
                 "Director, Talent and Performance Management",
                 "Manager, Employee Performance Management",
                 "Area Manager",
+                "Enterprise System Operation and Application Developer"
               ].includes(title) ||
               title.includes("Branch Manager") ||
               (title.startsWith("Director") && title.endsWith("District")) ||

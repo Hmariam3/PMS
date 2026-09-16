@@ -1073,6 +1073,7 @@ export const getMainDashboardTargets = async (req, res) => {
     "Senior Director, Talent Acquisition and Career Pathways",
     "Director, Talent and Performance Management",
     "Manager, Employee Performance Management",
+    "Enterprise System Operation and Application Developer"
   ];
 
   const isEnterprise =

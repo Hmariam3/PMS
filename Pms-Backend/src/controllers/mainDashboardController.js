@@ -14,7 +14,7 @@ export const getPerformanceData = async (req, res) => {
   // Determine the scope based on the user's title and position
   let scope = "self";
   if (["Chief Executive Officer", "Chief, Commercial Officer"].includes(title) || title?.toLowerCase().startsWith("chief") ||
-    ["Senior Director, Talent Acquisition and Career Pathways", "Director, Talent and Performance Management", "Manager, Employee Performance Management"].includes(title)) {
+    ["Senior Director, Talent Acquisition and Career Pathways", "Director, Talent and Performance Management", "Manager, Employee Performance Management", "Enterprise System Operation and Application Developer"].includes(title)) {
     scope = "enterprise";
   } else if (["Director, District Coordination and Support", "Manager, District Coordination", "Manager, District Execution Monitoring"].includes(title)) {
     scope = "all_districts";

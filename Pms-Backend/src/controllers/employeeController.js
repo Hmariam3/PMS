@@ -183,6 +183,50 @@ export const updateEmployee = async (req, res) => {
     if (result.rows.length === 0)
       return res.status(404).json({ error: "Employee not found" });
 
+    // ── Sync common fields to the users table ──────────────────────────────
+    // employees → users: process_name→process, sub_process_name→subprocess,
+    // branch_name→team (+company_code from branches), title→title,
+    // organization_unit→organization. Joined via outlook_address = mail_address.
+    const EMP_TO_USER_FIELD = {
+      process_name: "process",
+      sub_process_name: "subprocess",
+      branch_name: "team",
+      title: "title",
+      organization_unit: "organization",
+    };
+    try {
+      const email = result.rows[0]?.outlook_address;
+      const userSets = [];
+      const userVals = [];
+      Object.entries(EMP_TO_USER_FIELD).forEach(([empField, userField]) => {
+        if (empField in updatedFields) {
+          userVals.push(updatedFields[empField]);
+          userSets.push(`${userField} = $${userVals.length}`);
+        }
+      });
+      // A branch change also moves the linked user's company_code
+      if (email && "branch_name" in updatedFields) {
+        const branchRes = await pool.query(
+          "SELECT branch_code FROM public.branches WHERE branch_name = $1",
+          [updatedFields.branch_name]
+        );
+        if (branchRes.rows.length > 0) {
+          userVals.push(branchRes.rows[0].branch_code);
+          userSets.push(`company_code = $${userVals.length}`);
+        }
+      }
+      if (email && userSets.length > 0) {
+        userVals.push(email);
+        const syncRes = await pool.query(
+          `UPDATE public.users SET ${userSets.join(", ")} WHERE mail_address = $${userVals.length}`,
+          userVals
+        );
+        console.log(`employee→user sync: ${syncRes.rowCount} user row(s) updated`);
+      }
+    } catch (syncErr) {
+      console.error("employee→user sync failed:", syncErr.message);
+    }
+
     res.json({ message: "Employee updated successfully", employee: result.rows[0] });
   } catch (err) {
     console.error("Error updating employee:", err.message);

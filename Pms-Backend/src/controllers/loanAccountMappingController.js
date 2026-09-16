@@ -38,7 +38,8 @@ export const getLoanAccountMappingsByUser = async (req, res) => {
     if (position === "CRM" || position === "Individual") {
       query = `SELECT * FROM public.loanaccountmapping WHERE user_name = $1 ORDER BY map_id`;
       values = [user_id];
-    } else if (position === "Manager") {
+    }
+    else if (position === "Manager") {
       query = `SELECT * FROM public.loanaccountmapping WHERE team = $1 ORDER BY map_id`;
       values = [team];
     } else if (position === "Director" || position === "Senior Director") {
@@ -50,7 +51,8 @@ export const getLoanAccountMappingsByUser = async (req, res) => {
     } else if (position === "CEO") {
       query = `SELECT * FROM public.loanaccountmapping ORDER BY map_id`;
       values = [];
-    } else {
+    }
+    else {
       return res.status(400).json({ error: "Invalid position" });
     }
 
@@ -271,38 +273,40 @@ export const getLoanBalanceDifferenceByUser = async (req, res) => {
         WHERE user_name = $1
       `;
       values = [user_id];
-    } else if (position === "Manager") {
-      query = `
-        SELECT 
-          SUM(COALESCE(collected_balance, 0)) AS total_difference
-        FROM public.loanaccountmapping
-        WHERE team = $1
-      `;
-      values = [team];
-    } else if (position === "Director" || position === "Senior Director") {
-      query = `
-        SELECT 
-          SUM(COALESCE(collected_balance, 0)) AS total_difference
-        FROM public.loanaccountmapping
-        WHERE subprocess = $1
-      `;
-      values = [subprocess];
-    } else if (position === "VP" || position === "CHF") {
-      query = `
-        SELECT 
-          SUM(COALESCE(collected_balance, 0)) AS total_difference
-        FROM public.loanaccountmapping
-        WHERE process = $1
-      `;
-      values = [process];
-    } else if (position === "CEO") {
-      query = `
-        SELECT 
-          SUM(COALESCE(collected_balance, 0)) AS total_difference
-        FROM public.loanaccountmapping
-      `;
-      values = [];
-    } else {
+    }
+    // else if (position === "Manager") {
+    //   query = `
+    //     SELECT 
+    //       SUM(COALESCE(collected_balance, 0)) AS total_difference
+    //     FROM public.loanaccountmapping
+    //     WHERE team = $1
+    //   `;
+    //   values = [team];
+    // } else if (position === "Director" || position === "Senior Director") {
+    //   query = `
+    //     SELECT 
+    //       SUM(COALESCE(collected_balance, 0)) AS total_difference
+    //     FROM public.loanaccountmapping
+    //     WHERE subprocess = $1
+    //   `;
+    //   values = [subprocess];
+    // } else if (position === "VP" || position === "CHF") {
+    //   query = `
+    //     SELECT 
+    //       SUM(COALESCE(collected_balance, 0)) AS total_difference
+    //     FROM public.loanaccountmapping
+    //     WHERE process = $1
+    //   `;
+    //   values = [process];
+    // } else if (position === "CEO") {
+    //   query = `
+    //     SELECT 
+    //       SUM(COALESCE(collected_balance, 0)) AS total_difference
+    //     FROM public.loanaccountmapping
+    //   `;
+    //   values = [];
+    // } 
+    else {
       return res.status(400).json({ error: "Invalid position" });
     }
 
