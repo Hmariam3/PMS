@@ -81,7 +81,7 @@ const getNavLinks = (user) => {
   const isVPOrCHF = position.includes("VP") || position.includes("CHF");
   const isIFB = process === "Interest Free Banking";
   const isIS = process === "Information System";
-  const isCorporate = subprocess === "Corporate Banking" || subprocess === "NGO and Institutional Banking" || subprocess === "Cooperatives Business" || subprocess === "Agri Business" || subprocess === "Product Director by Division" || subprocess === "District Coordination and Support";
+  const isCorporate = subprocess === "Corporate Banking" || subprocess === "NGO and Institutional Banking" || subprocess === "Cooperatives Business" || subprocess === "Agri Business" || subprocess === "Product Director by Division" || subprocess === "District Coordination and Support" || subprocess === "Retail and MSMEs Banking";
 
 
 
