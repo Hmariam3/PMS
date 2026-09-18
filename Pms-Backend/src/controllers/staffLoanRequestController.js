@@ -11,6 +11,213 @@ const calculateTotalScore = (serviceScore, individualScore, teamScore, disciplin
   );
 };
 
+// Helper function to calculate service tenure score
+const calculateServiceTenureScore = (companyEntryDate) => {
+  if (!companyEntryDate) return { band: 'Unknown', score: 0 };
+  
+  const hireDate = new Date(companyEntryDate);
+  const today = new Date();
+  const years = (today - hireDate) / (365.25 * 24 * 60 * 60 * 1000);
+  
+  if (years >= 10) return { band: '10+ years', score: 20 };
+  if (years >= 6) return { band: '6-10 years', score: 15 };
+  if (years >= 3) return { band: '3-6 years', score: 10 };
+  if (years >= 1) return { band: '1-3 years', score: 5 };
+  return { band: '<1 year', score: 0 };
+};
+
+// Helper function to calculate individual performance score
+const calculateIndividualPerformanceScore = (performanceResult) => {
+  if (performanceResult === null || performanceResult === undefined) {
+    return { band: 'Not rated', score: 0 };
+  }
+  
+  const result = parseFloat(performanceResult);
+  
+  if (result > 120) return { band: '>120%', score: 50 };
+  if (result >= 100) return { band: '100-119.99%', score: 40 };
+  if (result >= 75) return { band: '75-99.99%', score: 30 };
+  if (result >= 50) return { band: '50-74.99%', score: 20 };
+  if (result >= 0) return { band: '0-50%', score: 10 };
+  return { band: 'Not rated', score: 0 };
+};
+
+// Helper function to calculate team performance score
+const calculateTeamPerformanceScore = (teamResult) => {
+  if (teamResult === null || teamResult === undefined) {
+    return { band: 'Not rated', score: 0 };
+  }
+  
+  const result = parseFloat(teamResult);
+  
+  if (result > 120) return { band: '>120%', score: 20 };
+  if (result >= 100) return { band: '100-119.99%', score: 16 };
+  if (result >= 75) return { band: '75-99.99%', score: 12 };
+  if (result >= 50) return { band: '50-74.99%', score: 8 };
+  if (result >= 0) return { band: '0-50%', score: 4 };
+  return { band: 'Not rated', score: 0 };
+};
+
+// Get auto-calculated loan scoring data for an employee
+export const getEmployeeLoanScoringData = async (req, res) => {
+  const { employeeId } = req.params;
+
+  try {
+    // 1. Get employee information
+    const employeeResult = await pool.query(
+      `SELECT 
+        employee_id,
+        display_name,
+        dob,
+        branch_name,
+        title,
+        company_entry_date,
+        business_phone_number,
+        outlook_address,
+        business_email_address
+      FROM public.employees 
+      WHERE employee_id = $1`,
+      [employeeId]
+    );
+
+    if (employeeResult.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: "Employee not found" 
+      });
+    }
+
+    const employee = employeeResult.rows[0];
+
+    // 2. Calculate length of service score
+    const serviceTenure = calculateServiceTenureScore(employee.company_entry_date);
+    
+    // Calculate years of service
+    let lengthOfServiceYears = 0;
+    if (employee.company_entry_date) {
+      const hireDate = new Date(employee.company_entry_date);
+      const today = new Date();
+      lengthOfServiceYears = parseFloat(
+        ((today - hireDate) / (365.25 * 24 * 60 * 60 * 1000)).toFixed(2)
+      );
+    }
+
+    // 3. Get individual performance from previous_quarter_employee_evaluation_result
+    const performanceResult = await pool.query(
+      `SELECT 
+        employee_id,
+        performance_result,
+        performance_status,
+        created_date
+      FROM public.previous_quarter_employee_evaluation_result 
+      WHERE employee_id = $1
+      ORDER BY created_date DESC
+      LIMIT 1`,
+      [employeeId]
+    );
+
+    let individualPerformance = { band: 'Not rated', score: 0 };
+    let performanceData = null;
+    
+    if (performanceResult.rows.length > 0) {
+      performanceData = performanceResult.rows[0];
+      individualPerformance = calculateIndividualPerformanceScore(
+        performanceData.performance_result
+      );
+    }
+
+    // 4. Get team/branch performance from branch_vital
+    // First get user's company_code from users table using employee's email
+    const userResult = await pool.query(
+      `SELECT company_code 
+       FROM public.users 
+       WHERE LOWER(mail_address) = LOWER($1)`,
+      [employee.outlook_address || employee.business_email_address]
+    );
+
+    let teamPerformance = { band: 'Not rated', score: 0 };
+    let branchVitalData = null;
+
+    if (userResult.rows.length > 0 && userResult.rows[0].company_code) {
+      const companyCode = userResult.rows[0].company_code;
+      
+      const branchVitalResult = await pool.query(
+        `SELECT 
+          "COMPANY_CODE",
+          "BRANCH_NAME",
+          "OUT_OF_100",
+          "TOTAL_RESULT",
+          "CREATED_AT"
+        FROM public.branch_vital 
+        WHERE "COMPANY_CODE" = $1
+        ORDER BY "CREATED_AT" DESC
+        LIMIT 1`,
+        [companyCode]
+      );
+
+      if (branchVitalResult.rows.length > 0) {
+        branchVitalData = branchVitalResult.rows[0];
+        teamPerformance = calculateTeamPerformanceScore(
+          branchVitalData.OUT_OF_100
+        );
+      }
+    }
+
+    // 5. Calculate total score (excluding disciplinary which user fills)
+    const calculatedTotalScore = 
+      serviceTenure.score + 
+      individualPerformance.score + 
+      teamPerformance.score;
+
+    // 6. Prepare response
+    const scoringData = {
+      employee_info: {
+        employee_id: employee.employee_id,
+        full_name: employee.display_name,
+        dob: employee.dob,
+        branch_name: employee.branch_name,
+        position_title: employee.title,
+        date_of_hire: employee.company_entry_date,
+        length_of_service_years: lengthOfServiceYears,
+        phone_extension: employee.business_phone_number,
+        email: employee.business_email_address || employee.outlook_address,
+      },
+      scoring: {
+        service_tenure: {
+          band: serviceTenure.band,
+          score: serviceTenure.score,
+          calculated_years: lengthOfServiceYears,
+        },
+        individual_performance: {
+          band: individualPerformance.band,
+          score: individualPerformance.score,
+          raw_result: performanceData?.performance_result || null,
+          status: performanceData?.performance_status || null,
+        },
+        team_performance: {
+          band: teamPerformance.band,
+          score: teamPerformance.score,
+          raw_result: branchVitalData?.OUT_OF_100 || null,
+          branch_name: branchVitalData?.BRANCH_NAME || null,
+        },
+        calculated_total: calculatedTotalScore,
+      },
+    };
+
+    res.json({ 
+      success: true,
+      data: scoringData
+    });
+
+  } catch (err) {
+    console.error("Error fetching employee loan scoring data:", err.message);
+    res.status(500).json({ 
+      success: false,
+      error: "Server error while fetching scoring data" 
+    });
+  }
+};
+
 // Get all staff loan requests
 export const getAllStaffLoanRequests = async (req, res) => {
   try {

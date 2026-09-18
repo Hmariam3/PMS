@@ -25,6 +25,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Chip,
 } from "@mui/material";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../AuthContext";
@@ -40,6 +41,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
     // Employee Information
     employee_id: "",
     full_name: "",
+    dob: "",
     branch_name: "",
     position_title: "",
     date_of_hire: "",
@@ -52,7 +54,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
     loan_amount_requested: "",
     loan_purpose: "",
 
-    // Scoring Criteria
+    // Scoring Criteria (auto-calculated, read-only except disciplinary)
     service_tenure_band: "",
     service_tenure_score: 0,
     individual_performance_band: "",
@@ -67,7 +69,9 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [loadingScoring, setLoadingScoring] = useState(false);
   const [employeeInfo, setEmployeeInfo] = useState(null);
+  const [scoringDataLoaded, setScoringDataLoaded] = useState(false);
 
   // Load existing request data if editing
   useEffect(() => {
@@ -97,45 +101,79 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
     }
   }, [existingRequest]);
 
-  // Fetch employee information if user is logged in
+  // Fetch employee information and auto-calculated scoring data
   useEffect(() => {
-    const fetchEmployeeInfo = async () => {
-      if (user && user.email && !isEditMode) {
+    const fetchEmployeeScoringData = async () => {
+      // user.MailAdress is the email property from login
+      const userEmail = user?.MailAdress || user?.email;
+      
+      if (user && userEmail && !isEditMode) {
+        setLoadingScoring(true);
         try {
-          const response = await axios.get(`${API_URL}/employees/title/email`, {
-            params: { email: user.email },
+          // First get employee info by email to get employee_id
+          const empResponse = await axios.get(`${API_URL}/employees/title/email`, {
+            params: { email: userEmail },
           });
-          if (response.data) {
-            const emp = response.data;
-            setEmployeeInfo(emp);
-            setFormData((prev) => ({
-              ...prev,
-              employee_id: emp.employee_id || "",
-              full_name: emp.display_name || "",
-              branch_name: emp.branch_name || "",
-              position_title: emp.title || "",
-              date_of_hire: emp.company_entry_date || "",
-              phone_extension: emp.phone || "",
-            }));
-
-            // Calculate length of service
-            if (emp.company_entry_date) {
-              const hireDate = new Date(emp.company_entry_date);
-              const today = new Date();
-              const years = (today - hireDate) / (365.25 * 24 * 60 * 60 * 1000);
+          
+          if (empResponse.data && empResponse.data.employee_id) {
+            const employeeId = empResponse.data.employee_id;
+            
+            // Now fetch the auto-calculated scoring data
+            const scoringResponse = await axios.get(
+              `${API_URL}/staff-loan-requests/employee-scoring/${employeeId}`
+            );
+            
+            if (scoringResponse.data.success) {
+              const data = scoringResponse.data.data;
+              
+              // Set employee info
+              setEmployeeInfo(data.employee_info);
+              
+              // Helper function to format date from ISO string to YYYY-MM-DD
+              const formatDate = (dateString) => {
+                if (!dateString) return "";
+                const date = new Date(dateString);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+              };
+              
+              // Auto-populate form with employee info and calculated scores
               setFormData((prev) => ({
                 ...prev,
-                length_of_service_years: years.toFixed(2),
+                // Employee Information (read-only)
+                employee_id: data.employee_info.employee_id || "",
+                full_name: data.employee_info.full_name || "",
+                dob: formatDate(data.employee_info.dob),
+                branch_name: data.employee_info.branch_name || "",
+                position_title: data.employee_info.position_title || "",
+                date_of_hire: formatDate(data.employee_info.date_of_hire),
+                length_of_service_years: data.employee_info.length_of_service_years || "",
+                phone_extension: data.employee_info.phone_extension || "",
+                
+                // Auto-calculated scores (read-only)
+                service_tenure_band: data.scoring.service_tenure.band || "",
+                service_tenure_score: data.scoring.service_tenure.score || 0,
+                individual_performance_band: data.scoring.individual_performance.band || "",
+                individual_performance_score: data.scoring.individual_performance.score || 0,
+                team_performance_band: data.scoring.team_performance.band || "",
+                team_performance_score: data.scoring.team_performance.score || 0,
               }));
+              
+              setScoringDataLoaded(true);
             }
           }
         } catch (error) {
-          console.error("Error fetching employee info:", error);
+          console.error("Error fetching employee scoring data:", error);
+          toast.error("Failed to load employee data. Please try again.");
+        } finally {
+          setLoadingScoring(false);
         }
       }
     };
 
-    fetchEmployeeInfo();
+    fetchEmployeeScoringData();
   }, [user, isEditMode]);
 
   // Scoring criteria mappings
@@ -211,14 +249,13 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
       return false;
     }
 
-    if (!formData.service_tenure_band || !formData.individual_performance_band ||
-        !formData.team_performance_band || !formData.disciplinary_record_band) {
-      toast.error("Please complete all scoring criteria");
+    if (!formData.disciplinary_record_band) {
+      toast.error("Please select your disciplinary record status");
       return false;
     }
 
     if (!formData.staff_declaration_confirmed) {
-      toast.error("Please confirm the staff declaration");
+      toast.error("Please confirm the staff declaration to proceed");
       return false;
     }
 
@@ -315,8 +352,15 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
 
         {/* Employee Information */}
         <Typography variant="h6" gutterBottom color="primary">
-          Employee Information
+          Employee Information (Auto-Populated)
         </Typography>
+        
+        {loadingScoring && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Loading employee data and calculating scores...
+          </Alert>
+        )}
+        
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} md={6}>
             <TextField
@@ -326,7 +370,10 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               name="full_name"
               value={formData.full_name}
               onChange={handleInputChange}
-              disabled={!!employeeInfo}
+              disabled={!!employeeInfo || loadingScoring}
+              InputProps={{
+                readOnly: !!employeeInfo,
+              }}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -337,7 +384,25 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               name="employee_id"
               value={formData.employee_id}
               onChange={handleInputChange}
-              disabled={!!employeeInfo}
+              disabled={!!employeeInfo || loadingScoring}
+              InputProps={{
+                readOnly: !!employeeInfo,
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              type="date"
+              label="Date of Birth"
+              name="dob"
+              value={formData.dob}
+              onChange={handleInputChange}
+              InputLabelProps={{ shrink: true }}
+              disabled={!!employeeInfo || loadingScoring}
+              InputProps={{
+                readOnly: !!employeeInfo,
+              }}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -348,7 +413,10 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               name="branch_name"
               value={formData.branch_name}
               onChange={handleInputChange}
-              disabled={!!employeeInfo}
+              disabled={!!employeeInfo || loadingScoring}
+              InputProps={{
+                readOnly: !!employeeInfo,
+              }}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -359,7 +427,10 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               name="position_title"
               value={formData.position_title}
               onChange={handleInputChange}
-              disabled={!!employeeInfo}
+              disabled={!!employeeInfo || loadingScoring}
+              InputProps={{
+                readOnly: !!employeeInfo,
+              }}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -372,7 +443,10 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               value={formData.date_of_hire}
               onChange={handleInputChange}
               InputLabelProps={{ shrink: true }}
-              disabled={!!employeeInfo}
+              disabled={!!employeeInfo || loadingScoring}
+              InputProps={{
+                readOnly: !!employeeInfo,
+              }}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -383,8 +457,11 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               value={formData.length_of_service_years}
               onChange={handleInputChange}
               type="number"
-              InputProps={{ inputProps: { step: 0.01 } }}
-              disabled={!!employeeInfo}
+              InputProps={{ 
+                inputProps: { step: 0.01 },
+                readOnly: !!employeeInfo,
+              }}
+              disabled={!!employeeInfo || loadingScoring}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -394,6 +471,10 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               name="phone_extension"
               value={formData.phone_extension}
               onChange={handleInputChange}
+              disabled={!!employeeInfo || loadingScoring}
+              InputProps={{
+                readOnly: !!employeeInfo,
+              }}
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -406,34 +487,56 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               value={formData.date_of_request}
               onChange={handleInputChange}
               InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              required
-              label="Loan Amount Requested"
-              name="loan_amount_requested"
-              value={formData.loan_amount_requested}
-              onChange={handleInputChange}
-              type="number"
+              disabled
               InputProps={{
-                startAdornment: <InputAdornment position="start">ETB</InputAdornment>,
+                readOnly: true,
               }}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Purpose of Loan"
-              name="loan_purpose"
-              value={formData.loan_purpose}
-              onChange={handleInputChange}
-              multiline
-              rows={1}
-            />
-          </Grid>
         </Grid>
+
+        <Divider sx={{ my: 3 }} />
+
+        {/* To Be Filled By You Section */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom color="primary" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Chip label="Required" color="error" size="small" />
+            Loan Request Details (To Be Filled By You)
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Please provide the following information about your loan request:
+          </Typography>
+          
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                required
+                label="Loan Amount Requested"
+                name="loan_amount_requested"
+                value={formData.loan_amount_requested}
+                onChange={handleInputChange}
+                type="number"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">ETB</InputAdornment>,
+                }}
+                helperText="Enter the loan amount you are requesting"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Purpose of Loan"
+                name="loan_purpose"
+                value={formData.loan_purpose}
+                onChange={handleInputChange}
+                multiline
+                rows={3}
+                helperText="Describe the purpose of your loan request"
+              />
+            </Grid>
+          </Grid>
+        </Box>
 
         <Divider sx={{ my: 3 }} />
 
@@ -441,113 +544,120 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
         <Typography variant="h6" gutterBottom color="primary">
           Self-Assessment: Loan Scoring Criteria (Branch Staff)
         </Typography>
+        
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <strong>Auto-Calculated Scores:</strong> The following scores have been automatically 
+          calculated based on your employee records and performance data. Only the Disciplinary 
+          Record section requires your input.
+        </Alert>
 
-        {/* Criterion 1: Length of Service */}
-        <Card sx={{ mb: 3 }}>
+        {/* Criterion 1: Length of Service - AUTO-CALCULATED */}
+        <Card sx={{ mb: 3, bgcolor: "grey.50" }}>
           <CardContent>
             <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
               1. Length of Continuous Service (Tenure) - Weight: 0-20 points
+              <Chip label="Auto-Calculated" color="success" size="small" sx={{ ml: 2 }} />
             </Typography>
-            <FormControl component="fieldset" required fullWidth>
-              <RadioGroup
-                value={formData.service_tenure_band}
-                onChange={(e) => {
-                  const selected = serviceTenureBands.find(
-                    (b) => b.value === e.target.value
-                  );
-                  handleScoringChange("service_tenure", selected.value, selected.score);
-                }}
-              >
+            <Alert severity="info" sx={{ mb: 2 }}>
+              This score has been automatically calculated based on your hire date 
+              ({formData.date_of_hire ? new Date(formData.date_of_hire).toLocaleDateString() : 'N/A'}).
+            </Alert>
+            <FormControl component="fieldset" required fullWidth disabled>
+              <RadioGroup value={formData.service_tenure_band}>
                 {serviceTenureBands.map((band) => (
                   <FormControlLabel
                     key={band.value}
                     value={band.value}
                     control={<Radio />}
                     label={`${band.label} (${band.score} pts)`}
+                    disabled
                   />
                 ))}
               </RadioGroup>
             </FormControl>
-            <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
-              Score Claimed: <strong>{formData.service_tenure_score} points</strong>
-            </Typography>
+            <Paper elevation={1} sx={{ p: 2, mt: 2, bgcolor: "success.light" }}>
+              <Typography variant="body1" color="white" fontWeight="bold">
+                Your Score: {formData.service_tenure_score} points 
+                ({formData.length_of_service_years} years of service)
+              </Typography>
+            </Paper>
           </CardContent>
         </Card>
 
-        {/* Criterion 2: Individual Performance */}
-        <Card sx={{ mb: 3 }}>
+        {/* Criterion 2: Individual Performance - AUTO-CALCULATED */}
+        <Card sx={{ mb: 3, bgcolor: "grey.50" }}>
           <CardContent>
             <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
               2. Individual Performance Result (Quarter — Branch staff) - Weight: 0-50 points
+              <Chip label="Auto-Calculated" color="success" size="small" sx={{ ml: 2 }} />
             </Typography>
-            <FormControl component="fieldset" required fullWidth>
-              <RadioGroup
-                value={formData.individual_performance_band}
-                onChange={(e) => {
-                  const selected = individualPerformanceBands.find(
-                    (b) => b.value === e.target.value
-                  );
-                  handleScoringChange(
-                    "individual_performance",
-                    selected.value,
-                    selected.score
-                  );
-                }}
-              >
+            <Alert severity="info" sx={{ mb: 2 }}>
+              This score has been automatically calculated based on your most recent quarterly 
+              performance evaluation results.
+            </Alert>
+            <FormControl component="fieldset" required fullWidth disabled>
+              <RadioGroup value={formData.individual_performance_band}>
                 {individualPerformanceBands.map((band) => (
                   <FormControlLabel
                     key={band.value}
                     value={band.value}
                     control={<Radio />}
                     label={`${band.label} (${band.score} pts)`}
+                    disabled
                   />
                 ))}
               </RadioGroup>
             </FormControl>
-            <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
-              Score Claimed: <strong>{formData.individual_performance_score} points</strong>
-            </Typography>
+            <Paper elevation={1} sx={{ p: 2, mt: 2, bgcolor: "success.light" }}>
+              <Typography variant="body1" color="white" fontWeight="bold">
+                Your Score: {formData.individual_performance_score} points
+              </Typography>
+            </Paper>
           </CardContent>
         </Card>
 
-        {/* Criterion 3: Team Performance */}
-        <Card sx={{ mb: 3 }}>
+        {/* Criterion 3: Team Performance - AUTO-CALCULATED */}
+        <Card sx={{ mb: 3, bgcolor: "grey.50" }}>
           <CardContent>
             <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
               3. Team Performance Result (Quarter — Branch staff) - Weight: 0-20 points
+              <Chip label="Auto-Calculated" color="success" size="small" sx={{ ml: 2 }} />
             </Typography>
-            <FormControl component="fieldset" required fullWidth>
-              <RadioGroup
-                value={formData.team_performance_band}
-                onChange={(e) => {
-                  const selected = teamPerformanceBands.find(
-                    (b) => b.value === e.target.value
-                  );
-                  handleScoringChange("team_performance", selected.value, selected.score);
-                }}
-              >
+            <Alert severity="info" sx={{ mb: 2 }}>
+              This score has been automatically calculated based on your branch's most recent 
+              performance results.
+            </Alert>
+            <FormControl component="fieldset" required fullWidth disabled>
+              <RadioGroup value={formData.team_performance_band}>
                 {teamPerformanceBands.map((band) => (
                   <FormControlLabel
                     key={band.value}
                     value={band.value}
                     control={<Radio />}
                     label={`${band.label} (${band.score} pts)`}
+                    disabled
                   />
                 ))}
               </RadioGroup>
             </FormControl>
-            <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
-              Score Claimed: <strong>{formData.team_performance_score} points</strong>
-            </Typography>
+            <Paper elevation={1} sx={{ p: 2, mt: 2, bgcolor: "success.light" }}>
+              <Typography variant="body1" color="white" fontWeight="bold">
+                Your Score: {formData.team_performance_score} points
+              </Typography>
+            </Paper>
           </CardContent>
         </Card>
 
-        {/* Criterion 6: Disciplinary Record */}
+        {/* Criterion 6: Disciplinary Record - USER INPUT REQUIRED */}
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
               6. Disciplinary and Conduct Record - Weight: 0-10 points
+              <Chip label="Your Input Required" color="warning" size="small" sx={{ ml: 2 }} />
             </Typography>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <strong>Please select the option that best describes your disciplinary record.</strong>
+            </Alert>
             <FormControl component="fieldset" required fullWidth>
               <RadioGroup
                 value={formData.disciplinary_record_band}
@@ -598,13 +708,19 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
           <Typography variant="h6" gutterBottom color="primary">
             Staff Declaration
           </Typography>
-          <Paper elevation={1} sx={{ p: 2, bgcolor: "grey.50" }}>
-            <Typography variant="body2" paragraph>
-              I confirm that the information and self-assessment scores provided above are true and accurate 
-              to the best of my knowledge. I understand that my declared scores are subject to verification by 
-              my Branch Manager and Human Resources, and that any false declaration may affect my eligibility 
-              for this loan and may be subject to disciplinary action.
-            </Typography>
+          <Paper elevation={3} sx={{ p: 3, bgcolor: "warning.light", border: "2px solid", borderColor: "warning.main" }}>
+            <Alert severity="warning" icon={false} sx={{ mb: 2 }}>
+              <Typography variant="body1" paragraph fontWeight="bold">
+                ⚠️ IMPORTANT DECLARATION
+              </Typography>
+              <Typography variant="body2" paragraph>
+                I confirm that the information and self-assessment scores provided above are true and accurate 
+                to the best of my knowledge. I understand that my declared scores are subject to verification by 
+                my Branch Manager and Human Resources, and that any false declaration may affect my eligibility 
+                for this loan and may be subject to disciplinary action.
+              </Typography>
+            </Alert>
+            <Divider sx={{ my: 2 }} />
             <FormControlLabel
               control={
                 <Checkbox
@@ -613,14 +729,22 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                   checked={formData.staff_declaration_confirmed}
                   onChange={handleInputChange}
                   color="primary"
+                  sx={{ 
+                    '& .MuiSvgIcon-root': { fontSize: 28 }
+                  }}
                 />
               }
               label={
-                <Typography variant="body2" fontWeight="bold">
-                  I confirm and agree to the above declaration
+                <Typography variant="body1" fontWeight="bold" color="error">
+                  * I confirm and agree to the above declaration (REQUIRED)
                 </Typography>
               }
             />
+            {!formData.staff_declaration_confirmed && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                You must agree to the declaration before submitting your loan request.
+              </Alert>
+            )}
           </Paper>
         </Box>
 
@@ -641,11 +765,21 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
             variant="contained"
             color="primary"
             size="large"
-            disabled={loading}
+            disabled={loading || !formData.staff_declaration_confirmed}
+            sx={{
+              minWidth: 200,
+              opacity: !formData.staff_declaration_confirmed ? 0.5 : 1,
+            }}
           >
             {loading ? "Submitting..." : isEditMode ? "Update Request" : "Submit Request"}
           </Button>
         </Stack>
+        
+        {!formData.staff_declaration_confirmed && (
+          <Typography variant="body2" color="error" align="center" sx={{ mt: 2 }}>
+            Please check the declaration box to enable the submit button
+          </Typography>
+        )}
       </Paper>
     </Box>
   );

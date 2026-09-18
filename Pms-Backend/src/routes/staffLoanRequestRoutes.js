@@ -11,13 +11,17 @@ import {
   verifyAndReviewLoanRequest,
   updateLoanRequestStatus,
   deleteStaffLoanRequest,
-  getLoanRequestStatistics
+  getLoanRequestStatistics,
+  getEmployeeLoanScoringData
 } from "../controllers/staffLoanRequestController.js";
 
 const router = express.Router();
 
 // Statistics/Summary endpoint
 router.get("/statistics", getLoanRequestStatistics);
+
+// Get employee loan scoring data (auto-calculated)
+router.get("/employee-scoring/:employeeId", getEmployeeLoanScoringData);
 
 // Get all loan requests
 router.get("/", getAllStaffLoanRequests);
