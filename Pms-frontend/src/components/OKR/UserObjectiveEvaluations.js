@@ -29,7 +29,7 @@ import {
   ListItem,
   ListItemText,
 } from "@mui/material";
-import { Visibility as VisibilityIcon } from "@mui/icons-material";
+import { Print as PrintIcon } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../AuthContext";
 
@@ -303,13 +303,13 @@ const UserObjectiveEvaluations = () => {
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Details">
+                    <Tooltip title="View Printable Scorecard">
                       <IconButton
                         color="info"
                         size="small"
                         onClick={() => handleShowDetails(u)}
                       >
-                        <VisibilityIcon fontSize="small" />
+                        <PrintIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                   </TableCell>
@@ -361,9 +361,38 @@ const UserObjectiveEvaluations = () => {
                     overflow: visible !important;
                     transform: none !important;
                     box-shadow: none !important;
+                    padding: 10px !important;
+                    zoom: 0.72;
                   }
                   .no-print {
                     display: none !important;
+                  }
+                  @page {
+                    size: A4;
+                    margin: 10mm;
+                  }
+                  /* Compact layout for print */
+                  #print-modal .MuiGrid-item {
+                    padding-top: 8px !important;
+                  }
+                  #print-modal .MuiCardContent-root {
+                    padding: 12px !important;
+                  }
+                  #print-modal .MuiCardContent-root:last-child {
+                    padding-bottom: 12px !important;
+                  }
+                  #print-modal .MuiPaper-root {
+                    padding: 8px !important;
+                    margin-bottom: 8px !important;
+                  }
+                  #print-modal .MuiTableCell-root {
+                    padding: 4px 8px !important;
+                  }
+                  #print-modal .MuiStack-root > * + * {
+                    margin-top: 8px !important;
+                  }
+                  #print-modal .MuiTypography-subtitle2 {
+                    margin-bottom: 4px !important;
                   }
                 }
               `}
@@ -387,10 +416,10 @@ const UserObjectiveEvaluations = () => {
             <Divider sx={{ mb: 3 }} />
 
             {selectedUser && (
-              <Grid container spacing={4}>
+              <Grid container spacing={3}>
                 {/* Left Column: Info & Recommendations */}
-                <Grid item xs={12} md={5}>
-                  <Stack spacing={3}>
+                <Grid item xs={12} sm={5} md={5}>
+                  <Stack spacing={2}>
                     {/* Status Overview Card */}
                     <Card variant="outlined" sx={{ borderRadius: 3, bgcolor: "#f8fafc", border: "1px solid #e2e8f0" }}>
                       <CardContent>
@@ -491,7 +520,7 @@ const UserObjectiveEvaluations = () => {
                 </Grid>
 
                 {/* Right Column: Breakdown */}
-                <Grid item xs={12} md={7}>
+                <Grid item xs={12} sm={7} md={7}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, pl: 1 }}>
                     Performance Breakdown by Objective
                   </Typography>
@@ -537,6 +566,32 @@ const UserObjectiveEvaluations = () => {
                 </Grid>
               </Grid>
             )}
+
+            <Box sx={{ mt: 6, pt: 4, borderTop: "2px dashed #cbd5e1", pageBreakInside: "avoid" }}>
+              <Typography variant="h6" sx={{ textAlign: "center", mb: 4, fontWeight: 700, color: "text.primary" }}>
+                Agreed Document
+              </Typography>
+              <Grid container justifyContent="space-between">
+                <Grid item xs={5}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 4 }}>
+                    SUPERVISOR: {user?.FullName?.toUpperCase() || "____________________"}
+                  </Typography>
+                  <Box sx={{ borderBottom: "1px solid #000", width: "100%", mb: 1 }}></Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Signature
+                  </Typography>
+                </Grid>
+                <Grid item xs={5}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 4, textAlign: "right" }}>
+                    EMPLOYEE: {selectedUser?.evaluated?.evaluated_full_name?.toUpperCase() || "____________________"}
+                  </Typography>
+                  <Box sx={{ borderBottom: "1px solid #000", width: "100%", mb: 1 }}></Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right" }}>
+                    Signature
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Box>
 
             <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }} className="no-print">
               <Button variant="outlined" color="primary" onClick={() => window.print()}>

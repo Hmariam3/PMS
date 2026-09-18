@@ -56,6 +56,7 @@ import PieChartIcon from "@mui/icons-material/PieChart";
 import ChecklistIcon from "@mui/icons-material/Checklist";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import SummarizeIcon from "@mui/icons-material/Summarize";
+import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 
 import { AuthContext } from "../AuthContext";
 
@@ -187,6 +188,12 @@ const getNavLinks = (user) => {
         { text: "My Feedback", path: "/myfeedback", icon: <ThumbsUpDownIcon />, show: true },
 
       ],
+    },
+    {
+      text: "Staff Loan Requests",
+      path: "/staff-loan-requests",
+      icon: <RequestQuoteIcon />,
+      show: true,
     },
     {
       text: "Reports",

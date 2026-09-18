@@ -39,6 +39,7 @@ import reportRoutes from "./routes/reportRoutes.js";
 import branchVitalRoutes from "./routes/branchVitalRoutes.js";
 import areaManagerBranchMappingRoutes from "./routes/areaManagerBranchMappingRoutes.js";
 import mainDashboardRoutes from "./routes/mainDashboardRoutes.js";
+import staffLoanRequestRoutes from "./routes/staffLoanRequestRoutes.js";
 
 const app = express();
 // Enable CORS
@@ -89,6 +90,9 @@ app.use("/api/metric-upload", metricUploadRoutes);
 //branchvital
 app.use("/api/branchvital", branchVitalRoutes);
 app.use("/api/area-manager-branch", areaManagerBranchMappingRoutes);
+
+// Staff Loan Request
+app.use("/api/staff-loan-requests", staffLoanRequestRoutes);
 
 // Test DB connection
 pool
