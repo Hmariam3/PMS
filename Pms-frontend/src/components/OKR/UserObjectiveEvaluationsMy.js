@@ -331,16 +331,25 @@ const UserObjectiveEvaluationsMy = () => {
             <style>
               {`
                 @media print {
+                  * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    color-adjust: exact !important;
+                    -webkit-font-smoothing: antialiased !important;
+                    -moz-osx-font-smoothing: grayscale !important;
+                    text-rendering: optimizeLegibility !important;
+                  }
                   body {
                     overflow: visible !important;
                   }
                   body * {
                     visibility: hidden;
                   }
+                  #root {
+                    display: none !important;
+                  }
                   .MuiModal-root {
-                    position: absolute !important;
-                    top: 0 !important;
-                    left: 0 !important;
+                    position: static !important;
                     overflow: visible !important;
                   }
                   .MuiBackdrop-root {
@@ -350,17 +359,16 @@ const UserObjectiveEvaluationsMy = () => {
                     visibility: visible;
                   }
                   #print-modal {
-                    position: absolute !important;
-                    left: 0 !important;
-                    top: 0 !important;
+                    position: static !important;
                     width: 100% !important;
+                    max-width: 100% !important;
                     max-height: none !important;
                     height: auto !important;
                     overflow: visible !important;
                     transform: none !important;
                     box-shadow: none !important;
-                    padding: 10px !important;
-                    zoom: 0.72;
+                    padding: 0 !important;
+                    margin: 0 !important;
                   }
                   .no-print {
                     display: none !important;
@@ -418,101 +426,62 @@ const UserObjectiveEvaluationsMy = () => {
                 {/* Left Column: Info & Recommendations */}
                 <Grid item xs={12} sm={5} md={5}>
                   <Stack spacing={2}>
-                    {/* Status Overview Card */}
-                    <Card variant="outlined" sx={{ borderRadius: 3, bgcolor: "#f8fafc", border: "1px solid #e2e8f0" }}>
-                      <CardContent>
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                    {/* Status & Recommendations */}
+                    <Paper variant="outlined" sx={{ borderRadius: 3, borderLeft: "4px solid", borderLeftColor: "primary.main", p: 1.5, bgcolor: "#f8fafc" }}>
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
                             Performance Status
                           </Typography>
-                          {getStatusChip(selectedUser.total_score)}
+                          <Typography variant="h5" sx={{ fontWeight: 800, color: "primary.main", mt: 0.5 }}>
+                            {selectedUser.total_score.toFixed(2)}%
+                          </Typography>
                         </Box>
-                        <Typography variant="h3" sx={{ fontWeight: 800, color: "primary.main", mb: 0.5 }}>
-                          {selectedUser.total_score.toFixed(2)}%
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Overall weighted score across all objectives
-                        </Typography>
-                      </CardContent>
-                    </Card>
-
-                    {/* Recommendations Card */}
-                    <Card variant="outlined" sx={{ borderRadius: 3, borderLeft: "4px solid", borderLeftColor: "primary.main" }}>
-                      <CardContent>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: "primary.main", textTransform: "uppercase", fontSize: "0.75rem" }}>
-                          Strategic Recommendations
-                        </Typography>
-                        <Typography variant="body2" sx={{ lineHeight: 1.6, color: "text.primary", fontWeight: 500 }}>
-                          {getInformativeToDo(selectedUser)}
-                        </Typography>
-                      </CardContent>
-                    </Card>
+                        {getStatusChip(selectedUser.total_score)}
+                      </Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: "primary.main", textTransform: "uppercase", fontSize: "0.7rem" }}>
+                        Strategic Recommendations
+                      </Typography>
+                      <Typography variant="body2" sx={{ lineHeight: 1.4, color: "text.primary", fontWeight: 500, fontSize: "0.75rem" }}>
+                        {getInformativeToDo(selectedUser)}
+                      </Typography>
+                    </Paper>
 
                     {/* Employee Info Card */}
                     <Box>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, pl: 1 }}>
                         Employee Profile
                       </Typography>
-                      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, bgcolor: "white" }}>
-                        <Stack spacing={1.5}>
-
-                          {[
-                            { label: "Full Name", value: selectedUser.evaluated?.evaluated_full_name },
-                            { label: "Email", value: selectedUser.evaluated?.evaluated },
-                            { label: "Employee ID", value: selectedUser.evaluated?.employee_id },
-                            { label: "Title", value: selectedUser.evaluated?.title },
-                            { label: "Position", value: selectedUser.evaluated?.position },
-                            { label: "Process", value: selectedUser.evaluated?.process },
-                            { label: "Sub Process", value: selectedUser.evaluated?.subprocess },
-                            { label: "Branch", value: selectedUser.evaluated?.branch },
-                          ].map((item, idx) => (
-                            <Box key={idx} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>{item.label}</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
-                                {item.value || "N/A"}
-                              </Typography>
-                            </Box>
-                          ))}
-                        </Stack>
-                      </Paper>
-                    </Box>
-
-                    {/* Feedback History */}
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, pl: 1 }}>
-                        Feedback Log
-                      </Typography>
-                      <Stack spacing={2}>
-                        {feedbackDetails.length === 0 ? (
-                          <Typography variant="caption" color="text.secondary" align="center" sx={{ py: 3, display: "block", bgcolor: "#f8fafc", borderRadius: 2 }}>
-                            No formal feedback entries recorded
-                          </Typography>
-                        ) : (
-                          feedbackDetails.map((fb) => (
-                            <Card key={fb.id} variant="outlined" sx={{ borderRadius: 3, "&:hover": { boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" } }}>
-                              <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: "0.85rem" }}>
-                                    {fb.subject}
-                                  </Typography>
-                                  <Chip label={fb.status} size="small" color={fb.status === "Closed" ? "default" : "info"} sx={{ height: 20, fontSize: "0.65rem" }} />
-                                </Box>
-                                <Typography variant="body2" sx={{ color: "text.secondary", fontSize: "0.8rem", mb: 1.5 }}>
-                                  {fb.message}
-                                </Typography>
-                                <Box sx={{ pt: 1, borderTop: "1px dashed #e2e8f0", display: "flex", justifyContent: "space-between" }}>
-                                  <Typography variant="caption" sx={{ color: "text.disabled" }}>
-                                    {new Date(fb.created_at).toLocaleDateString()}
-                                  </Typography>
-                                  <Typography variant="caption" sx={{ fontWeight: 600, color: "primary.light" }}>
-                                    {fb.sender}
-                                  </Typography>
-                                </Box>
-                              </CardContent>
-                            </Card>
-                          ))
-                        )}
-                      </Stack>
+                      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
+                        <Table size="small">
+                          <TableBody>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem", borderBottom: "none" }}>Full Name</TableCell>
+                              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", borderBottom: "none" }}>{selectedUser.evaluated?.evaluated_full_name || "N/A"}</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem", borderBottom: "none" }}>Position</TableCell>
+                              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", borderBottom: "none" }}>{selectedUser.evaluated?.position || "N/A"}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem", borderBottom: "none" }}>Email</TableCell>
+                              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", borderBottom: "none" }}>{selectedUser.evaluated?.evaluated || "N/A"}</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem", borderBottom: "none" }}>Process</TableCell>
+                              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", borderBottom: "none" }}>{selectedUser.evaluated?.process || "N/A"}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem", borderBottom: "none" }}>Employee ID</TableCell>
+                              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", borderBottom: "none" }}>{selectedUser.evaluated?.employee_id || "N/A"}</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem", borderBottom: "none" }}>Sub Process</TableCell>
+                              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", borderBottom: "none" }}>{selectedUser.evaluated?.subprocess || "N/A"}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem", borderBottom: "none" }}>Title</TableCell>
+                              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", borderBottom: "none" }}>{selectedUser.evaluated?.title || "N/A"}</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem", borderBottom: "none" }}>Branch</TableCell>
+                              <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", borderBottom: "none" }}>{selectedUser.evaluated?.branch || "N/A"}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
                     </Box>
                   </Stack>
                 </Grid>
@@ -522,45 +491,38 @@ const UserObjectiveEvaluationsMy = () => {
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, pl: 1 }}>
                     Performance Breakdown by Objective
                   </Typography>
-                  <Stack spacing={2.5}>
-                    {selectedUser.data?.map((obj, i) => (
-                      <Paper key={i} variant="outlined" sx={{ p: 0, borderRadius: 3, overflow: "hidden" }}>
-                        <Box sx={{ p: 2, bgcolor: "#f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#334155" }}>
-                            {obj.objective_name}
-                          </Typography>
-                          <Box sx={{ textAlign: "right" }}>
-                            <Typography variant="body2" sx={{ fontWeight: 800, color: "primary.main" }}>
-                              {obj.total_score.toFixed(2)} / {obj.objective_weight}
-                            </Typography>
-                            <Box sx={{ width: 100, height: 4, bgcolor: "#cbd5e1", borderRadius: 2, mt: 0.5, overflow: "hidden" }}>
-                              <Box sx={{ width: `${Math.min((obj.total_score / obj.objective_weight) * 100, 100)}%`, height: "100%", bgcolor: "primary.main" }} />
-                            </Box>
-                          </Box>
-                        </Box>
-                        <TableContainer sx={{ p: 1 }}>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell sx={{ fontSize: "0.7rem", fontWeight: 700, color: "text.secondary" }}>METRIC</TableCell>
-                                <TableCell sx={{ fontSize: "0.7rem", fontWeight: 700, color: "text.secondary" }} align="right">VALUE</TableCell>
-                                <TableCell sx={{ fontSize: "0.7rem", fontWeight: 700, color: "text.secondary" }} align="right">SCORE / WEIGHT</TableCell>
+                  <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3 }}>
+                    <Table size="small">
+                      <TableHead sx={{ bgcolor: "#f1f5f9" }}>
+                        <TableRow>
+                          <TableCell sx={{ fontSize: "0.7rem", fontWeight: 700 }}>OBJECTIVE / METRIC</TableCell>
+                          <TableCell sx={{ fontSize: "0.7rem", fontWeight: 700 }} align="right">VALUE</TableCell>
+                          <TableCell sx={{ fontSize: "0.7rem", fontWeight: 700 }} align="right">SCORE</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {selectedUser.data?.map((obj, i) => (
+                          <React.Fragment key={i}>
+                            <TableRow sx={{ bgcolor: "#f8fafc" }}>
+                              <TableCell colSpan={2} sx={{ fontSize: "0.75rem", fontWeight: 700, color: "#334155" }}>
+                                {obj.objective_name}
+                              </TableCell>
+                              <TableCell align="right" sx={{ fontSize: "0.75rem", fontWeight: 800, color: "primary.main" }}>
+                                {obj.total_score.toFixed(2)} / {obj.objective_weight}
+                              </TableCell>
+                            </TableRow>
+                            {obj.metrics?.map((m, idx) => (
+                              <TableRow key={idx} sx={{ "&:last-child td": { border: 0 } }}>
+                                <TableCell sx={{ fontSize: "0.75rem", pl: 3 }}>• {m.metric_name}</TableCell>
+                                <TableCell sx={{ fontSize: "0.75rem" }} align="right">{m.evaluation_value}</TableCell>
+                                <TableCell sx={{ fontSize: "0.75rem", fontWeight: 600 }} align="right">{Number(m.score || 0).toFixed(2)} / {m.metric_weight || 0}</TableCell>
                               </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {obj.metrics?.map((m, idx) => (
-                                <TableRow key={idx} sx={{ "&:last-child td": { border: 0 } }}>
-                                  <TableCell sx={{ fontSize: "0.75rem", py: 1.5 }}>{m.metric_name}</TableCell>
-                                  <TableCell sx={{ fontSize: "0.75rem" }} align="right">{m.evaluation_value}</TableCell>
-                                  <TableCell sx={{ fontSize: "0.75rem", fontWeight: 600 }} align="right">{Number(m.score || 0).toFixed(2)} / {m.metric_weight || 0}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </Paper>
-                    ))}
-                  </Stack>
+                            ))}
+                          </React.Fragment>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 </Grid>
               </Grid>
             )}
@@ -571,19 +533,19 @@ const UserObjectiveEvaluationsMy = () => {
               </Typography>
               <Grid container justifyContent="space-between">
                 <Grid item xs={5}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 4 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary" }}>
                     SUPERVISOR: {selectedUser?.evaluated?.evaluator_full_name?.toUpperCase() || "____________________"}
                   </Typography>
-                  <Box sx={{ borderBottom: "1px solid #000", width: "100%", mb: 1 }}></Box>
+                  <Box sx={{ mt: 8, borderBottom: "1px solid #000", width: "100%", mb: 1 }}></Box>
                   <Typography variant="caption" color="text.secondary">
                     Signature
                   </Typography>
                 </Grid>
                 <Grid item xs={5}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 4, textAlign: "right" }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", textAlign: "right" }}>
                     EMPLOYEE: {selectedUser?.evaluated?.evaluated_full_name?.toUpperCase() || "____________________"}
                   </Typography>
-                  <Box sx={{ borderBottom: "1px solid #000", width: "100%", mb: 1 }}></Box>
+                  <Box sx={{ mt: 8, borderBottom: "1px solid #000", width: "100%", mb: 1 }}></Box>
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "right" }}>
                     Signature
                   </Typography>

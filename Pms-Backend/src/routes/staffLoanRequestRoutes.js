@@ -12,8 +12,14 @@ import {
   updateLoanRequestStatus,
   deleteStaffLoanRequest,
   getLoanRequestStatistics,
-  getEmployeeLoanScoringData
+  getEmployeeLoanScoringData,
+  uploadLoanDocument,
+  downloadLoanDocument,
+  deleteLoanDocumentById,
+  managerReview,
+  checkerReview,
 } from "../controllers/staffLoanRequestController.js";
+import { loanDocUpload } from "../middleware/loanDocumentUpload.js";
 
 const router = express.Router();
 
@@ -48,5 +54,14 @@ router.patch("/:id/status", updateLoanRequestStatus);
 
 // Delete loan request
 router.delete("/:id", deleteStaffLoanRequest);
+
+// Document upload, view and delete
+router.post("/:id/document",   loanDocUpload.single("document"), uploadLoanDocument);
+router.get( "/:id/document",   downloadLoanDocument);
+router.delete("/:id/document", deleteLoanDocumentById);
+
+// Two-stage approval workflow
+router.post("/:id/manager-review", managerReview);
+router.post("/:id/checker-review", checkerReview);
 
 export default router;
