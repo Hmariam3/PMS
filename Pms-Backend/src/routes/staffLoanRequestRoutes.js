@@ -3,6 +3,7 @@ import express from "express";
 import {
   getAllStaffLoanRequests,
   getStaffLoanRequestsByEmployee,
+  getStaffLoanRequestsByCreator,
   getStaffLoanRequestsByBranch,
   getStaffLoanRequestsByStatus,
   getStaffLoanRequestById,
@@ -18,6 +19,8 @@ import {
   deleteLoanDocumentById,
   managerReview,
   checkerReview,
+  approverApprove,
+  getRecommendedRequests,
 } from "../controllers/staffLoanRequestController.js";
 import { loanDocUpload } from "../middleware/loanDocumentUpload.js";
 
@@ -26,18 +29,22 @@ const router = express.Router();
 // Statistics/Summary endpoint
 router.get("/statistics", getLoanRequestStatistics);
 
+// Recommended requests (for Approver page) — must be BEFORE /:id
+router.get("/recommended", getRecommendedRequests);
+
 // Get employee loan scoring data (auto-calculated)
 router.get("/employee-scoring/:employeeId", getEmployeeLoanScoringData);
 
-// Get all loan requests
+// Get all loan requests (Employee Manager / Checker only)
 router.get("/", getAllStaffLoanRequests);
 
 // Get loan requests by filters
 router.get("/employee/:employeeId", getStaffLoanRequestsByEmployee);
-router.get("/branch/:branchName", getStaffLoanRequestsByBranch);
-router.get("/status/:status", getStaffLoanRequestsByStatus);
+router.get("/creator/:email",       getStaffLoanRequestsByCreator);
+router.get("/branch/:branchName",   getStaffLoanRequestsByBranch);
+router.get("/status/:status",       getStaffLoanRequestsByStatus);
 
-// Get single loan request by ID
+// Get single loan request by ID  ← must come after all static GET routes
 router.get("/:id", getStaffLoanRequestById);
 
 // Create new loan request
@@ -63,5 +70,8 @@ router.delete("/:id/document", deleteLoanDocumentById);
 // Two-stage approval workflow
 router.post("/:id/manager-review", managerReview);
 router.post("/:id/checker-review", checkerReview);
+
+// Final approver
+router.post("/:id/approve", approverApprove);
 
 export default router;

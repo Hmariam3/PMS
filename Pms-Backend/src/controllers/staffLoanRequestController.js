@@ -17,11 +17,11 @@ const calculateTotalScore = (serviceScore, individualScore, teamScore, disciplin
 // Helper function to calculate service tenure score
 const calculateServiceTenureScore = (companyEntryDate) => {
   if (!companyEntryDate) return { band: 'Unknown', score: 0 };
-  
+
   const hireDate = new Date(companyEntryDate);
   const today = new Date();
   const years = (today - hireDate) / (365.25 * 24 * 60 * 60 * 1000);
-  
+
   if (years >= 10) return { band: '10+ years', score: 20 };
   if (years >= 6) return { band: '6-10 years', score: 15 };
   if (years >= 3) return { band: '3-6 years', score: 10 };
@@ -34,9 +34,9 @@ const calculateIndividualPerformanceScore = (performanceResult) => {
   if (performanceResult === null || performanceResult === undefined) {
     return { band: 'Not rated', score: 0 };
   }
-  
+
   const result = parseFloat(performanceResult);
-  
+
   if (result > 120) return { band: '>120%', score: 50 };
   if (result >= 100) return { band: '100-119.99%', score: 40 };
   if (result >= 75) return { band: '75-99.99%', score: 30 };
@@ -50,9 +50,9 @@ const calculateTeamPerformanceScore = (teamResult) => {
   if (teamResult === null || teamResult === undefined) {
     return { band: 'Not rated', score: 0 };
   }
-  
+
   const result = parseFloat(teamResult);
-  
+
   if (result > 120) return { band: '>120%', score: 20 };
   if (result >= 100) return { band: '100-119.99%', score: 16 };
   if (result >= 75) return { band: '75-99.99%', score: 12 };
@@ -84,9 +84,9 @@ export const getEmployeeLoanScoringData = async (req, res) => {
     );
 
     if (employeeResult.rows.length === 0) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: "Employee not found" 
+        error: "Employee not found"
       });
     }
 
@@ -94,7 +94,7 @@ export const getEmployeeLoanScoringData = async (req, res) => {
 
     // 2. Calculate length of service score
     const serviceTenure = calculateServiceTenureScore(employee.company_entry_date);
-    
+
     // Calculate years of service
     let lengthOfServiceYears = 0;
     if (employee.company_entry_date) {
@@ -121,7 +121,7 @@ export const getEmployeeLoanScoringData = async (req, res) => {
 
     let individualPerformance = { band: 'Not rated', score: 0 };
     let performanceData = null;
-    
+
     if (performanceResult.rows.length > 0) {
       performanceData = performanceResult.rows[0];
       individualPerformance = calculateIndividualPerformanceScore(
@@ -143,7 +143,7 @@ export const getEmployeeLoanScoringData = async (req, res) => {
 
     if (userResult.rows.length > 0 && userResult.rows[0].company_code) {
       const companyCode = userResult.rows[0].company_code;
-      
+
       const branchVitalResult = await pool.query(
         `SELECT 
           "COMPANY_CODE",
@@ -167,9 +167,9 @@ export const getEmployeeLoanScoringData = async (req, res) => {
     }
 
     // 5. Calculate total score (excluding disciplinary which user fills)
-    const calculatedTotalScore = 
-      serviceTenure.score + 
-      individualPerformance.score + 
+    const calculatedTotalScore =
+      serviceTenure.score +
+      individualPerformance.score +
       teamPerformance.score;
 
     // 6. Prepare response
@@ -207,16 +207,16 @@ export const getEmployeeLoanScoringData = async (req, res) => {
       },
     };
 
-    res.json({ 
+    res.json({
       success: true,
       data: scoringData
     });
 
   } catch (err) {
     console.error("Error fetching employee loan scoring data:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Server error while fetching scoring data" 
+      error: "Server error while fetching scoring data"
     });
   }
 };
@@ -229,44 +229,49 @@ export const getAllStaffLoanRequests = async (req, res) => {
       FROM staff_loan_requests
       ORDER BY created_at DESC
     `);
-    
-    res.json({ 
+
+    res.json({
       success: true,
       data: result.rows,
       count: result.rows.length
     });
   } catch (err) {
     console.error("Error fetching staff loan requests:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Server error while fetching loan requests" 
+      error: "Server error while fetching loan requests"
     });
   }
 };
 
+// Get staff loan requests by the requesting employee's email (created_by)
+export const getStaffLoanRequestsByCreator = async (req, res) => {
+  const { email } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT * FROM staff_loan_requests
+       WHERE LOWER(created_by) = LOWER($1)
+       ORDER BY created_at DESC`,
+      [email]
+    );
+    res.json({ success: true, data: result.rows, count: result.rows.length });
+  } catch (err) {
+    console.error("Error fetching loan requests by creator:", err.message);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+};
 // Get staff loan requests by employee ID
 export const getStaffLoanRequestsByEmployee = async (req, res) => {
   const { employeeId } = req.params;
-
   try {
     const result = await pool.query(
-      `SELECT * FROM staff_loan_requests 
-       WHERE employee_id = $1 
-       ORDER BY created_at DESC`,
+      `SELECT * FROM staff_loan_requests WHERE employee_id = $1 ORDER BY created_at DESC`,
       [employeeId]
     );
-
-    res.json({ 
-      success: true,
-      data: result.rows,
-      count: result.rows.length
-    });
+    res.json({ success: true, data: result.rows, count: result.rows.length });
   } catch (err) {
     console.error("Error fetching loan requests by employee:", err.message);
-    res.status(500).json({ 
-      success: false,
-      error: "Server error" 
-    });
+    res.status(500).json({ success: false, error: "Server error" });
   }
 };
 
@@ -282,16 +287,16 @@ export const getStaffLoanRequestsByBranch = async (req, res) => {
       [branchName]
     );
 
-    res.json({ 
+    res.json({
       success: true,
       data: result.rows,
       count: result.rows.length
     });
   } catch (err) {
     console.error("Error fetching loan requests by branch:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Server error" 
+      error: "Server error"
     });
   }
 };
@@ -308,16 +313,16 @@ export const getStaffLoanRequestsByStatus = async (req, res) => {
       [status]
     );
 
-    res.json({ 
+    res.json({
       success: true,
       data: result.rows,
       count: result.rows.length
     });
   } catch (err) {
     console.error("Error fetching loan requests by status:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Server error" 
+      error: "Server error"
     });
   }
 };
@@ -333,21 +338,21 @@ export const getStaffLoanRequestById = async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: "Loan request not found" 
+        error: "Loan request not found"
       });
     }
 
-    res.json({ 
+    res.json({
       success: true,
       data: result.rows[0]
     });
   } catch (err) {
     console.error("Error fetching loan request:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Server error" 
+      error: "Server error"
     });
   }
 };
@@ -385,7 +390,7 @@ export const createStaffLoanRequest = async (req, res) => {
 
   // Validate required fields
   if (!employee_id || !full_name || !branch_name || !position_title ||
-      !date_of_hire || !loan_type || !loan_amount_requested) {
+    !date_of_hire || !loan_type || !loan_amount_requested) {
     return res.status(400).json({
       success: false,
       error: "Missing required fields"
@@ -395,10 +400,10 @@ export const createStaffLoanRequest = async (req, res) => {
   const isEmergency = loan_type === "Emergency Loan";
 
   // For emergency loans scores are all 0
-  const svc   = isEmergency ? 0 : (service_tenure_score || 0);
-  const ind   = isEmergency ? 0 : (individual_performance_score || 0);
-  const team  = isEmergency ? 0 : (team_performance_score || 0);
-  const disc  = isEmergency ? 0 : (disciplinary_record_score || 0);
+  const svc = isEmergency ? 0 : (service_tenure_score || 0);
+  const ind = isEmergency ? 0 : (individual_performance_score || 0);
+  const team = isEmergency ? 0 : (team_performance_score || 0);
+  const disc = isEmergency ? 0 : (disciplinary_record_score || 0);
   const total = svc + ind + team + disc;
 
   try {
@@ -488,10 +493,10 @@ export const updateStaffLoanRequest = async (req, res) => {
 
   const isEmergency = loan_type === "Emergency Loan";
 
-  const svc  = isEmergency ? 0 : (service_tenure_score  || 0);
-  const ind  = isEmergency ? 0 : (individual_performance_score || 0);
+  const svc = isEmergency ? 0 : (service_tenure_score || 0);
+  const ind = isEmergency ? 0 : (individual_performance_score || 0);
   const team = isEmergency ? 0 : (team_performance_score || 0);
-  const disc = isEmergency ? 0 : (disciplinary_record_score   || 0);
+  const disc = isEmergency ? 0 : (disciplinary_record_score || 0);
   const total_score_claimed = svc + ind + team + disc;
 
   try {
@@ -624,22 +629,22 @@ export const verifyAndReviewLoanRequest = async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: "Loan request not found" 
+        error: "Loan request not found"
       });
     }
 
-    res.json({ 
+    res.json({
       success: true,
       message: "Loan request reviewed successfully",
       data: result.rows[0]
     });
   } catch (err) {
     console.error("Error reviewing loan request:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Server error while reviewing loan request" 
+      error: "Server error while reviewing loan request"
     });
   }
 };
@@ -650,11 +655,11 @@ export const updateLoanRequestStatus = async (req, res) => {
   const { status, updated_by } = req.body;
 
   const validStatuses = ['Pending', 'Under Review', 'Recommended', 'Not Recommended', 'Approved', 'Rejected'];
-  
+
   if (!validStatuses.includes(status)) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
-      error: "Invalid status value" 
+      error: "Invalid status value"
     });
   }
 
@@ -669,22 +674,22 @@ export const updateLoanRequestStatus = async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: "Loan request not found" 
+        error: "Loan request not found"
       });
     }
 
-    res.json({ 
+    res.json({
       success: true,
       message: "Loan request status updated successfully",
       data: result.rows[0]
     });
   } catch (err) {
     console.error("Error updating loan request status:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Server error" 
+      error: "Server error"
     });
   }
 };
@@ -700,22 +705,22 @@ export const deleteStaffLoanRequest = async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: "Loan request not found" 
+        error: "Loan request not found"
       });
     }
 
-    res.json({ 
+    res.json({
       success: true,
       message: "Loan request deleted successfully",
       data: result.rows[0]
     });
   } catch (err) {
     console.error("Error deleting loan request:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Server error" 
+      error: "Server error"
     });
   }
 };
@@ -742,15 +747,15 @@ export const getLoanRequestStatistics = async (req, res) => {
       FROM staff_loan_requests
     `);
 
-    res.json({ 
+    res.json({
       success: true,
       data: result.rows[0]
     });
   } catch (err) {
     console.error("Error fetching loan request statistics:", err.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: "Server error" 
+      error: "Server error"
     });
   }
 };
@@ -786,7 +791,7 @@ export const uploadLoanDocument = async (req, res) => {
     );
 
     // Rename the temp file to the structured name
-    const tmpPath   = path.join(UPLOAD_DIR, req.file.filename);
+    const tmpPath = path.join(UPLOAD_DIR, req.file.filename);
     const finalPath = path.join(UPLOAD_DIR, finalFilename);
     fs.renameSync(tmpPath, finalPath);
 
@@ -814,11 +819,11 @@ export const uploadLoanDocument = async (req, res) => {
       success: true,
       message: "Document uploaded successfully",
       data: {
-        id:           result.rows[0].id,
-        filename:     result.rows[0].attachment_file_name,
-        path:         result.rows[0].attachment_file_path,
+        id: result.rows[0].id,
+        filename: result.rows[0].attachment_file_name,
+        path: result.rows[0].attachment_file_path,
         originalName: req.file.originalname,
-        size:         req.file.size,
+        size: req.file.size,
       },
     });
   } catch (err) {
@@ -857,12 +862,12 @@ export const downloadLoanDocument = async (req, res) => {
     // Detect content type from extension
     const ext = path.extname(attachment_file_name).toLowerCase();
     const mimeTypes = {
-      ".pdf":  "application/pdf",
-      ".doc":  "application/msword",
+      ".pdf": "application/pdf",
+      ".doc": "application/msword",
       ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ".jpg":  "image/jpeg",
+      ".jpg": "image/jpeg",
       ".jpeg": "image/jpeg",
-      ".png":  "image/png",
+      ".png": "image/png",
     };
     const contentType = mimeTypes[ext] || "application/octet-stream";
 
@@ -919,12 +924,9 @@ export const deleteLoanDocumentById = async (req, res) => {
 };
 
 // ── Employee Manager Review ────────────────────────────────────────────────────
-// Title required: 'Employee Manager'
-// Verifies the auto-calculated scores, fills deduction fields, adds remarks.
 export const managerReview = async (req, res) => {
   const { id } = req.params;
   const {
-    // who is reviewing
     reviewer_title,
     reviewer_email,
 
@@ -933,62 +935,95 @@ export const managerReview = async (req, res) => {
     mgr_verified_individual_score,
     mgr_verified_team_score,
 
-    // deduction / affordability
-    deduction_amount,
-    deduction_months,
+    // fixed deductions
+    deduction_income_tax,
+    deduction_pension_7,
 
-    // notes
+    // dynamic extra deductions  [{label, amount}]
+    deduction_other_items,
+
+    // repayment fields
+    deduction_amount,    // the specific loan repayment deduction (e.g. ESL or HL repayment)
+    deduction_months,    // repayment period
+
+    // outstanding balances [{label, amount}]
+    outstanding_balances,
+
     manager_remarks,
   } = req.body;
 
   // ── Role enforcement ──────────────────────────────────────────────────────
-  if (!reviewer_title || reviewer_title.trim() !== "Employee Manager") {
+  if (!reviewer_title || reviewer_title.trim() !== "Manager, Payroll Administrator") {
     return res.status(403).json({
       success: false,
-      error: "Access denied. Only the Employee Manager can perform this review.",
-    });
-  }
-
-  // ── Validate required fields ─────────────────────────────────────────────
-  if (
-    deduction_amount === undefined || deduction_amount === null ||
-    deduction_months === undefined || deduction_months === null
-  ) {
-    return res.status(400).json({
-      success: false,
-      error: "Deduction amount and repayment months are required.",
+      error: "Access denied. Only the Manager, Payroll Administrator can perform this review.",
     });
   }
 
   try {
-    // Fetch the request to get basic_salary and check it hasn't been manager-reviewed already
     const existing = await pool.query(
-      `SELECT id, basic_salary, manager_verified, loan_type FROM staff_loan_requests WHERE id = $1`,
+      `SELECT id, basic_salary, manager_verified, loan_type,
+              service_tenure_score, individual_performance_score,
+              team_performance_score, disciplinary_record_score
+       FROM staff_loan_requests WHERE id = $1`,
       [id]
     );
 
     if (existing.rows.length === 0) {
       return res.status(404).json({ success: false, error: "Loan request not found" });
     }
-
     if (existing.rows[0].manager_verified) {
       return res.status(409).json({
         success: false,
-        error: "This request has already been reviewed by the Employee Manager.",
+        error: "This request has already been reviewed by the Manager, Payroll Administrator.",
       });
     }
 
-    const basicSalary    = parseFloat(existing.rows[0].basic_salary) || 0;
-    const deductAmt      = parseFloat(deduction_amount)              || 0;
-    const netSalary      = basicSalary - deductAmt;
+    // Checker must go first
+    const checkerCheck = await pool.query(
+      `SELECT checker_verified FROM staff_loan_requests WHERE id = $1`, [id]
+    );
+    if (!checkerCheck.rows[0].checker_verified) {
+      return res.status(409).json({
+        success: false,
+        error: "Manager, Employee Services Management must complete their review before the Manager can proceed.",
+      });
+    }
 
-    const isEmergency    = existing.rows[0].loan_type === "Emergency Loan";
+    const basicSalary = parseFloat(existing.rows[0].basic_salary) || 0;
+    const isEmergency = existing.rows[0].loan_type === "Emergency Loan";
 
-    // For emergency loans scores stay null
-    const svc  = isEmergency ? null : (parseInt(mgr_verified_service_score)    ?? null);
-    const ind  = isEmergency ? null : (parseInt(mgr_verified_individual_score) ?? null);
-    const team = isEmergency ? null : (parseInt(mgr_verified_team_score)       ?? null);
-    const total = (svc ?? 0) + (ind ?? 0) + (team ?? 0);
+    // ── Use the system-calculated scores directly from DB (not editable by manager) ──
+    const svcScore = existing.rows[0].service_tenure_score || 0;
+    const indScore = existing.rows[0].individual_performance_score || 0;
+    const teamScore = existing.rows[0].team_performance_score || 0;
+    const discScore = existing.rows[0].disciplinary_record_score || 0;
+    const totalScore = isEmergency ? 0 : (svcScore + indScore + teamScore + discScore);
+
+    // ── Determine Recommended / Not Recommended based on loan type threshold ──
+    const THRESHOLDS = {
+      "Automobile": 100,
+      "Housing/Mortgage": 85,
+      "Personal Against Suretyship": 50,
+      "Emergency Loan": 0,
+    };
+    const loanType = existing.rows[0].loan_type;
+    const threshold = THRESHOLDS[loanType] ?? 100;
+    const finalDecision = isEmergency || totalScore >= threshold
+      ? "Recommended"
+      : "Not Recommended";
+    const finalStatus = finalDecision;
+
+    // ── Deduction calculations ────────────────────────────────────────────────
+    const incomeTax = parseFloat(deduction_income_tax) || 0;
+    const pension7 = parseFloat(deduction_pension_7) || 0;
+    const loanRepay = parseFloat(deduction_amount) || 0;
+
+    const otherItems = Array.isArray(deduction_other_items) ? deduction_other_items : [];
+    const otherTotal = otherItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+
+    const totalDeduction = incomeTax + pension7 + loanRepay + otherTotal;
+    const netSalary = basicSalary - totalDeduction;
 
     const result = await pool.query(
       `UPDATE staff_loan_requests SET
@@ -999,21 +1034,37 @@ export const managerReview = async (req, res) => {
         mgr_verified_individual_score = $3,
         mgr_verified_team_score       = $4,
         mgr_verified_total_score      = $5,
-        deduction_amount              = $6,
-        deduction_months              = $7,
-        net_salary_after_deduction    = $8,
-        manager_remarks               = $9,
-        status                        = 'Manager Review',
+        deduction_income_tax          = $6,
+        deduction_pension_7           = $7,
+        deduction_other_items         = $8,
+        deduction_amount              = $9,
+        deduction_months              = $10,
+        total_deduction               = $11,
+        net_salary_after_deduction    = $12,
+        outstanding_balances          = $13,
+        manager_remarks               = $14,
+        status                        = $15,
+        decision                      = $16,
         updated_at                    = CURRENT_TIMESTAMP
-      WHERE id = $10
+      WHERE id = $17
       RETURNING *`,
       [
         reviewer_email,
-        svc, ind, team, isEmergency ? 0 : total,
-        deductAmt,
-        parseInt(deduction_months),
+        isEmergency ? null : svcScore,
+        isEmergency ? null : indScore,
+        isEmergency ? null : teamScore,
+        isEmergency ? 0 : totalScore,
+        incomeTax,
+        pension7,
+        JSON.stringify(otherItems),
+        loanRepay,
+        parseInt(deduction_months, 10) || 0,
+        totalDeduction,
         netSalary,
+        JSON.stringify(Array.isArray(outstanding_balances) ? outstanding_balances : []),
         manager_remarks || null,
+        finalStatus,
+        finalDecision,
         id,
       ]
     );
@@ -1030,22 +1081,24 @@ export const managerReview = async (req, res) => {
 };
 
 // ── Employee Checker Review ────────────────────────────────────────────────────
-// Title required: 'Employee Checker'
-// Only verifies / flags the disciplinary and conduct record.
+// Title required: 'Manager, Employee Services Management'
+// Verifies disciplinary record AND loan application count.
 export const checkerReview = async (req, res) => {
   const { id } = req.params;
   const {
     reviewer_title,
     reviewer_email,
-    checker_disciplinary_verified,   // boolean: true = clean, false = flagged
+    checker_disciplinary_verified,        // boolean
+    checker_loan_application_verified,    // boolean
+    checker_loan_application_remarks,     // text
     checker_remarks,
   } = req.body;
 
   // ── Role enforcement ──────────────────────────────────────────────────────
-  if (!reviewer_title || reviewer_title.trim() !== "Employee Checker") {
+  if (!reviewer_title || reviewer_title.trim() !== "Manager, Employee Services Management") {
     return res.status(403).json({
       success: false,
-      error: "Access denied. Only the Employee Checker can perform this review.",
+      error: "Access denied. Only the Manager, Employee Services Management can perform this review.",
     });
   }
 
@@ -1056,9 +1109,16 @@ export const checkerReview = async (req, res) => {
     });
   }
 
+  if (checker_loan_application_verified === undefined || checker_loan_application_verified === null) {
+    return res.status(400).json({
+      success: false,
+      error: "Loan application count verification decision is required.",
+    });
+  }
+
   try {
     const existing = await pool.query(
-      `SELECT id, manager_verified, checker_verified FROM staff_loan_requests WHERE id = $1`,
+      `SELECT id, checker_verified FROM staff_loan_requests WHERE id = $1`,
       [id]
     );
 
@@ -1066,40 +1126,37 @@ export const checkerReview = async (req, res) => {
       return res.status(404).json({ success: false, error: "Loan request not found" });
     }
 
-    if (!existing.rows[0].manager_verified) {
-      return res.status(409).json({
-        success: false,
-        error: "Employee Manager must complete their review before the Checker can proceed.",
-      });
-    }
-
     if (existing.rows[0].checker_verified) {
       return res.status(409).json({
         success: false,
-        error: "This request has already been reviewed by the Employee Checker.",
+        error: "This request has already been reviewed by the Manager, Employee Services Management.",
       });
     }
 
-    // Determine final status based on disciplinary outcome
-    const disciplinaryClean = checker_disciplinary_verified === true ||
-                              checker_disciplinary_verified === "true";
+    const disciplinaryClean = checker_disciplinary_verified === true || checker_disciplinary_verified === "true";
+    const loanCountVerified = checker_loan_application_verified === true || checker_loan_application_verified === "true";
 
-    const finalStatus = disciplinaryClean ? "Checker Review" : "Not Recommended";
+    // If either check fails → Not Recommended
+    const finalStatus = (disciplinaryClean && loanCountVerified) ? "Checker Review" : "Not Recommended";
 
     const result = await pool.query(
       `UPDATE staff_loan_requests SET
-        checker_verified              = TRUE,
-        checker_verified_by           = $1,
-        checker_verified_at           = CURRENT_TIMESTAMP,
-        checker_disciplinary_verified = $2,
-        checker_remarks               = $3,
-        status                        = $4,
-        updated_at                    = CURRENT_TIMESTAMP
-      WHERE id = $5
+        checker_verified                     = TRUE,
+        checker_verified_by                  = $1,
+        checker_verified_at                  = CURRENT_TIMESTAMP,
+        checker_disciplinary_verified        = $2,
+        checker_loan_application_verified    = $3,
+        checker_loan_application_remarks     = $4,
+        checker_remarks                      = $5,
+        status                               = $6,
+        updated_at                           = CURRENT_TIMESTAMP
+      WHERE id = $7
       RETURNING *`,
       [
         reviewer_email,
         disciplinaryClean,
+        loanCountVerified,
+        checker_loan_application_remarks || null,
         checker_remarks || null,
         finalStatus,
         id,
@@ -1114,5 +1171,71 @@ export const checkerReview = async (req, res) => {
   } catch (err) {
     console.error("Error in checker review:", err.message);
     res.status(500).json({ success: false, error: "Server error during checker review" });
+  }
+};
+
+// ── Employee Approver — Final Approval ───────────────────────────────────────
+// Title required: 'Employee Approver'
+// Gives final green light to a Recommended request → status becomes 'Approved'.
+export const approverApprove = async (req, res) => {
+  const { id } = req.params;
+  const { reviewer_title, reviewer_email, approver_remarks } = req.body;
+
+  if (!reviewer_title || (reviewer_title !== "Employee Approver" || reviewer_title !== "Enterprise System Operation and Application Developer")) {
+    return res.status(403).json({
+      success: false,
+      error: "Access denied. Only the Employee Approver can perform this action.",
+    });
+  }
+
+  try {
+    const existing = await pool.query(
+      `SELECT id, status FROM staff_loan_requests WHERE id = $1`, [id]
+    );
+
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ success: false, error: "Loan request not found" });
+    }
+
+    if (existing.rows[0].status !== "Recommended") {
+      return res.status(409).json({
+        success: false,
+        error: `Cannot approve a request with status "${existing.rows[0].status}". Only Recommended requests can be approved.`,
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE staff_loan_requests SET
+        status          = 'Approved',
+        approved_by     = $1,
+        approved_at     = CURRENT_TIMESTAMP,
+        approver_remarks= $2,
+        updated_at      = CURRENT_TIMESTAMP
+      WHERE id = $3
+      RETURNING *`,
+      [reviewer_email, approver_remarks || null, id]
+    );
+
+    res.json({
+      success: true,
+      message: "Loan request approved successfully.",
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("Error in approver action:", err.message);
+    res.status(500).json({ success: false, error: "Server error during approval" });
+  }
+};
+
+// Get all Recommended requests (for Approver page)
+export const getRecommendedRequests = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM staff_loan_requests WHERE status = 'Recommended' ORDER BY created_at DESC`
+    );
+    res.json({ success: true, data: result.rows, count: result.rows.length });
+  } catch (err) {
+    console.error("Error fetching recommended requests:", err.message);
+    res.status(500).json({ success: false, error: "Server error" });
   }
 };

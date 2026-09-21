@@ -57,6 +57,7 @@ import ChecklistIcon from "@mui/icons-material/Checklist";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import SummarizeIcon from "@mui/icons-material/Summarize";
 import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
+import GavelIcon from "@mui/icons-material/Gavel";
 
 import { AuthContext } from "../AuthContext";
 
@@ -194,6 +195,12 @@ const getNavLinks = (user) => {
       path: "/staff-loan-requests",
       icon: <RequestQuoteIcon />,
       show: true,
+    },
+    {
+      text: "Loan Approvals",
+      path: "/loan-approvals",
+      icon: <GavelIcon />,
+      show: title === "Employee Approver" || title === "Enterprise System Operation and Application Developer",
     },
     {
       text: "Reports",
