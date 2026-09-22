@@ -953,10 +953,16 @@ export const managerReview = async (req, res) => {
   } = req.body;
 
   // ── Role enforcement ──────────────────────────────────────────────────────
-  if (!reviewer_title || reviewer_title.trim() !== "Manager, Payroll Administrator") {
+  const allowedTitles = [
+    "Manager, Payroll Administrator",
+    "Enterprise System Operation and Application Developer",
+  ];
+
+  if (!reviewer_title || !allowedTitles.includes(reviewer_title.trim())) {
     return res.status(403).json({
       success: false,
-      error: "Access denied. Only the Manager, Payroll Administrator can perform this review.",
+      error:
+        "Access denied. Only authorized Payroll reviewers can perform this review.",
     });
   }
 
@@ -1095,10 +1101,15 @@ export const checkerReview = async (req, res) => {
   } = req.body;
 
   // ── Role enforcement ──────────────────────────────────────────────────────
-  if (!reviewer_title || reviewer_title.trim() !== "Manager, Employee Services Management") {
+  const allowedTitles = [
+    "Manager, Employee Services Management",
+    "Enterprise System Operation and Application Developer",
+  ];
+  if (!reviewer_title || !allowedTitles.includes(reviewer_title.trim())) {
     return res.status(403).json({
       success: false,
-      error: "Access denied. Only the Manager, Employee Services Management can perform this review.",
+      error:
+        "Access denied. Only authorized Employee Services reviewers can perform this review.",
     });
   }
 
@@ -1181,7 +1192,11 @@ export const approverApprove = async (req, res) => {
   const { id } = req.params;
   const { reviewer_title, reviewer_email, approver_remarks } = req.body;
 
-  if (!reviewer_title || (reviewer_title !== "Employee Approver" || reviewer_title !== "Enterprise System Operation and Application Developer")) {
+  const allowedTitles = [
+    "Employee Approver",
+    "Enterprise System Operation and Application Developer",
+  ];
+  if (!reviewer_title || !allowedTitles.includes(reviewer_title)) {
     return res.status(403).json({
       success: false,
       error: "Access denied. Only the Employee Approver can perform this action.",

@@ -239,7 +239,7 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
       const res = await axios.post(
         `${API_URL}/staff-loan-requests/${request.id}/manager-review`,
         {
-          reviewer_title: "Manager, Payroll Administrator",
+          reviewer_title: userTitle,
           reviewer_email: user?.MailAdress || user?.email,
           ...mgrForm,
         }
@@ -270,7 +270,7 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
       const res = await axios.post(
         `${API_URL}/staff-loan-requests/${request.id}/checker-review`,
         {
-          reviewer_title: "Manager, Employee Services Management",
+          reviewer_title: userTitle,
           reviewer_email: user?.MailAdress || user?.email,
           ...chkForm,
         }

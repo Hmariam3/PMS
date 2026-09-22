@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useContext } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import {
   Box,
@@ -8,17 +8,25 @@ import {
   CircularProgress,
   Breadcrumbs,
   Link,
-  TableContainer,
   Alert,
+  IconButton,
+  Tooltip,
+  Stack,
 } from "@mui/material";
+import {
+  Visibility as VisibilityIcon,
+  CheckCircle as CheckCircleIcon,
+} from "@mui/icons-material";
+import {
+  DataGrid,
+  GridToolbarContainer,
+  GridToolbarExport,
+  GridToolbarFilterButton,
+  GridToolbarDensitySelector,
+} from "@mui/x-data-grid";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../AuthContext";
 import LoanApprovalDetail from "./LoanApprovalDetail";
-import $ from "jquery";
-import "datatables.net-bs5";
-import "datatables.net-buttons-bs5";
-import "datatables.net-buttons/js/buttons.html5";
-import "datatables.net-buttons/js/buttons.print";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 
@@ -44,8 +52,19 @@ const loanTypeLabel = (t) => {
   return t || "-";
 };
 
-const eyeSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>`;
-const checkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
+// ─── Custom toolbar ───────────────────────────────────────────────────────────
+function CustomToolbar() {
+  return (
+    <GridToolbarContainer sx={{ px: 2, py: 1, gap: 1 }}>
+      <GridToolbarFilterButton />
+      <GridToolbarDensitySelector />
+      <GridToolbarExport
+        csvOptions={{ fileName: "loan_approvals" }}
+        printOptions={{ fileName: "loan_approvals" }}
+      />
+    </GridToolbarContainer>
+  );
+}
 
 const LoanApprovalList = () => {
   const { user } = useContext(AuthContext);
@@ -53,8 +72,6 @@ const LoanApprovalList = () => {
   const userTitle = user?.title || "";
   const isApprover = (userTitle === "Employee Approver" || userTitle === "Enterprise System Operation and Application Developer");
 
-  const tableRef = useRef(null);
-  const [tableKey, setTableKey] = useState(0);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
@@ -73,74 +90,79 @@ const LoanApprovalList = () => {
     }
   };
 
-  useEffect(() => { fetchAll(); }, []);
-
   useEffect(() => {
-    if (!tableRef.current) return;
-
-    const table = $(tableRef.current).DataTable({
-      destroy: true,
-      data: requests,
-      columns: [
-        { title: "#", data: "id", width: "55px" },
-        { title: "Employee", data: "full_name" },
-        { title: "Emp. ID", data: "employee_id", width: "110px" },
-        { title: "Branch", data: "branch_name" },
-        {
-          title: "Loan Type", data: "loan_type", width: "95px",
-          render: (d) => loanTypeLabel(d),
-        },
-        {
-          title: "Amount", data: "loan_amount_requested",
-          render: (d) => d ? `ETB ${parseFloat(d).toLocaleString()}` : "-",
-        },
-        {
-          title: "Score", data: "total_score_claimed", width: "60px",
-          render: (d) => d ?? 0,
-        },
-        {
-          title: "Date", data: "date_of_request", width: "95px",
-          render: (d) => d ? new Date(d).toLocaleDateString() : "-",
-        },
-        {
-          title: "Actions", data: null, orderable: false, width: "110px",
-          render: (_, __, row) =>
-            `<div style="display:flex;gap:4px;align-items:center;">
-               <button class="btn btn-sm btn-outline-info  dt-view"    data-id="${row.id}" title="View Full Details" style="padding:3px 7px">${eyeSvg}</button>
-               ${isApprover
-              ? `<button class="btn btn-sm btn-success dt-approve" data-id="${row.id}" title="Give Final Approval" style="padding:3px 7px;color:white">${checkSvg} Approve</button>`
-              : ""}
-             </div>`,
-        },
-      ],
-      order: [[0, "desc"]],
-      pageLength: 10,
-      responsive: true,
-      dom: "Bfrtip",
-      buttons: ["copy", "csv", "excel", "print"],
-      language: {
-        emptyTable: "No recommended requests awaiting approval",
-        info: "Showing _START_ to _END_ of _TOTAL_ requests",
-      },
-      rowCallback: (row) => { row.style.borderLeft = "4px solid #2e7d32"; },
-    });
-
-    $(tableRef.current).on("click", ".dt-view", function () {
-      const row = requests.find((r) => r.id === $(this).data("id"));
-      if (row) { setSelected(row); setShowDetail(true); }
-    });
-
-    $(tableRef.current).on("click", ".dt-approve", function () {
-      const row = requests.find((r) => r.id === $(this).data("id"));
-      if (row) { setSelected(row); setShowDetail(true); }
-    });
-
-    return () => { table.destroy(); };
-  }, [requests, tableKey, isApprover]);
+    if (isApprover) {
+      fetchAll();
+    }
+  }, [isApprover]);
 
   const closeDetail = () => { setShowDetail(false); setSelected(null); };
+  const onApproved = () => { closeDetail(); fetchAll(); };
 
-  const onApproved = () => { closeDetail(); fetchAll(); setTableKey((k) => k + 1); };
+  // ── columns ────────────────────────────────────────────────────────────────
+  const columns = [
+    { field: "id", headerName: "#", width: 70 },
+    { field: "full_name", headerName: "Employee", flex: 1, minWidth: 150 },
+    { field: "employee_id", headerName: "Emp. ID", width: 120 },
+    { field: "branch_name", headerName: "Branch", flex: 1, minWidth: 130 },
+    {
+      field: "loan_type",
+      headerName: "Loan Type",
+      width: 110,
+      renderCell: ({ value }) => loanTypeLabel(value),
+    },
+    {
+      field: "loan_amount_requested",
+      headerName: "Amount",
+      width: 150,
+      renderCell: ({ value }) =>
+        value ? `ETB ${parseFloat(value).toLocaleString()}` : "-",
+    },
+    {
+      field: "total_score_claimed",
+      headerName: "Score",
+      width: 80,
+      renderCell: ({ value }) => value ?? 0,
+    },
+    {
+      field: "date_of_request",
+      headerName: "Date",
+      width: 110,
+      renderCell: ({ value }) =>
+        value ? new Date(value).toLocaleDateString() : "-",
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 130,
+      sortable: false,
+      filterable: false,
+      renderCell: ({ row }) => (
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ height: "100%" }}>
+          <Tooltip title="View Full Details">
+            <IconButton
+              size="small"
+              color="info"
+              onClick={() => { setSelected(row); setShowDetail(true); }}
+            >
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {isApprover && (
+            <Tooltip title="Give Final Approval">
+              <IconButton
+                size="small"
+                color="success"
+                onClick={() => { setSelected(row); setShowDetail(true); }}
+              >
+                <CheckCircleIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Stack>
+      ),
+    },
+  ];
 
   if (!isApprover) {
     return (
@@ -166,20 +188,46 @@ const LoanApprovalList = () => {
         </Typography>
       </Box>
 
-      <Paper sx={{ p: 2 }}>
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <TableContainer key={tableKey} sx={{ p: 1 }}>
-            <table
-              ref={tableRef}
-              className="table table-striped table-hover display"
-              style={{ width: "100%" }}
-            />
-          </TableContainer>
-        )}
+      <Paper sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <DataGrid
+          rows={requests}
+          columns={columns}
+          loading={loading}
+          getRowId={(row) => row.id}
+          autoHeight
+          initialState={{
+            pagination: { paginationModel: { pageSize: 10 } },
+            sorting: { sortModel: [{ field: "id", sort: "desc" }] },
+          }}
+          pageSizeOptions={[5, 10, 25, 50]}
+          slots={{ toolbar: CustomToolbar }}
+          disableRowSelectionOnClick
+          sx={{
+            border: "none",
+            "& .MuiDataGrid-columnHeaders": {
+              backgroundColor: "primary.main",
+              color: "#000",
+              fontSize: "0.85rem",
+            },
+            "& .MuiDataGrid-columnHeaderTitle": {
+              fontWeight: 700,
+              color: "#000",
+            },
+            "& .MuiDataGrid-columnHeader .MuiIconButton-root": {
+              color: "#000",
+            },
+            "& .MuiDataGrid-columnHeader .MuiSvgIcon-root": {
+              color: "#000",
+            },
+            "& .MuiDataGrid-row:hover": { backgroundColor: "action.hover" },
+            "& .MuiDataGrid-row": { borderLeft: "4px solid #2e7d32" },
+            "& .MuiDataGrid-cell": { alignItems: "center" },
+            "& .MuiDataGrid-footerContainer": {
+              borderTop: "1px solid",
+              borderColor: "divider",
+            },
+          }}
+        />
       </Paper>
 
       <Modal open={showDetail} onClose={closeDetail}>
@@ -198,3 +246,4 @@ const LoanApprovalList = () => {
 };
 
 export default LoanApprovalList;
+

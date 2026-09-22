@@ -194,7 +194,7 @@ const getNavLinks = (user) => {
       text: "Staff Loan Requests",
       path: "/staff-loan-requests",
       icon: <RequestQuoteIcon />,
-      show: true,
+      show: title === "Manager, Employee Services Management" || title === "Manager, Payroll Administrator" || title === "Enterprise System Operation and Application Developer",
     },
     {
       text: "Loan Approvals",

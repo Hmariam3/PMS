@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useContext } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import {
   Box,
@@ -6,23 +6,32 @@ import {
   Paper,
   Button,
   Modal,
-  CircularProgress,
   Breadcrumbs,
   Link,
-  TableContainer,
   Chip,
+  IconButton,
+  Tooltip,
+  Stack,
 } from "@mui/material";
-import { Add as AddIcon } from "@mui/icons-material";
+import {
+  Add as AddIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  PictureAsPdf as PdfIcon,
+} from "@mui/icons-material";
+import {
+  DataGrid,
+  GridToolbarContainer,
+  GridToolbarExport,
+  GridToolbarFilterButton,
+  GridToolbarDensitySelector,
+} from "@mui/x-data-grid";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../AuthContext";
 import StaffLoanRequestForm from "./StaffLoanRequestForm";
 import StaffLoanRequestDetail from "./StaffLoanRequestDetail";
 import { generateLoanPdf } from "./generateLoanPdf";
-import $ from "jquery";
-import "datatables.net-bs5";
-import "datatables.net-buttons-bs5";
-import "datatables.net-buttons/js/buttons.html5";
-import "datatables.net-buttons/js/buttons.print";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 
@@ -50,20 +59,37 @@ const loanTypeLabel = (type) => {
   return type || "-";
 };
 
-const eyeSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>`;
-const editSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>`;
-const trashSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>`;
-const pdfSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7H20.5v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg>`;
-
-const STATUS_BADGE = {
-  "Pending": "warning",
-  "Manager Review": "info",
-  "Checker Review": "info",
-  "Recommended": "success",
-  "Not Recommended": "danger",
-  "Approved": "success",
-  "Rejected": "danger",
+const STATUS_COLOR = {
+  Pending: { color: "warning", variant: "outlined" },
+  "Manager Review": { color: "info", variant: "outlined" },
+  "Checker Review": { color: "info", variant: "outlined" },
+  Recommended: { color: "success", variant: "filled" },
+  "Not Recommended": { color: "error", variant: "filled" },
+  Approved: { color: "success", variant: "filled" },
+  Rejected: { color: "error", variant: "filled" },
 };
+
+const ROW_BORDER = {
+  Recommended: "#2e7d32",
+  "Not Recommended": "#c62828",
+  Pending: "#ed6c02",
+  "Manager Review": "#0288d1",
+  "Checker Review": "#0288d1",
+};
+
+// ─── Custom toolbar ───────────────────────────────────────────────────────────
+function CustomToolbar() {
+  return (
+    <GridToolbarContainer sx={{ px: 2, py: 1, gap: 1 }}>
+      <GridToolbarFilterButton />
+      <GridToolbarDensitySelector />
+      <GridToolbarExport
+        csvOptions={{ fileName: "staff_loan_requests" }}
+        printOptions={{ fileName: "staff_loan_requests" }}
+      />
+    </GridToolbarContainer>
+  );
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -75,8 +101,6 @@ const StaffLoanRequestList = () => {
   // privileged users see ALL requests
   const isPrivileged = ["Manager, Payroll Administrator", "Manager, Employee Services Management"].includes(userTitle);
 
-  const tableRef = useRef(null);
-  const [tableKey, setTableKey] = useState(0);
   const [loanRequests, setLoanRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statistics, setStatistics] = useState(null);
@@ -113,120 +137,6 @@ const StaffLoanRequestList = () => {
     if (userEmail) fetchAll();
   }, [userEmail]);
 
-  // ── DataTable ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!tableRef.current) return;
-
-    const table = $(tableRef.current).DataTable({
-      destroy: true,
-      data: loanRequests,
-      columns: [
-        { title: "#", data: "id", width: "55px" },
-        { title: "Employee", data: "full_name" },
-        ...(isPrivileged ? [{ title: "Emp. ID", data: "employee_id", width: "110px" }] : []),
-        { title: "Branch", data: "branch_name" },
-        {
-          title: "Loan Type", data: "loan_type", width: "95px",
-          render: (d) => loanTypeLabel(d),
-        },
-        {
-          title: "Amount", data: "loan_amount_requested",
-          render: (d) => d ? `ETB ${parseFloat(d).toLocaleString()}` : "-",
-        },
-        {
-          title: "Score", data: "total_score_claimed", width: "60px",
-          render: (d) => d ?? 0,
-        },
-        {
-          title: "Status", data: "status", width: "130px",
-          render: (d) => {
-            const badge = STATUS_BADGE[d] || "secondary";
-            return `<span class="badge bg-${badge}">${d || "-"}</span>`;
-          },
-        },
-        {
-          title: "Date", data: "date_of_request", width: "95px",
-          render: (d) => d ? new Date(d).toLocaleDateString() : "-",
-        },
-        {
-          title: "Actions", data: null, orderable: false, width: "100px",
-          render: (_, __, row) => {
-            const isPending = row.status === "Pending";
-            const isApproved = row.status === "Approved";
-            const editBtn = isPending
-              ? `<button class="btn btn-sm btn-outline-warning dt-edit" data-id="${row.id}" title="Edit Request" style="padding:3px 7px">
-                   ${editSvg}
-                 </button>`
-              : `<button class="btn btn-sm btn-outline-secondary" disabled title="Edit only available for Pending requests" style="padding:3px 7px;opacity:0.35">
-                   ${editSvg}
-                 </button>`;
-            const delBtn = isPending
-              ? `<button class="btn btn-sm btn-outline-danger dt-delete" data-id="${row.id}" title="Delete Request" style="padding:3px 7px">
-                   ${trashSvg}
-                 </button>`
-              : `<button class="btn btn-sm btn-outline-secondary" disabled title="Delete only available for Pending requests" style="padding:3px 7px;opacity:0.35">
-                   ${trashSvg}
-                 </button>`;
-            const pdfBtn = isApproved
-              ? `<button class="btn btn-sm btn-success dt-pdf" data-id="${row.id}" title="Download Approval Letter" style="padding:3px 7px;color:white">
-                   ${pdfSvg}
-                 </button>`
-              : "";
-            return `<div style="display:flex;gap:4px;align-items:center;">
-                      <button class="btn btn-sm btn-outline-info dt-view" data-id="${row.id}" title="View Details" style="padding:3px 7px">
-                        ${eyeSvg}
-                      </button>
-                      ${editBtn}
-                      ${delBtn}
-                      ${pdfBtn}
-                    </div>`;
-          },
-        },
-      ],
-      order: [[0, "desc"]],
-      pageLength: 10,
-      responsive: true,
-      dom: "Bfrtip",
-      buttons: ["copy", "csv", "excel", "print"],
-      language: {
-        search: "Search:",
-        info: "Showing _START_ to _END_ of _TOTAL_ requests",
-        emptyTable: "No loan requests found",
-        zeroRecords: "No matching requests found",
-      },
-      // Row callback — highlight rows by status
-      rowCallback: (row, data) => {
-        if (data.status === "Recommended") row.style.borderLeft = "4px solid #2e7d32";
-        if (data.status === "Not Recommended") row.style.borderLeft = "4px solid #c62828";
-        if (data.status === "Pending") row.style.borderLeft = "4px solid #ed6c02";
-        if (data.status === "Manager Review" || data.status === "Checker Review")
-          row.style.borderLeft = "4px solid #0288d1";
-      },
-    });
-
-    $(tableRef.current).on("click", ".dt-view", function () {
-      const row = loanRequests.find((r) => r.id === $(this).data("id"));
-      if (row) { setSelected(row); setShowDetail(true); }
-    });
-
-    $(tableRef.current).on("click", ".dt-edit", function () {
-      const row = loanRequests.find((r) => r.id === $(this).data("id"));
-      if (row && row.status === "Pending") { setSelected(row); setShowEdit(true); }
-    });
-
-    $(tableRef.current).on("click", ".dt-delete", function () {
-      const row = loanRequests.find((r) => r.id === $(this).data("id"));
-      if (row && row.status === "Pending") handleDelete($(this).data("id"));
-    });
-
-    $(tableRef.current).on("click", ".dt-pdf", function () {
-      const row = loanRequests.find((r) => r.id === $(this).data("id"));
-      if (row) generateLoanPdf(row, "download");
-    });
-
-    return () => { table.destroy(); };
-  }, [loanRequests, tableKey]);
-
   // ── handlers ───────────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this loan request? This cannot be undone.")) return;
@@ -234,7 +144,6 @@ const StaffLoanRequestList = () => {
       await axios.delete(`${API_URL}/staff-loan-requests/${id}`);
       toast.success("Loan request deleted");
       fetchAll();
-      setTableKey((k) => k + 1);
     } catch (err) {
       console.error(err);
       toast.error("Failed to delete");
@@ -245,8 +154,118 @@ const StaffLoanRequestList = () => {
   const closeEdit = () => { setShowEdit(false); setSelected(null); };
   const closeDetail = () => { setShowDetail(false); setSelected(null); };
 
-  const onAddSuccess = () => { closeAdd(); fetchAll(); setTableKey((k) => k + 1); };
-  const onEditSuccess = () => { closeEdit(); fetchAll(); setTableKey((k) => k + 1); };
+  const onAddSuccess = () => { closeAdd(); fetchAll(); };
+  const onEditSuccess = () => { closeEdit(); fetchAll(); };
+
+  // ── columns ────────────────────────────────────────────────────────────────
+  const columns = [
+    { field: "id", headerName: "#", width: 70 },
+    { field: "full_name", headerName: "Employee", flex: 1, minWidth: 150 },
+    ...(isPrivileged ? [{ field: "employee_id", headerName: "Emp. ID", width: 120 }] : []),
+    { field: "branch_name", headerName: "Branch", flex: 1, minWidth: 130 },
+    {
+      field: "loan_type",
+      headerName: "Loan Type",
+      width: 110,
+      renderCell: ({ value }) => loanTypeLabel(value),
+    },
+    {
+      field: "loan_amount_requested",
+      headerName: "Amount",
+      width: 150,
+      renderCell: ({ value }) =>
+        value ? `ETB ${parseFloat(value).toLocaleString()}` : "-",
+    },
+    {
+      field: "total_score_claimed",
+      headerName: "Score",
+      width: 80,
+      renderCell: ({ value }) => value ?? 0,
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      width: 165,
+      renderCell: ({ value }) => {
+        const cfg = STATUS_COLOR[value] || { color: "default", variant: "outlined" };
+        return (
+          <Chip
+            label={value || "-"}
+            color={cfg.color}
+            variant={cfg.variant}
+            size="small"
+            sx={{ fontWeight: 600, fontSize: "0.72rem" }}
+          />
+        );
+      },
+    },
+    {
+      field: "date_of_request",
+      headerName: "Date",
+      width: 110,
+      renderCell: ({ value }) =>
+        value ? new Date(value).toLocaleDateString() : "-",
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 150,
+      sortable: false,
+      filterable: false,
+      renderCell: ({ row }) => {
+        const isPending = row.status === "Pending";
+        const isApproved = row.status === "Approved";
+        return (
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ height: "100%" }}>
+            <Tooltip title="View Details">
+              <IconButton
+                size="small"
+                color="info"
+                onClick={() => { setSelected(row); setShowDetail(true); }}
+              >
+                <VisibilityIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={isPending ? "Edit Request" : "Only available for Pending"}>
+              <span>
+                <IconButton
+                  size="small"
+                  color="warning"
+                  disabled={!isPending}
+                  onClick={() => { if (isPending) { setSelected(row); setShowEdit(true); } }}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={isPending ? "Delete Request" : "Only available for Pending"}>
+              <span>
+                <IconButton
+                  size="small"
+                  color="error"
+                  disabled={!isPending}
+                  onClick={() => { if (isPending) handleDelete(row.id); }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </span>
+            </Tooltip>
+            {isApproved && (
+              <Tooltip title="Download Approval Letter">
+                <IconButton
+                  size="small"
+                  color="success"
+                  onClick={() => generateLoanPdf(row, "download")}
+                >
+                  <PdfIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
+        );
+      },
+    },
+  ];
 
   // ── statistics cards — only for privileged users ───────────────────────────
   const statsCards = [
@@ -290,8 +309,8 @@ const StaffLoanRequestList = () => {
       {isPrivileged && statistics && (
         <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
           {statsCards.map((s) => (
-            <Paper key={s.label} sx={{ p: 2, flex: 1, minWidth: 110 }}>
-              <Typography variant="h6" color={s.color}>{s.value || 0}</Typography>
+            <Paper key={s.label} sx={{ p: 2, flex: 1, minWidth: 110, borderRadius: 2 }}>
+              <Typography variant="h6" color={s.color} fontWeight="bold">{s.value || 0}</Typography>
               <Typography variant="body2" color="text.secondary">{s.label}</Typography>
             </Paper>
           ))}
@@ -301,19 +320,19 @@ const StaffLoanRequestList = () => {
       {/* My request summary for regular staff */}
       {!isPrivileged && (
         <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-          <Paper sx={{ p: 2, flex: 1, minWidth: 130 }}>
-            <Typography variant="h6" color="primary.main">{loanRequests.length}</Typography>
+          <Paper sx={{ p: 2, flex: 1, minWidth: 130, borderRadius: 2 }}>
+            <Typography variant="h6" color="primary.main" fontWeight="bold">{loanRequests.length}</Typography>
             <Typography variant="body2" color="text.secondary">My Requests</Typography>
           </Paper>
-          <Paper sx={{ p: 2, flex: 1, minWidth: 130 }}>
-            <Typography variant="h6" color="warning.main">
-              {loanRequests.filter(r => r.status === "Pending").length}
+          <Paper sx={{ p: 2, flex: 1, minWidth: 130, borderRadius: 2 }}>
+            <Typography variant="h6" color="warning.main" fontWeight="bold">
+              {loanRequests.filter((r) => r.status === "Pending").length}
             </Typography>
             <Typography variant="body2" color="text.secondary">Pending</Typography>
           </Paper>
-          <Paper sx={{ p: 2, flex: 1, minWidth: 130 }}>
-            <Typography variant="h6" color="success.main">
-              {loanRequests.filter(r => r.status === "Recommended").length}
+          <Paper sx={{ p: 2, flex: 1, minWidth: 130, borderRadius: 2 }}>
+            <Typography variant="h6" color="success.main" fontWeight="bold">
+              {loanRequests.filter((r) => r.status === "Recommended").length}
             </Typography>
             <Typography variant="body2" color="text.secondary">Recommended</Typography>
           </Paper>
@@ -321,20 +340,57 @@ const StaffLoanRequestList = () => {
       )}
 
       {/* Table */}
-      <Paper sx={{ p: 2, overflow: "hidden" }}>
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", p: 5 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <TableContainer key={tableKey} sx={{ p: 1 }}>
-            <table
-              ref={tableRef}
-              className="table table-striped table-hover display"
-              style={{ width: "100%" }}
-            />
-          </TableContainer>
-        )}
+      <Paper sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <DataGrid
+          rows={loanRequests}
+          columns={columns}
+          loading={loading}
+          getRowId={(row) => row.id}
+          autoHeight
+          initialState={{
+            pagination: { paginationModel: { pageSize: 10 } },
+            sorting: { sortModel: [{ field: "id", sort: "desc" }] },
+          }}
+          pageSizeOptions={[5, 10, 25, 50]}
+          slots={{ toolbar: CustomToolbar }}
+          disableRowSelectionOnClick
+          getRowClassName={({ row }) => {
+            if (row.status === "Recommended") return "row-recommended";
+            if (row.status === "Not Recommended") return "row-not-recommended";
+            if (row.status === "Pending") return "row-pending";
+            if (row.status === "Manager Review" || row.status === "Checker Review")
+              return "row-review";
+            return "";
+          }}
+          sx={{
+            border: "none",
+            "& .MuiDataGrid-columnHeaders": {
+              backgroundColor: "primary.main",
+              color: "#000",
+              fontSize: "0.85rem",
+            },
+            "& .MuiDataGrid-columnHeaderTitle": {
+              fontWeight: 700,
+              color: "#000",
+            },
+            "& .MuiDataGrid-columnHeader .MuiIconButton-root": {
+              color: "#000",
+            },
+            "& .MuiDataGrid-columnHeader .MuiSvgIcon-root": {
+              color: "#000",
+            },
+            "& .MuiDataGrid-row:hover": { backgroundColor: "action.hover" },
+            "& .row-recommended": { borderLeft: `4px solid ${ROW_BORDER.Recommended}` },
+            "& .row-not-recommended": { borderLeft: `4px solid ${ROW_BORDER["Not Recommended"]}` },
+            "& .row-pending": { borderLeft: `4px solid ${ROW_BORDER.Pending}` },
+            "& .row-review": { borderLeft: `4px solid ${ROW_BORDER["Manager Review"]}` },
+            "& .MuiDataGrid-cell": { alignItems: "center" },
+            "& .MuiDataGrid-footerContainer": {
+              borderTop: "1px solid",
+              borderColor: "divider",
+            },
+          }}
+        />
       </Paper>
 
       {/* ── Add Modal ── */}
@@ -364,7 +420,7 @@ const StaffLoanRequestList = () => {
             <StaffLoanRequestDetail
               request={selected}
               onClose={closeDetail}
-              onRefresh={() => { fetchAll(); setTableKey((k) => k + 1); }}
+              onRefresh={() => fetchAll()}
             />
           )}
         </Box>
@@ -375,3 +431,4 @@ const StaffLoanRequestList = () => {
 };
 
 export default StaffLoanRequestList;
+
