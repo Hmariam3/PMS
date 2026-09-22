@@ -327,7 +327,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
       // Step 1 — create / update the loan request (JSON, no file)
       const payload = {
         ...formData,
-        attachment_file:      undefined,  // File object — not JSON-serialisable
+        attachment_file: undefined,  // File object — not JSON-serialisable
         attachment_file_name: formData.attachment_file
           ? formData.attachment_file.name   // will be overwritten after upload
           : formData.attachment_file_name,
@@ -350,9 +350,9 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
       // Step 2 — upload the document (if a new file was selected)
       if (formData.attachment_file) {
         const fd = new FormData();
-        fd.append("document",    formData.attachment_file);
-        fd.append("loan_type",   formData.loan_type);
-        fd.append("full_name",   formData.full_name);
+        fd.append("document", formData.attachment_file);
+        fd.append("loan_type", formData.loan_type);
+        fd.append("full_name", formData.full_name);
         fd.append("employee_id", formData.employee_id);
 
         await axios.post(
@@ -536,9 +536,6 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
             <Chip label="Required" color="error" size="small" />
             Loan Request Details (To Be Filled By You)
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Please provide the following information about your loan request:
-          </Typography>
 
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
@@ -548,7 +545,6 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                 value={formData.basic_salary} onChange={handleChange}
                 type="number"
                 InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
-                helperText="Enter your current monthly basic salary"
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -558,11 +554,11 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                 value={formData.loan_amount_requested} onChange={handleChange}
                 type="number"
                 InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
-                helperText="Enter the loan amount you are requesting"
+
               />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
+            <Grid item xs={12} md={6} >
+              <FormControl sx={{ width: "300px" }} required>
                 <InputLabel>Loan Application Count</InputLabel>
                 <Select
                   name="loan_application_count"
@@ -583,7 +579,6 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                 value={formData.retirement_age}
                 disabled
                 InputProps={{ readOnly: true }}
-                helperText="Auto-calculated: current age and years to retirement"
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -593,15 +588,13 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                 InputLabelProps={{ shrink: true }}
                 disabled
                 InputProps={{ readOnly: true }}
-                helperText="Date when you turn 60 years old"
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
-                fullWidth multiline rows={3}
+                sx={{ width: "400px" }} multiline
                 label="Purpose of Loan" name="loan_purpose"
                 value={formData.loan_purpose} onChange={handleChange}
-                helperText="Describe the purpose of your loan request"
               />
             </Grid>
 
@@ -612,8 +605,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                 * Document Attachment (Required)
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Attach all required supporting documents (ID, salary slip, etc.). Max 10 MB.
-                Accepted: PDF, DOC, DOCX, JPG, PNG.
+                Accepted documents: PDF, DOC, DOCX, JPG, PNG. Max 10 MB.
               </Typography>
               <Button
                 variant="outlined"
@@ -730,12 +722,12 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                  6. Disciplinary and Conduct Record — Weight: 0-10 pts
+                  4. Disciplinary and Conduct Record — Weight: 0-10 pts
                   <Chip label="Your Input Required" color="warning" size="small" sx={{ ml: 2 }} />
                 </Typography>
-                <Alert severity="warning" sx={{ mb: 2 }}>
+                {/* <Alert severity="warning" sx={{ mb: 2 }}>
                   <strong>Please select the option that best describes your disciplinary record.</strong>
-                </Alert>
+                </Alert> */}
                 <FormControl component="fieldset" required fullWidth>
                   <RadioGroup
                     value={formData.disciplinary_record_band}

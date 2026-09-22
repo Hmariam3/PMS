@@ -112,6 +112,12 @@ const LoanApprovalList = () => {
       renderCell: ({ value }) => loanTypeLabel(value),
     },
     {
+      field: "loan_application_count",
+      headerName: "App Count",
+      width: 100,
+      renderCell: ({ value }) => value ?? "-",
+    },
+    {
       field: "loan_amount_requested",
       headerName: "Amount",
       width: 150,
