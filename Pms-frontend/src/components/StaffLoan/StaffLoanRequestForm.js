@@ -253,8 +253,8 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File size must be less than 10MB");
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("File size must be less than 3MB");
       return;
     }
     setFormData((prev) => ({
@@ -355,11 +355,22 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
         fd.append("full_name", formData.full_name);
         fd.append("employee_id", formData.employee_id);
 
-        await axios.post(
-          `${API_URL}/staff-loan-requests/${requestId}/document`,
-          fd,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
+        try {
+          await axios.post(
+            `${API_URL}/staff-loan-requests/${requestId}/document`,
+            fd,
+            { headers: { "Content-Type": "multipart/form-data" } }
+          );
+        } catch (uploadErr) {
+          // If this is a new request, rollback creation so it's not saved without a document
+          if (!isEditMode) {
+            await axios.delete(`${API_URL}/staff-loan-requests/${requestId}`);
+          }
+          if (uploadErr.response && uploadErr.response.status === 413) {
+            throw new Error("Failed to upload document because it's greater than 3 MB.");
+          }
+          throw new Error(uploadErr.response?.data?.error || "Failed to upload document.");
+        }
       }
 
       toast.success(
@@ -368,7 +379,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
       if (onSuccess) onSuccess(response.data.data);
     } catch (err) {
       console.error("Error submitting loan request:", err);
-      toast.error(err.response?.data?.error || "Failed to submit loan request");
+      toast.error(err.message || err.response?.data?.error || "Failed to submit loan request");
     } finally {
       setLoading(false);
     }
@@ -605,7 +616,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                 * Document Attachment (Required)
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Accepted documents: PDF, DOC, DOCX, JPG, PNG. Max 10 MB.
+                Accepted documents: PDF, DOC, DOCX, JPG, PNG. Max 3 MB.
               </Typography>
               <Button
                 variant="outlined"

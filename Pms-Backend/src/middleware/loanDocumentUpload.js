@@ -46,7 +46,7 @@ const fileFilter = (_req, file, cb) => {
 export const loanDocUpload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  limits: { fileSize: 3 * 1024 * 1024 }, // 3 MB
 });
 
 // ── Build the structured filename from known fields ───────────────────────────
@@ -64,7 +64,11 @@ export const deleteLoanDocument = (filename) => {
   if (!filename) return;
   const filepath = path.join(UPLOAD_DIR, filename);
   if (fs.existsSync(filepath)) {
-    fs.unlinkSync(filepath);
+    try {
+      fs.unlinkSync(filepath);
+    } catch (err) {
+      console.warn("Warning: Could not delete file:", filepath, err.message);
+    }
   }
 };
 

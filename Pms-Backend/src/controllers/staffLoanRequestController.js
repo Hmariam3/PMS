@@ -793,7 +793,16 @@ export const uploadLoanDocument = async (req, res) => {
     // Rename the temp file to the structured name
     const tmpPath = path.join(UPLOAD_DIR, req.file.filename);
     const finalPath = path.join(UPLOAD_DIR, finalFilename);
-    fs.renameSync(tmpPath, finalPath);
+    try {
+      fs.renameSync(tmpPath, finalPath);
+    } catch (renameErr) {
+      fs.copyFileSync(tmpPath, finalPath);
+      try {
+        fs.unlinkSync(tmpPath);
+      } catch (unlinkErr) {
+        console.warn("Could not delete temp file (likely locked), but copy succeeded:", unlinkErr.message);
+      }
+    }
 
     // Delete previous attachment if one existed
     if (row.attachment_file_name && row.attachment_file_name !== finalFilename) {
