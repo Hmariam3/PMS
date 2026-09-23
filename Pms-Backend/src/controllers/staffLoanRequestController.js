@@ -77,7 +77,8 @@ export const getEmployeeLoanScoringData = async (req, res) => {
         company_entry_date,
         business_phone_number,
         outlook_address,
-        business_email_address
+        business_email_address,
+        organization_unit
       FROM public.employees 
       WHERE employee_id = $1`,
       [employeeId]
@@ -184,6 +185,7 @@ export const getEmployeeLoanScoringData = async (req, res) => {
         length_of_service_years: lengthOfServiceYears,
         phone_extension: employee.business_phone_number,
         email: employee.business_email_address || employee.outlook_address,
+        organization_unit: employee.organization_unit || null,
       },
       scoring: {
         service_tenure: {
@@ -372,19 +374,26 @@ export const createStaffLoanRequest = async (req, res) => {
     loan_type,
     loan_amount_requested,
     loan_purpose,
+    loan_processing_branch,
     basic_salary,
     loan_application_count,
     retirement_date,
     attachment_file_name,
+    employee_organization_unit,
     service_tenure_band,
     service_tenure_score,
     individual_performance_band,
     individual_performance_score,
     team_performance_band,
     team_performance_score,
+    district_engagement_band,
+    district_engagement_score,
+    okr_kpi_band,
+    okr_kpi_score,
     disciplinary_record_band,
     disciplinary_record_score,
     staff_declaration_confirmed,
+    guarantor_basic_salary,
     created_by
   } = req.body;
 
@@ -400,11 +409,13 @@ export const createStaffLoanRequest = async (req, res) => {
   const isEmergency = loan_type === "Emergency Loan";
 
   // For emergency loans scores are all 0
-  const svc = isEmergency ? 0 : (service_tenure_score || 0);
-  const ind = isEmergency ? 0 : (individual_performance_score || 0);
-  const team = isEmergency ? 0 : (team_performance_score || 0);
-  const disc = isEmergency ? 0 : (disciplinary_record_score || 0);
-  const total = svc + ind + team + disc;
+  const svc  = isEmergency ? 0 : (parseInt(service_tenure_score)     || 0);
+  const ind  = isEmergency ? 0 : (parseInt(individual_performance_score) || 0);
+  const team = isEmergency ? 0 : (parseInt(team_performance_score)   || 0);
+  const de   = isEmergency ? 0 : (parseInt(district_engagement_score)|| 0);
+  const okr  = isEmergency ? 0 : (parseInt(okr_kpi_score)            || 0);
+  const disc = isEmergency ? 0 : (parseInt(disciplinary_record_score)|| 0);
+  const total = svc + ind + team + de + okr + disc;
 
   try {
     const result = await pool.query(
@@ -412,43 +423,58 @@ export const createStaffLoanRequest = async (req, res) => {
         employee_id, full_name, dob, branch_name, position_title,
         date_of_hire, length_of_service_years, phone_extension,
         date_of_request, loan_type, loan_amount_requested, loan_purpose,
+        loan_processing_branch,
         basic_salary, loan_application_count, retirement_date,
         attachment_file_name,
+        employee_organization_unit,
         service_tenure_band, service_tenure_score,
         individual_performance_band, individual_performance_score,
         team_performance_band, team_performance_score,
+        district_engagement_band, district_engagement_score,
+        okr_kpi_band, okr_kpi_score,
         disciplinary_record_band, disciplinary_record_score,
         total_score_claimed,
         staff_declaration_confirmed, staff_signature_date,
+        guarantor_basic_salary,
         status, created_by
       ) VALUES (
         $1,$2,$3,$4,$5,
         $6,$7,$8,
         $9,$10,$11,$12,
-        $13,$14,$15,
-        $16,
-        $17,$18,
+        $13,
+        $14,$15,$16,
+        $17,
+        $18,
         $19,$20,
         $21,$22,
         $23,$24,
-        $25,
-        $26,$27,
-        $28,$29
+        $25,$26,
+        $27,$28,
+        $29,$30,
+        $31,
+        $32,$33,
+        $34,
+        $35,$36
       ) RETURNING *`,
       [
         employee_id, full_name, dob || null, branch_name, position_title,
         date_of_hire, length_of_service_years || null, phone_extension || null,
         date_of_request || new Date().toISOString().split('T')[0],
         loan_type, loan_amount_requested, loan_purpose || null,
+        loan_processing_branch || null,
         basic_salary || null, loan_application_count || null, retirement_date || null,
         attachment_file_name || null,
+        employee_organization_unit || null,
         isEmergency ? null : (service_tenure_band || null), svc,
         isEmergency ? null : (individual_performance_band || null), ind,
         isEmergency ? null : (team_performance_band || null), team,
+        isEmergency ? null : (district_engagement_band || null), de,
+        isEmergency ? null : (okr_kpi_band || null), okr,
         isEmergency ? null : (disciplinary_record_band || null), disc,
         total,
         staff_declaration_confirmed || false,
         staff_declaration_confirmed ? new Date().toISOString().split('T')[0] : null,
+        guarantor_basic_salary || null,
         'Pending',
         created_by || null
       ]
@@ -475,29 +501,38 @@ export const updateStaffLoanRequest = async (req, res) => {
     loan_type,
     loan_amount_requested,
     loan_purpose,
+    loan_processing_branch,
     basic_salary,
     loan_application_count,
     retirement_date,
     attachment_file_name,
+    employee_organization_unit,
     service_tenure_band,
     service_tenure_score,
     individual_performance_band,
     individual_performance_score,
     team_performance_band,
     team_performance_score,
+    district_engagement_band,
+    district_engagement_score,
+    okr_kpi_band,
+    okr_kpi_score,
     disciplinary_record_band,
     disciplinary_record_score,
     staff_declaration_confirmed,
+    guarantor_basic_salary,
     updated_by
   } = req.body;
 
   const isEmergency = loan_type === "Emergency Loan";
 
-  const svc = isEmergency ? 0 : (service_tenure_score || 0);
-  const ind = isEmergency ? 0 : (individual_performance_score || 0);
-  const team = isEmergency ? 0 : (team_performance_score || 0);
-  const disc = isEmergency ? 0 : (disciplinary_record_score || 0);
-  const total_score_claimed = svc + ind + team + disc;
+  const svc  = isEmergency ? 0 : (parseInt(service_tenure_score)      || 0);
+  const ind  = isEmergency ? 0 : (parseInt(individual_performance_score) || 0);
+  const team = isEmergency ? 0 : (parseInt(team_performance_score)    || 0);
+  const de   = isEmergency ? 0 : (parseInt(district_engagement_score) || 0);
+  const okr  = isEmergency ? 0 : (parseInt(okr_kpi_score)             || 0);
+  const disc = isEmergency ? 0 : (parseInt(disciplinary_record_score) || 0);
+  const total_score_claimed = svc + ind + team + de + okr + disc;
 
   try {
     const result = await pool.query(
@@ -505,42 +540,56 @@ export const updateStaffLoanRequest = async (req, res) => {
         loan_type                        = COALESCE($1,  loan_type),
         loan_amount_requested            = COALESCE($2,  loan_amount_requested),
         loan_purpose                     = COALESCE($3,  loan_purpose),
-        basic_salary                     = COALESCE($4,  basic_salary),
-        loan_application_count           = COALESCE($5,  loan_application_count),
-        retirement_date                  = COALESCE($6,  retirement_date),
-        attachment_file_name             = COALESCE($7,  attachment_file_name),
-        service_tenure_band              = $8,
-        service_tenure_score             = $9,
-        individual_performance_band      = $10,
-        individual_performance_score     = $11,
-        team_performance_band            = $12,
-        team_performance_score           = $13,
-        disciplinary_record_band         = $14,
-        disciplinary_record_score        = $15,
-        total_score_claimed              = $16,
-        staff_declaration_confirmed      = COALESCE($17, staff_declaration_confirmed),
-        staff_signature_date             = CASE WHEN $17 = true THEN CURRENT_DATE ELSE staff_signature_date END,
-        updated_by                       = $18
-      WHERE id = $19
+        loan_processing_branch           = COALESCE($4,  loan_processing_branch),
+        basic_salary                     = COALESCE($5,  basic_salary),
+        loan_application_count           = COALESCE($6,  loan_application_count),
+        retirement_date                  = COALESCE($7,  retirement_date),
+        attachment_file_name             = COALESCE($8,  attachment_file_name),
+        employee_organization_unit       = COALESCE($9,  employee_organization_unit),
+        service_tenure_band              = $10,
+        service_tenure_score             = $11,
+        individual_performance_band      = $12,
+        individual_performance_score     = $13,
+        team_performance_band            = $14,
+        team_performance_score           = $15,
+        district_engagement_band         = $16,
+        district_engagement_score        = $17,
+        okr_kpi_band                     = $18,
+        okr_kpi_score                    = $19,
+        disciplinary_record_band         = $20,
+        disciplinary_record_score        = $21,
+        total_score_claimed              = $22,
+        staff_declaration_confirmed      = COALESCE($23, staff_declaration_confirmed),
+        staff_signature_date             = CASE WHEN $23 = true THEN CURRENT_DATE ELSE staff_signature_date END,
+        guarantor_basic_salary           = COALESCE($24, guarantor_basic_salary),
+        updated_by                       = $25
+      WHERE id = $26
       RETURNING *`,
       [
         loan_type,
         loan_amount_requested,
-        loan_purpose,
+        loan_purpose || null,
+        loan_processing_branch || null,
         basic_salary,
         loan_application_count,
         retirement_date || null,
         attachment_file_name || null,
+        employee_organization_unit || null,
         isEmergency ? null : (service_tenure_band || null),
         svc,
         isEmergency ? null : (individual_performance_band || null),
         ind,
         isEmergency ? null : (team_performance_band || null),
         team,
+        isEmergency ? null : (district_engagement_band || null),
+        de,
+        isEmergency ? null : (okr_kpi_band || null),
+        okr,
         isEmergency ? null : (disciplinary_record_band || null),
         disc,
         total_score_claimed,
         staff_declaration_confirmed,
+        guarantor_basic_salary || null,
         updated_by,
         id
       ]
@@ -567,86 +616,13 @@ export const updateStaffLoanRequest = async (req, res) => {
   }
 };
 
-// Update verification and review (for Branch Manager/HR)
+// Update verification and review — LEGACY endpoint, superseded by manager-review + checker-review.
+// Kept as a stub so existing route registrations don't cause import errors.
 export const verifyAndReviewLoanRequest = async (req, res) => {
-  const { id } = req.params;
-  const {
-    verified_service_score,
-    verified_individual_performance_score,
-    verified_team_performance_score,
-    verified_disciplinary_score,
-    decision,
-    reviewer_comments,
-    reviewed_by,
-    updated_by
-  } = req.body;
-
-  // Calculate verified total score
-  const verified_total_score = calculateTotalScore(
-    verified_service_score,
-    verified_individual_performance_score,
-    verified_team_performance_score,
-    verified_disciplinary_score
-  );
-
-  // Determine status based on decision
-  let status = 'Under Review';
-  if (decision === 'Recommended') {
-    status = 'Recommended';
-  } else if (decision === 'Not Recommended') {
-    status = 'Not Recommended';
-  }
-
-  try {
-    const result = await pool.query(
-      `UPDATE staff_loan_requests SET
-        verified_service_score = COALESCE($1, verified_service_score),
-        verified_individual_performance_score = COALESCE($2, verified_individual_performance_score),
-        verified_team_performance_score = COALESCE($3, verified_team_performance_score),
-        verified_disciplinary_score = COALESCE($4, verified_disciplinary_score),
-        verified_total_score = $5,
-        decision = COALESCE($6, decision),
-        reviewer_comments = COALESCE($7, reviewer_comments),
-        reviewed_by = COALESCE($8, reviewed_by),
-        review_date = CURRENT_DATE,
-        status = $9,
-        updated_by = $10
-      WHERE id = $11
-      RETURNING *`,
-      [
-        verified_service_score,
-        verified_individual_performance_score,
-        verified_team_performance_score,
-        verified_disciplinary_score,
-        verified_total_score,
-        decision,
-        reviewer_comments,
-        reviewed_by,
-        status,
-        updated_by,
-        id
-      ]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "Loan request not found"
-      });
-    }
-
-    res.json({
-      success: true,
-      message: "Loan request reviewed successfully",
-      data: result.rows[0]
-    });
-  } catch (err) {
-    console.error("Error reviewing loan request:", err.message);
-    res.status(500).json({
-      success: false,
-      error: "Server error while reviewing loan request"
-    });
-  }
+  res.status(410).json({
+    success: false,
+    error: "This endpoint is deprecated. Use POST /:id/manager-review and POST /:id/checker-review instead.",
+  });
 };
 
 // Update loan request status
@@ -742,7 +718,6 @@ export const getLoanRequestStatistics = async (req, res) => {
         COUNT(CASE WHEN loan_type = 'Automobile' THEN 1 END) as automobile_loan_count,
         COUNT(CASE WHEN loan_type = 'Emergency Loan' THEN 1 END) as emergency_loan_count,
         ROUND(AVG(total_score_claimed), 2) as avg_claimed_score,
-        ROUND(AVG(verified_total_score), 2) as avg_verified_score,
         SUM(loan_amount_requested) as total_amount_requested
       FROM staff_loan_requests
     `);
@@ -944,7 +919,7 @@ export const managerReview = async (req, res) => {
     mgr_verified_individual_score,
     mgr_verified_team_score,
 
-    // fixed deductions
+    // fixed deductions (borrower)
     deduction_income_tax,
     deduction_pension_7,
 
@@ -952,11 +927,20 @@ export const managerReview = async (req, res) => {
     deduction_other_items,
 
     // repayment fields
-    deduction_amount,    // the specific loan repayment deduction (e.g. ESL or HL repayment)
-    deduction_months,    // repayment period
+    deduction_amount,
+    deduction_months,
 
     // outstanding balances [{label, amount}]
     outstanding_balances,
+
+    // guarantor deduction fields
+    guarantor_basic_salary,
+    guarantor_deduction_income_tax,
+    guarantor_deduction_pension_7,
+    guarantor_deduction_other_items,
+    guarantor_deduction_amount,
+    guarantor_deduction_months,
+    guarantor_outstanding_balances,
 
     manager_remarks,
   } = req.body;
@@ -979,7 +963,8 @@ export const managerReview = async (req, res) => {
     const existing = await pool.query(
       `SELECT id, basic_salary, manager_verified, loan_type,
               service_tenure_score, individual_performance_score,
-              team_performance_score, disciplinary_record_score
+              team_performance_score, disciplinary_record_score,
+              district_engagement_score, okr_kpi_score
        FROM staff_loan_requests WHERE id = $1`,
       [id]
     );
@@ -1009,11 +994,13 @@ export const managerReview = async (req, res) => {
     const isEmergency = existing.rows[0].loan_type === "Emergency Loan";
 
     // ── Use the system-calculated scores directly from DB (not editable by manager) ──
-    const svcScore = existing.rows[0].service_tenure_score || 0;
-    const indScore = existing.rows[0].individual_performance_score || 0;
+    const svcScore  = existing.rows[0].service_tenure_score || 0;
+    const indScore  = existing.rows[0].individual_performance_score || 0;
     const teamScore = existing.rows[0].team_performance_score || 0;
+    const deScore   = existing.rows[0].district_engagement_score || 0;
+    const okrScore  = existing.rows[0].okr_kpi_score || 0;
     const discScore = existing.rows[0].disciplinary_record_score || 0;
-    const totalScore = isEmergency ? 0 : (svcScore + indScore + teamScore + discScore);
+    const totalScore = isEmergency ? 0 : (svcScore + indScore + teamScore + deScore + okrScore + discScore);
 
     // ── Determine Recommended / Not Recommended based on loan type threshold ──
     const THRESHOLDS = {
@@ -1029,16 +1016,28 @@ export const managerReview = async (req, res) => {
       : "Not Recommended";
     const finalStatus = finalDecision;
 
-    // ── Deduction calculations ────────────────────────────────────────────────
+    // ── Deduction calculations (borrower) ────────────────────────────────────
     const incomeTax = parseFloat(deduction_income_tax) || 0;
-    const pension7 = parseFloat(deduction_pension_7) || 0;
-    const loanRepay = parseFloat(deduction_amount) || 0;
+    const pension7  = parseFloat(deduction_pension_7)  || 0;
+    const loanRepay = parseFloat(deduction_amount)     || 0;
 
     const otherItems = Array.isArray(deduction_other_items) ? deduction_other_items : [];
     const otherTotal = otherItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
 
     const totalDeduction = incomeTax + pension7 + loanRepay + otherTotal;
     const netSalary = basicSalary - totalDeduction;
+
+    // ── Guarantor deduction calculations ─────────────────────────────────────
+    const gBasicSalary = parseFloat(guarantor_basic_salary) || 0;
+    const gIncomeTax   = parseFloat(guarantor_deduction_income_tax) || 0;
+    const gPension7    = parseFloat(guarantor_deduction_pension_7)  || 0;
+    const gLoanRepay   = parseFloat(guarantor_deduction_amount)     || 0;
+
+    const gOtherItems = Array.isArray(guarantor_deduction_other_items) ? guarantor_deduction_other_items : [];
+    const gOtherTotal = gOtherItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+
+    const gTotalDeduction = gIncomeTax + gPension7 + gLoanRepay + gOtherTotal;
+    const gNetSalary = gBasicSalary - gTotalDeduction;
 
     const result = await pool.query(
       `UPDATE staff_loan_requests SET
@@ -1057,11 +1056,20 @@ export const managerReview = async (req, res) => {
         total_deduction               = $11,
         net_salary_after_deduction    = $12,
         outstanding_balances          = $13,
-        manager_remarks               = $14,
-        status                        = $15,
-        decision                      = $16,
+        guarantor_basic_salary              = $14,
+        guarantor_deduction_income_tax      = $15,
+        guarantor_deduction_pension_7       = $16,
+        guarantor_deduction_other_items     = $17,
+        guarantor_deduction_amount          = $18,
+        guarantor_deduction_months          = $19,
+        guarantor_total_deduction           = $20,
+        guarantor_net_salary_after_deduction= $21,
+        guarantor_outstanding_balances      = $22,
+        manager_remarks               = $23,
+        status                        = $24,
+        decision                      = $25,
         updated_at                    = CURRENT_TIMESTAMP
-      WHERE id = $17
+      WHERE id = $26
       RETURNING *`,
       [
         reviewer_email,
@@ -1077,13 +1085,21 @@ export const managerReview = async (req, res) => {
         totalDeduction,
         netSalary,
         JSON.stringify(Array.isArray(outstanding_balances) ? outstanding_balances : []),
+        gBasicSalary || null,
+        gIncomeTax   || null,
+        gPension7    || null,
+        JSON.stringify(gOtherItems),
+        gLoanRepay   || null,
+        parseInt(guarantor_deduction_months, 10) || null,
+        gTotalDeduction || null,
+        gNetSalary      || null,
+        JSON.stringify(Array.isArray(guarantor_outstanding_balances) ? guarantor_outstanding_balances : []),
         manager_remarks || null,
         finalStatus,
         finalDecision,
         id,
       ]
     );
-
     res.json({
       success: true,
       message: "Manager review submitted successfully.",
@@ -1261,5 +1277,131 @@ export const getRecommendedRequests = async (req, res) => {
   } catch (err) {
     console.error("Error fetching recommended requests:", err.message);
     res.status(500).json({ success: false, error: "Server error" });
+  }
+};
+
+// ── Guarantor Document Upload ─────────────────────────────────────────────────
+export const uploadGuarantorDocument = async (req, res) => {
+  const { id } = req.params;
+
+  if (!req.file) {
+    return res.status(400).json({ success: false, error: "No file uploaded" });
+  }
+
+  try {
+    const existing = await pool.query(
+      "SELECT id, full_name, employee_id, loan_type, guarantor_attachment_file_name FROM staff_loan_requests WHERE id = $1",
+      [id]
+    );
+
+    if (existing.rows.length === 0) {
+      deleteLoanDocument(req.file.filename);
+      return res.status(404).json({ success: false, error: "Loan request not found" });
+    }
+
+    const row = existing.rows[0];
+
+    // Build guarantor filename using same helper but with a "GUARANTOR_" prefix
+    const baseFilename = buildLoanDocFilename(
+      row.loan_type,
+      row.full_name,
+      row.employee_id,
+      req.file.originalname
+    );
+    const finalFilename = `GUARANTOR_${baseFilename}`;
+
+    // Rename temp file
+    const tmpPath   = path.join(UPLOAD_DIR, req.file.filename);
+    const finalPath = path.join(UPLOAD_DIR, finalFilename);
+    try {
+      fs.renameSync(tmpPath, finalPath);
+    } catch (renameErr) {
+      fs.copyFileSync(tmpPath, finalPath);
+      try { fs.unlinkSync(tmpPath); } catch (_) {}
+    }
+
+    // Remove old guarantor attachment if different
+    if (row.guarantor_attachment_file_name && row.guarantor_attachment_file_name !== finalFilename) {
+      deleteLoanDocument(row.guarantor_attachment_file_name);
+    }
+
+    const result = await pool.query(
+      `UPDATE staff_loan_requests
+       SET guarantor_attachment_file_name = $1,
+           guarantor_attachment_file_path = $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING id, guarantor_attachment_file_name, guarantor_attachment_file_path`,
+      [
+        finalFilename,
+        `uploads/staff-loan-documents/${finalFilename}`,
+        id,
+      ]
+    );
+
+    res.json({
+      success: true,
+      message: "Guarantor document uploaded successfully",
+      data: {
+        id: result.rows[0].id,
+        filename: result.rows[0].guarantor_attachment_file_name,
+        path: result.rows[0].guarantor_attachment_file_path,
+        originalName: req.file.originalname,
+        size: req.file.size,
+      },
+    });
+  } catch (err) {
+    console.error("Error uploading guarantor document:", err.message);
+    deleteLoanDocument(req.file.filename);
+    res.status(500).json({ success: false, error: "Server error during guarantor document upload" });
+  }
+};
+
+// ── Guarantor Document Download / View ───────────────────────────────────────
+export const downloadGuarantorDocument = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      "SELECT guarantor_attachment_file_name FROM staff_loan_requests WHERE id = $1",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: "Loan request not found" });
+    }
+
+    const { guarantor_attachment_file_name } = result.rows[0];
+
+    if (!guarantor_attachment_file_name) {
+      return res.status(404).json({ success: false, error: "No guarantor document attached to this request" });
+    }
+
+    const filepath = path.join(UPLOAD_DIR, guarantor_attachment_file_name);
+
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ success: false, error: "Guarantor file not found on server" });
+    }
+
+    const ext = path.extname(guarantor_attachment_file_name).toLowerCase();
+    const mimeTypes = {
+      ".pdf":  "application/pdf",
+      ".doc":  "application/msword",
+      ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ".jpg":  "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png":  "image/png",
+    };
+    const contentType = mimeTypes[ext] || "application/octet-stream";
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Content-Disposition", `inline; filename="${guarantor_attachment_file_name}"`);
+
+    const fileStream = fs.createReadStream(filepath);
+    fileStream.pipe(res);
+
+  } catch (err) {
+    console.error("Error downloading guarantor document:", err.message);
+    res.status(500).json({ success: false, error: "Server error during guarantor document download" });
   }
 };

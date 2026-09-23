@@ -4,13 +4,23 @@ import pool from "../db.js";
    1. NEW ACCOUNTS SUMMARY
 ========================================================= */
 export const getNewAccountsSummaryByUser = async (req, res) => {
-  const { cbsusername, user_name, position, subprocess, process } = req.body;
+  const { cbsusername, user_name, title, position, subprocess, process } = req.body;
 
   try {
     let query = "";
     let values = [];
 
-    if (position === "CRM" || position === "Individual" || position === "Area Manager") {
+    if (title === "Customer Service Manager") {
+      query = `
+        SELECT COALESCE(SUM("NO_OF_NEW_ACCTS"), 0) AS total_accounts
+        FROM public."DW_NEW_ACCOUNTS" a
+        JOIN public.users u 
+          ON u.company_code = a."BRANCH_CODE"
+        WHERE u.user_name = $1
+      `;
+      values = [user_name];
+    }
+    else if (position === "CRM" || position === "Individual" || position === "Area Manager") {
       query = `
         SELECT COALESCE(SUM("NO_OF_NEW_ACCTS"), 0) AS total_accounts
         FROM public."DW_NEW_ACCOUNTS"

@@ -17,6 +17,8 @@ import {
   uploadLoanDocument,
   downloadLoanDocument,
   deleteLoanDocumentById,
+  uploadGuarantorDocument,
+  downloadGuarantorDocument,
   managerReview,
   checkerReview,
   approverApprove,
@@ -63,9 +65,13 @@ router.patch("/:id/status", updateLoanRequestStatus);
 router.delete("/:id", deleteStaffLoanRequest);
 
 // Document upload, view and delete
-router.post("/:id/document",   loanDocUpload.single("document"), uploadLoanDocument);
-router.get( "/:id/document",   downloadLoanDocument);
-router.delete("/:id/document", deleteLoanDocumentById);
+router.post("/:id/document",             loanDocUpload.single("document"), uploadLoanDocument);
+router.get( "/:id/document",             downloadLoanDocument);
+router.delete("/:id/document",           deleteLoanDocumentById);
+
+// Guarantor document upload, view and delete
+router.post("/:id/guarantor-document",   loanDocUpload.single("document"), uploadGuarantorDocument);
+router.get( "/:id/guarantor-document",   downloadGuarantorDocument);
 
 // Two-stage approval workflow
 router.post("/:id/manager-review", managerReview);
