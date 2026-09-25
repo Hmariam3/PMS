@@ -23,6 +23,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Autocomplete,
 } from "@mui/material";
 import {
   CloudUpload as CloudUploadIcon,
@@ -63,61 +64,62 @@ const calcRetirement = (dobString) => {
 // ─── scoring band definitions ────────────────────────────────────────────────
 
 const SERVICE_BANDS = [
-  { label: "10 years and above",   value: "10+ years",  score: 20 },
-  { label: "6 – under 10 years",   value: "6-10 years", score: 15 },
-  { label: "3 – under 6 years",    value: "3-6 years",  score: 10 },
-  { label: "1 – under 3 years",    value: "1-3 years",  score: 5  },
-  { label: "Less than 1 year",     value: "<1 year",    score: 0  },
+  { label: "10 years and above", value: "10+ years", score: 20 },
+  { label: "6 – under 10 years", value: "6-10 years", score: 15 },
+  { label: "3 – under 6 years", value: "3-6 years", score: 10 },
+  { label: "1 – under 3 years", value: "1-3 years", score: 5 },
+  { label: "Less than 1 year", value: "<1 year", score: 0 },
 ];
 
 const INDIVIDUAL_BANDS = [
-  { label: ">120% (Outstanding)",                              value: ">120%",       score: 50 },
-  { label: "100 – 119.99% (Very Good / Meets Expectations)",  value: "100-119.99%", score: 40 },
-  { label: "75 – 99.99% (Satisfactory)",                      value: "75-99.99%",   score: 30 },
-  { label: "50 – 74.99% (Good)",                              value: "50-74.99%",   score: 20 },
-  { label: "0 – 50% (Below Expectations)",                    value: "0-50%",       score: 10 },
-  { label: "Under June (not yet rated)",                      value: "Not rated",   score: 0  },
+  { label: ">120% (Outstanding)", value: ">120%", score: 50 },
+  { label: "100 – 119.99% (Very Good / Meets Expectations)", value: "100-119.99%", score: 40 },
+  { label: "75 – 99.99% (Satisfactory)", value: "75-99.99%", score: 30 },
+  { label: "50 – 74.99% (Good)", value: "50-74.99%", score: 20 },
+  { label: "0 – 50% (Below Expectations)", value: "0-50%", score: 10 },
+  { label: "Under June (not yet rated)", value: "Not rated", score: 0 },
 ];
 
 const TEAM_BANDS = [
-  { label: ">120% (Outstanding)",                              value: ">120%",       score: 20 },
-  { label: "100 – 119.99% (Very Good / Meets Expectations)",  value: "100-119.99%", score: 16 },
-  { label: "75 – 99.99% (Satisfactory)",                      value: "75-99.99%",   score: 12 },
-  { label: "50 – 74.99% (Good)",                              value: "50-74.99%",   score: 8  },
-  { label: "0 – 50% (Below Expectations)",                    value: "0-50%",       score: 4  },
-  { label: "Under June (not yet rated)",                      value: "Not rated",   score: 0  },
+  { label: ">120% (Outstanding)", value: ">120%", score: 20 },
+  { label: "100 – 119.99% (Very Good / Meets Expectations)", value: "100-119.99%", score: 16 },
+  { label: "75 – 99.99% (Satisfactory)", value: "75-99.99%", score: 12 },
+  { label: "50 – 74.99% (Good)", value: "50-74.99%", score: 8 },
+  { label: "0 – 50% (Below Expectations)", value: "0-50%", score: 4 },
+  { label: "Under June (not yet rated)", value: "Not rated", score: 0 },
 ];
 
 // Criterion 4 — District Office Engagement Result (DO only) — 0-50 pts
 const DISTRICT_ENGAGEMENT_BANDS = [
-  { label: "60 – 69.99% (Outstanding)",     value: "60-69.99%",  score: 50 },
-  { label: "50 – 59.99% (Meets Expectations)", value: "50-59.99%", score: 40 },
-  { label: "40 – 49.99% (Satisfactory)",    value: "40-49.99%",  score: 30 },
-  { label: "20 – 39.99% (Unsatisfactory)",  value: "20-39.99%",  score: 20 },
-  { label: "10 – 19.99% (Unsatisfactory)",  value: "10-19.99%",  score: 10 },
-  { label: "1 – 9.99% (Poor)",              value: "1-9.99%",    score: 5  },
+  { label: "≥60% of branches achieve ≥100% of the target (Outstanding)", value: "60+", score: 50 },
+  { label: "50 – 59.99% of branches achieve ≥100% of the target (Meets Expectations)", value: "50-59.99%", score: 40 },
+  { label: "40 – 49.99% of branches achieve ≥100% of the target (Satisfactory)", value: "40-49.99%", score: 30 },
+  { label: "20 – 39.99% of branches achieve ≥100% of the target (Needs Improvement)", value: "20-39.99%", score: 20 },
+  { label: "10 – 19.99% of branches achieve ≥100% of the target (Unsatisfactory)", value: "10-19.99%", score: 10 },
+  { label: "1 – 9.99% of branches achieve ≥100% of the target (Poor)", value: "1-9.99%", score: 5 },
+  { label: "0% of branches achieve ≥100% of the target (Poor)", value: "0", score: 0 },
 ];
 
 // Criterion 5 — OKR and KPIs Result — District Office Staff — 0-20 pts
 const OKR_DO_BANDS = [
-  { label: "95 – 100% (Outstanding)",         value: "95-100%",    score: 20 },
+  { label: "95 – 100% (Outstanding)", value: "95-100%", score: 20 },
   { label: "70 – 94.99% (Meets Expectations)", value: "70-94.99%", score: 15 },
-  { label: "10 – 69.99% (Satisfactory)",      value: "10-69.99%",  score: 10 },
-  { label: "< 10% (Not Rated)",               value: "<10%",       score: 0  },
+  { label: "10 – 69.99% (Satisfactory)", value: "10-69.99%", score: 10 },
+  { label: "< 10% (Not Rated)", value: "<10%", score: 0 },
 ];
 
 // Criterion 5 — OKR and KPIs Result — Head Office Staff — 0-70 pts
 const OKR_HO_BANDS = [
-  { label: "95 – 100% (Outstanding)",         value: "95-100%",    score: 70 },
+  { label: "95 – 100% (Outstanding)", value: "95-100%", score: 70 },
   { label: "70 – 94.99% (Meets Expectations)", value: "70-94.99%", score: 50 },
-  { label: "10 – 69.99% (Satisfactory)",      value: "10-69.99%",  score: 30 },
-  { label: "< 10% (Not Rated)",               value: "<10%",       score: 0  },
+  { label: "10 – 69.99% (Satisfactory)", value: "10-69.99%", score: 30 },
+  { label: "< 10% (Not Rated)", value: "<10%", score: 0 },
 ];
 
 const DISCIPLINARY_BANDS = [
-  { label: "Clean Record — No Active Sanction",                                            value: "Clean record",         score: 10 },
-  { label: "Minor Sanction (Oral/Written Warning)",                                        value: "Minor sanction",       score: 5  },
-  { label: "Major Active Sanction other than Oral and First Letter Warning",               value: "Major/active sanction", score: 0  },
+  { label: "Clean Record — No Active Sanction", value: "Clean record", score: 10 },
+  { label: "Minor Sanction (Oral/Written Warning)", value: "Minor sanction", score: 5 },
+  { label: "Major Active Sanction other than Oral and First Letter Warning", value: "Major/active sanction", score: 0 },
 ];
 
 // Loan Application Count options vary by loan type
@@ -204,8 +206,8 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
   // but also short codes "HO" / "DO" may appear.  We match case-insensitively.
   const orgLower = orgUnit.toLowerCase();
   const isBranchStaff = orgLower.includes("branch");
-  const isHOStaff     = orgLower.includes("head") || orgLower === "ho";
-  const isDOStaff     = orgLower.includes("district") || orgLower === "do";
+  const isHOStaff = orgLower.includes("head") || orgLower === "ho";
+  const isDOStaff = orgLower.includes("district") || orgLower === "do";
 
   // Loan count dropdown options depend on loan type
   const loanCountOptions = getLoanCountOptions(formData.loan_type);
@@ -226,31 +228,31 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
     if (existingRequest) {
       setFormData({
         ...EMPTY_FORM,
-        employee_id:              existingRequest.employee_id || "",
-        full_name:                existingRequest.full_name || "",
-        dob:                      formatDate(existingRequest.dob) || "",
-        branch_name:              existingRequest.branch_name || "",
-        position_title:           existingRequest.position_title || "",
-        date_of_hire:             formatDate(existingRequest.date_of_hire) || "",
-        length_of_service_years:  existingRequest.length_of_service_years || "",
-        phone_extension:          existingRequest.phone_extension || "",
-        date_of_request:          formatDate(existingRequest.date_of_request) || EMPTY_FORM.date_of_request,
+        employee_id: existingRequest.employee_id || "",
+        full_name: existingRequest.full_name || "",
+        dob: formatDate(existingRequest.dob) || "",
+        branch_name: existingRequest.branch_name || "",
+        position_title: existingRequest.position_title || "",
+        date_of_hire: formatDate(existingRequest.date_of_hire) || "",
+        length_of_service_years: existingRequest.length_of_service_years || "",
+        phone_extension: existingRequest.phone_extension || "",
+        date_of_request: formatDate(existingRequest.date_of_request) || EMPTY_FORM.date_of_request,
         employee_organization_unit: existingRequest.employee_organization_unit || "",
-        loan_type:                existingRequest.loan_type || "",
-        loan_amount_requested:    existingRequest.loan_amount_requested || "",
-        loan_processing_branch:   existingRequest.loan_processing_branch || "",
-        basic_salary:             existingRequest.basic_salary || "",
-        loan_application_count:   existingRequest.loan_application_count || "",
-        service_tenure_band:      existingRequest.service_tenure_band || "",
-        service_tenure_score:     existingRequest.service_tenure_score || 0,
-        individual_performance_band:  existingRequest.individual_performance_band || "",
+        loan_type: existingRequest.loan_type || "",
+        loan_amount_requested: existingRequest.loan_amount_requested || "",
+        loan_processing_branch: existingRequest.loan_processing_branch || "",
+        basic_salary: existingRequest.basic_salary || "",
+        loan_application_count: existingRequest.loan_application_count || "",
+        service_tenure_band: existingRequest.service_tenure_band || "",
+        service_tenure_score: existingRequest.service_tenure_score || 0,
+        individual_performance_band: existingRequest.individual_performance_band || "",
         individual_performance_score: existingRequest.individual_performance_score || 0,
-        team_performance_band:    existingRequest.team_performance_band || "",
-        team_performance_score:   existingRequest.team_performance_score || 0,
+        team_performance_band: existingRequest.team_performance_band || "",
+        team_performance_score: existingRequest.team_performance_score || 0,
         district_engagement_band: existingRequest.district_engagement_band || "",
         district_engagement_score: existingRequest.district_engagement_score || 0,
-        okr_kpi_band:             existingRequest.okr_kpi_band || "",
-        okr_kpi_score:            existingRequest.okr_kpi_score || 0,
+        okr_kpi_band: existingRequest.okr_kpi_band || "",
+        okr_kpi_score: existingRequest.okr_kpi_score || 0,
         disciplinary_record_band: existingRequest.disciplinary_record_band || "",
         disciplinary_record_score: existingRequest.disciplinary_record_score || 0,
         staff_declaration_confirmed: existingRequest.staff_declaration_confirmed || false,
@@ -297,23 +299,23 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
 
         setFormData((prev) => ({
           ...prev,
-          employee_id:              d.employee_info.employee_id || "",
-          full_name:                d.employee_info.full_name || "",
-          dob:                      formatDate(d.employee_info.dob),
-          branch_name:              d.employee_info.branch_name || "",
-          position_title:           d.employee_info.position_title || "",
-          date_of_hire:             formatDate(d.employee_info.date_of_hire),
-          length_of_service_years:  d.employee_info.length_of_service_years || "",
-          phone_extension:          d.employee_info.phone_extension || "",
+          employee_id: d.employee_info.employee_id || "",
+          full_name: d.employee_info.full_name || "",
+          dob: formatDate(d.employee_info.dob),
+          branch_name: d.employee_info.branch_name || "",
+          position_title: d.employee_info.position_title || "",
+          date_of_hire: formatDate(d.employee_info.date_of_hire),
+          length_of_service_years: d.employee_info.length_of_service_years || "",
+          phone_extension: d.employee_info.phone_extension || "",
           employee_organization_unit: d.employee_info.organization_unit || "",
-          retirement_age:           ret.age,
-          retirement_date:          ret.date,
-          service_tenure_band:      d.scoring.service_tenure.band || "",
-          service_tenure_score:     d.scoring.service_tenure.score || 0,
-          individual_performance_band:  d.scoring.individual_performance.band || "",
+          retirement_age: ret.age,
+          retirement_date: ret.date,
+          service_tenure_band: d.scoring.service_tenure.band || "",
+          service_tenure_score: d.scoring.service_tenure.score || 0,
+          individual_performance_band: d.scoring.individual_performance.band || "",
           individual_performance_score: d.scoring.individual_performance.score || 0,
-          team_performance_band:    d.scoring.team_performance.band || "",
-          team_performance_score:   d.scoring.team_performance.score || 0,
+          team_performance_band: d.scoring.team_performance.band || "",
+          team_performance_score: d.scoring.team_performance.score || 0,
         }));
       } catch (err) {
         console.error("Error fetching employee scoring data:", err);
@@ -386,7 +388,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
     if (!selected) return;
     setFormData((prev) => ({
       ...prev,
-      disciplinary_record_band:  selected.value,
+      disciplinary_record_band: selected.value,
       disciplinary_record_score: selected.score,
     }));
   };
@@ -396,7 +398,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
     if (!selected) return;
     setFormData((prev) => ({
       ...prev,
-      district_engagement_band:  selected.value,
+      district_engagement_band: selected.value,
       district_engagement_score: selected.score,
     }));
   };
@@ -407,7 +409,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
     if (!selected) return;
     setFormData((prev) => ({
       ...prev,
-      okr_kpi_band:  selected.value,
+      okr_kpi_band: selected.value,
       okr_kpi_score: selected.score,
     }));
   };
@@ -470,6 +472,14 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
       toast.error("Please attach the borrower's required documents");
       return false;
     }
+    if (!formData.guarantor_basic_salary) {
+      toast.error("Please enter the guarantor's basic salary");
+      return false;
+    }
+    if (!formData.guarantor_attachment_file && !existingRequest?.guarantor_attachment_file_name) {
+      toast.error("Please attach the guarantor's required documents");
+      return false;
+    }
     if (!isEmergencyLoan && !formData.disciplinary_record_band) {
       toast.error("Please select your disciplinary record status");
       return false;
@@ -511,16 +521,16 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
           : formData.guarantor_attachment_file_name,
         // Apply org-unit filtering to scores
         individual_performance_score: effectiveIndividualScore,
-        individual_performance_band:  effectiveIndividualScore === 0 && !isBranchStaff
+        individual_performance_band: effectiveIndividualScore === 0 && !isBranchStaff
           ? null : formData.individual_performance_band,
         team_performance_score: effectiveTeamScore,
-        team_performance_band:  effectiveTeamScore === 0 && !isBranchStaff
+        team_performance_band: effectiveTeamScore === 0 && !isBranchStaff
           ? null : formData.team_performance_band,
         district_engagement_score: effectiveDistrictEngagementScore,
-        district_engagement_band:  effectiveDistrictEngagementScore === 0
+        district_engagement_band: effectiveDistrictEngagementScore === 0
           ? null : formData.district_engagement_band,
         okr_kpi_score: effectiveOkrKpiScore,
-        okr_kpi_band:  effectiveOkrKpiScore === 0 ? null : formData.okr_kpi_band,
+        okr_kpi_band: effectiveOkrKpiScore === 0 ? null : formData.okr_kpi_band,
         created_by: user?.MailAdress || user?.email || "system",
         updated_by: user?.MailAdress || user?.email || "system",
       };
@@ -541,8 +551,8 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
       if (formData.attachment_file) {
         const fd = new FormData();
         fd.append("document", formData.attachment_file);
-        fd.append("loan_type",   formData.loan_type);
-        fd.append("full_name",   formData.full_name);
+        fd.append("loan_type", formData.loan_type);
+        fd.append("full_name", formData.full_name);
         fd.append("employee_id", formData.employee_id);
 
         try {
@@ -565,9 +575,9 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
       // Step 3 — upload guarantor document (if new file selected)
       if (formData.guarantor_attachment_file) {
         const gfd = new FormData();
-        gfd.append("document",   formData.guarantor_attachment_file);
-        gfd.append("loan_type",  formData.loan_type);
-        gfd.append("full_name",  formData.full_name);
+        gfd.append("document", formData.guarantor_attachment_file);
+        gfd.append("loan_type", formData.loan_type);
+        gfd.append("full_name", formData.full_name);
         gfd.append("employee_id", formData.employee_id);
 
         try {
@@ -792,7 +802,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
 
             {/* Loan Application Count — options depend on loan type */}
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth required disabled={!formData.loan_type}>
+              <FormControl sx={{ width: 300 }} required disabled={!formData.loan_type}>
                 <InputLabel>Loan Application Count</InputLabel>
                 <Select
                   name="loan_application_count"
@@ -814,21 +824,24 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
 
             {/* Loan Processing Branch */}
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Loan Processing Branch</InputLabel>
-                <Select
-                  name="loan_processing_branch"
-                  value={formData.loan_processing_branch}
-                  onChange={handleChange}
-                  label="Loan Processing Branch"
-                >
-                  {branches.map((b) => (
-                    <MenuItem key={b.id || b.branch_name} value={b.branch_name}>
-                      {b.branch_name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <Autocomplete sx={{ width: 300 }}
+                options={branches
+                  .filter((b) => b.branch_name?.toLowerCase().endsWith("branch"))
+                  .map((b) => b.branch_name)}
+                value={formData.loan_processing_branch || null}
+                onChange={(event, newValue) => {
+                  handleChange({
+                    target: { name: "loan_processing_branch", value: newValue || "" }
+                  });
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Loan Processing Branch"
+                    required
+                  />
+                )}
+              />
             </Grid>
 
             <Grid item xs={12} md={6}>
@@ -893,7 +906,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
             <Grid item xs={12}>
               <Divider sx={{ my: 1 }} />
               <Typography variant="subtitle1" fontWeight="bold" color="primary" gutterBottom>
-                Guarantor Information &amp; Document Attachment (Optional)
+                Guarantor Information &amp; Document Attachment (Required)
               </Typography>
 
               {/* Guarantor salary fields */}
@@ -901,19 +914,19 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
+                    required
                     label="Guarantor Basic Salary (Monthly)"
                     name="guarantor_basic_salary"
                     value={formData.guarantor_basic_salary}
                     onChange={handleChange}
                     type="number"
                     InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
-                    helperText="The manager will use this to calculate the guarantor's deductions"
                   />
                 </Grid>
               </Grid>
 
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Upload supporting documents for the guarantor. Accepted: PDF, DOC, DOCX, JPG, PNG. Max 1 MB.
+                Accepted: PDF, DOC, DOCX, JPG, PNG. Max 1 MB.
               </Typography>
               <Button
                 variant="outlined"
@@ -962,8 +975,8 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               <Alert severity="info" sx={{ mb: 2 }}>
                 Showing criteria for <strong>{orgUnit}</strong> staff.
                 {isBranchStaff && " Criteria 1, 2, 3 and 6 apply."}
-                {isDOStaff     && " Criteria 1, 4, 5 (District Office) and 6 apply."}
-                {isHOStaff     && " Criteria 1, 5 (Head Office) and 6 apply."}
+                {isDOStaff && " Criteria 1, 4, 5 (District Office) and 6 apply."}
+                {isHOStaff && " Criteria 1, 5 (Head Office) and 6 apply."}
               </Alert>
             )}
 

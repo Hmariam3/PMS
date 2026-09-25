@@ -335,7 +335,13 @@ export const getStaffLoanRequestById = async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT * FROM staff_loan_requests WHERE id = $1`,
+      `SELECT r.*, 
+        c.full_name AS checker_full_name, c.title AS checker_title, COALESCE(c.team, c.organization, c.department) AS checker_team,
+        m.full_name AS manager_full_name, m.title AS manager_title, COALESCE(m.team, m.organization, m.department) AS manager_team
+       FROM staff_loan_requests r
+       LEFT JOIN public.users c ON LOWER(r.checker_verified_by) = LOWER(c.mail_address)
+       LEFT JOIN public.users m ON LOWER(r.manager_verified_by) = LOWER(m.mail_address)
+       WHERE r.id = $1`,
       [id]
     );
 

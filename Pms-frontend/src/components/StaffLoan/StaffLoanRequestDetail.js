@@ -40,19 +40,19 @@ const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-const fmt    = (d)  => d  ? new Date(d).toLocaleDateString() : "—";
-const fmtTs  = (ts) => ts ? new Date(ts).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "—";
+const fmt = (d) => d ? new Date(d).toLocaleDateString() : "—";
+const fmtTs = (ts) => ts ? new Date(ts).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "—";
 const fmtMoney = (v) =>
   v != null && v !== "" ? `ETB ${parseFloat(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "—";
 
 const statusColor = (s) => ({
-  Pending:            "warning",
-  "Manager Review":   "info",
-  "Checker Review":   "info",
-  Recommended:        "success",
-  "Not Recommended":  "error",
-  Approved:           "success",
-  Rejected:           "error",
+  Pending: "warning",
+  "Manager Review": "info",
+  "Checker Review": "info",
+  Recommended: "success",
+  "Not Recommended": "error",
+  Approved: "success",
+  Rejected: "error",
 }[s] || "default");
 
 // ─── small layout helpers ─────────────────────────────────────────────────────
@@ -72,44 +72,250 @@ const Section = ({ title, children }) => (
   </Paper>
 );
 
-const StepBadge = ({ label, done, by, at }) => (
+const StepBadge = ({ label, done, fullName, email, at }) => (
   <Box sx={{ textAlign: "center", minWidth: 150 }}>
     <Chip label={label} color={done ? "success" : "default"}
-      icon={done ? <CheckCircleIcon /> : undefined} size="small" />
-    {done && by && (
-      <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
-        {by}
+      icon={done ? <CheckCircleIcon /> : undefined} size="small" sx={{ mb: 1 }} />
+    {done && fullName && (
+      <Typography variant="caption" display="block" color="text.primary" fontWeight={500}>
+        {fullName}
+      </Typography>
+    )}
+    {done && email && (
+      <Typography variant="caption" display="block" color="text.secondary">
+        {email}
       </Typography>
     )}
     {done && at && (
-      <Typography variant="caption" display="block" color="text.secondary">{at}</Typography>
+      <Typography variant="caption" display="block" color="text.secondary">
+        {at}
+      </Typography>
     )}
   </Box>
+);
+
+// ─── DeductionInputBlock (must be defined outside the component to avoid remount on each render) ───
+const DeductionInputBlock = ({
+  label,               // "Borrower" | "Guarantor"
+  basicSalaryDisplay,  // string shown as read-only
+  incomeTaxVal, onIncomeTaxChange,
+  pensionVal,          // auto-calculated, read-only
+  otherItems, onAddOther, onUpdateOther, onRemoveOther,
+  balances, onAddBalance, onUpdateBalance, onRemoveBalance,
+  totalDeduction,
+  netSalary,
+}) => (
+  <Box>
+    <Typography variant="subtitle1" fontWeight="bold" color={label === "Guarantor" ? "secondary.main" : "primary.main"} gutterBottom>
+      {label} Deduction Details
+    </Typography>
+
+    {/* Basic Salary */}
+    <Grid container spacing={2}>
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth label={`${label} Basic Salary (Monthly)`}
+          disabled value={basicSalaryDisplay}
+          InputProps={{ readOnly: true }}
+        />
+      </Grid>
+    </Grid>
+
+    {/* Fixed deductions */}
+    <Grid container spacing={2} sx={{ mt: 0.5 }}>
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth label="Income Tax" type="number"
+          InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
+          value={incomeTaxVal}
+          onChange={(e) => onIncomeTaxChange(e.target.value)}
+        />
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <TextField
+          fullWidth label="7% Pension (Auto-Calculated)" type="number"
+          InputProps={{
+            startAdornment: <InputAdornment position="start">ETB</InputAdornment>,
+            readOnly: true,
+          }}
+          value={pensionVal}
+          disabled
+        />
+      </Grid>
+    </Grid>
+
+    {/* Other deductions */}
+    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2, mb: 1 }}>
+      <Typography variant="body2" color="text.secondary">Other Deductions</Typography>
+      <Button size="small" startIcon={<AddIcon />} onClick={onAddOther}>Add Deduction</Button>
+    </Stack>
+    {otherItems.map((item, idx) => (
+      <Grid container spacing={1} key={idx} sx={{ mb: 1 }} alignItems="center">
+        <Grid item xs={6}>
+          <TextField fullWidth size="small" label="Deduction Label (e.g. ESL Repayment)"
+            value={item.label}
+            onChange={(e) => onUpdateOther(idx, "label", e.target.value)} />
+        </Grid>
+        <Grid item xs={5}>
+          <TextField fullWidth size="small" label="Amount" type="number"
+            InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
+            value={item.amount}
+            onChange={(e) => onUpdateOther(idx, "amount", e.target.value)} />
+        </Grid>
+        <Grid item xs={1}>
+          <IconButton color="error" size="small" onClick={() => onRemoveOther(idx)}>
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Grid>
+      </Grid>
+    ))}
+
+    {/* Outstanding balances */}
+    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2, mb: 1 }}>
+      <Typography variant="body2" color="text.secondary">Outstanding Loan Balances (if any)</Typography>
+      <Button size="small" startIcon={<AddIcon />} onClick={onAddBalance}>Add Balance</Button>
+    </Stack>
+    {balances.length === 0 && (
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>No outstanding balances added.</Typography>
+    )}
+    {balances.map((b, idx) => (
+      <Grid container spacing={1} key={idx} sx={{ mb: 1 }} alignItems="center">
+        <Grid item xs={6}>
+          <TextField fullWidth size="small" label="Balance Label (e.g. HL Outstanding)"
+            value={b.label}
+            onChange={(e) => onUpdateBalance(idx, "label", e.target.value)} />
+        </Grid>
+        <Grid item xs={5}>
+          <TextField fullWidth size="small" label="Amount" type="number"
+            InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
+            value={b.amount}
+            onChange={(e) => onUpdateBalance(idx, "amount", e.target.value)} />
+        </Grid>
+        <Grid item xs={1}>
+          <IconButton color="error" size="small" onClick={() => onRemoveBalance(idx)}>
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Grid>
+      </Grid>
+    ))}
+
+    {/* Live totals */}
+    <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
+      <Stack direction="row" justifyContent="space-between">
+        <Typography variant="body2">Total Deduction:</Typography>
+        <Typography variant="body2" fontWeight="bold" color="error.main">
+          ETB {totalDeduction.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        </Typography>
+      </Stack>
+      <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.5 }}>
+        <Typography variant="body2">Net Salary After Deduction:</Typography>
+        <Typography variant="body2" fontWeight="bold"
+          color={netSalary >= 0 ? "success.main" : "error.main"}>
+          ETB {netSalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        </Typography>
+      </Stack>
+    </Paper>
+  </Box>
+);
+
+// ─── DeductionSummaryTable (read-only, also outside component to avoid remount) ───
+const DeductionSummaryTable = ({ label, basicSalary, incomeTax, pension7, otherItems, deductionAmount, totalDeduction, netSalary, outstandingBalances, deductionMonths }) => (
+  <>
+    <Typography variant="subtitle2" gutterBottom sx={{ mt: 1 }}>
+      {label} Deduction Breakdown
+    </Typography>
+    <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+      <Table size="small">
+        <TableBody>
+          <TableRow>
+            <TableCell>Basic Salary</TableCell>
+            <TableCell align="right"><strong>{fmtMoney(basicSalary)}</strong></TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>Income Tax</TableCell>
+            <TableCell align="right">{fmtMoney(incomeTax)}</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>7% Pension</TableCell>
+            <TableCell align="right">{fmtMoney(pension7)}</TableCell>
+          </TableRow>
+          {(Array.isArray(otherItems) ? otherItems : (otherItems ? JSON.parse(otherItems) : [])).map((item, i) => (
+            <TableRow key={i}>
+              <TableCell>{item.label}</TableCell>
+              <TableCell align="right">{fmtMoney(item.amount)}</TableCell>
+            </TableRow>
+          ))}
+          {/* <TableRow>
+            <TableCell>Loan Repayment (this loan)</TableCell>
+            <TableCell align="right">{fmtMoney(deductionAmount)}</TableCell>
+          </TableRow> */}
+          <TableRow sx={{ bgcolor: "error.light" }}>
+            <TableCell><strong>Total Deduction</strong></TableCell>
+            <TableCell align="right"><strong>{fmtMoney(totalDeduction)}</strong></TableCell>
+          </TableRow>
+          <TableRow sx={{ bgcolor: "success.light" }}>
+            <TableCell><strong>Net Salary After Deduction</strong></TableCell>
+            <TableCell align="right"><strong>{fmtMoney(netSalary)}</strong></TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </TableContainer>
+
+    {/* Outstanding balances */}
+    {(() => {
+      const balances = Array.isArray(outstandingBalances)
+        ? outstandingBalances
+        : (outstandingBalances ? JSON.parse(outstandingBalances) : []);
+      return balances.length > 0 ? (
+        <>
+          <Typography variant="caption" color="text.secondary">Outstanding Loan Balances</Typography>
+          <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
+            <Table size="small">
+              <TableBody>
+                {balances.map((b, i) => (
+                  <TableRow key={i}>
+                    <TableCell>{b.label}</TableCell>
+                    <TableCell align="right">{fmtMoney(b.amount)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </>
+      ) : null;
+    })()}
+
+    {/* {deductionMonths && (
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        Repayment Period: <strong>{deductionMonths} months</strong>
+      </Typography>
+    )} */}
+  </>
 );
 
 // ─── empty manager form ───────────────────────────────────────────────────────
 
 const emptyMgrForm = () => ({
-  mgr_verified_service_score:     0,
-  mgr_verified_individual_score:  0,
-  mgr_verified_team_score:        0,
+  mgr_verified_service_score: 0,
+  mgr_verified_individual_score: 0,
+  mgr_verified_team_score: 0,
 
   // ── Borrower deductions ──────────────────────────────────────────────────
-  deduction_income_tax:     "",
-  deduction_pension_7:      "",   // auto-calculated, non-editable
-  deduction_amount:         "",
-  deduction_months:         "",
-  deduction_other_items:    [],   // [{label, amount}]
-  outstanding_balances:     [],   // [{label, amount}]
+  deduction_income_tax: "",
+  deduction_pension_7: "",   // auto-calculated, non-editable
+  deduction_amount: "",
+  deduction_months: "",
+  deduction_other_items: [],   // [{label, amount}]
+  outstanding_balances: [],   // [{label, amount}]
 
   // ── Guarantor deductions ─────────────────────────────────────────────────
-  guarantor_basic_salary:             "",
-  guarantor_deduction_income_tax:     "",
-  guarantor_deduction_pension_7:      "",   // auto-calculated, non-editable
-  guarantor_deduction_amount:         "",
-  guarantor_deduction_months:         "",
-  guarantor_deduction_other_items:    [],
-  guarantor_outstanding_balances:     [],
+  guarantor_basic_salary: "",
+  guarantor_deduction_income_tax: "",
+  guarantor_deduction_pension_7: "",   // auto-calculated, non-editable
+  guarantor_deduction_amount: "",
+  guarantor_deduction_months: "",
+  guarantor_deduction_other_items: [],
+  guarantor_outstanding_balances: [],
 
   manager_remarks: "",
 });
@@ -119,17 +325,17 @@ const emptyMgrForm = () => ({
 const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh }) => {
   const { user } = useContext(AuthContext);
 
-  const [request, setRequest]       = useState(initialRequest);
-  const [fetching, setFetching]     = useState(true);
+  const [request, setRequest] = useState(initialRequest);
+  const [fetching, setFetching] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [panel, setPanel]           = useState(null); // null | 'manager' | 'checker'
+  const [panel, setPanel] = useState(null); // null | 'manager' | 'checker'
 
   const [mgrForm, setMgrForm] = useState(emptyMgrForm());
   const [chkForm, setChkForm] = useState({
-    checker_disciplinary_verified:      null,
-    checker_loan_application_verified:  null,
-    checker_loan_application_remarks:   "",
-    checker_remarks:                    "",
+    checker_disciplinary_verified: null,
+    checker_loan_application_verified: null,
+    checker_loan_application_remarks: "",
+    checker_remarks: "",
   });
 
   // ── fetch full record on mount ──────────────────────────────────────────────
@@ -140,21 +346,21 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
         const d = res.data.data;
         setRequest(d);
 
-        const pension7  = d.basic_salary ? parseFloat((parseFloat(d.basic_salary) * 0.07).toFixed(2)) : "";
+        const pension7 = d.basic_salary ? parseFloat((parseFloat(d.basic_salary) * 0.07).toFixed(2)) : "";
         const gPension7 = d.guarantor_basic_salary
           ? parseFloat((parseFloat(d.guarantor_basic_salary) * 0.07).toFixed(2))
           : "";
 
         setMgrForm({
-          mgr_verified_service_score:    d.mgr_verified_service_score    ?? d.service_tenure_score ?? 0,
+          mgr_verified_service_score: d.mgr_verified_service_score ?? d.service_tenure_score ?? 0,
           mgr_verified_individual_score: d.mgr_verified_individual_score ?? d.individual_performance_score ?? 0,
-          mgr_verified_team_score:       d.mgr_verified_team_score       ?? d.team_performance_score ?? 0,
+          mgr_verified_team_score: d.mgr_verified_team_score ?? d.team_performance_score ?? 0,
 
           // Borrower
-          deduction_income_tax:   d.deduction_income_tax ?? "",
-          deduction_pension_7:    d.deduction_pension_7  ?? pension7,
-          deduction_amount:       d.deduction_amount     ?? "",
-          deduction_months:       d.deduction_months     ?? "",
+          deduction_income_tax: d.deduction_income_tax ?? "",
+          deduction_pension_7: d.deduction_pension_7 ?? pension7,
+          deduction_amount: d.deduction_amount ?? "",
+          deduction_months: d.deduction_months ?? "",
           deduction_other_items:
             Array.isArray(d.deduction_other_items)
               ? d.deduction_other_items
@@ -166,10 +372,10 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
 
           // Guarantor — pre-fill basic salary from the request record if staff already provided it
           guarantor_basic_salary: d.guarantor_basic_salary ?? "",
-          guarantor_deduction_income_tax:  d.guarantor_deduction_income_tax  ?? "",
-          guarantor_deduction_pension_7:   d.guarantor_deduction_pension_7   ?? gPension7,
-          guarantor_deduction_amount:      d.guarantor_deduction_amount      ?? "",
-          guarantor_deduction_months:      d.guarantor_deduction_months      ?? "",
+          guarantor_deduction_income_tax: d.guarantor_deduction_income_tax ?? "",
+          guarantor_deduction_pension_7: d.guarantor_deduction_pension_7 ?? gPension7,
+          guarantor_deduction_amount: d.guarantor_deduction_amount ?? "",
+          guarantor_deduction_months: d.guarantor_deduction_months ?? "",
           guarantor_deduction_other_items:
             Array.isArray(d.guarantor_deduction_other_items)
               ? d.guarantor_deduction_other_items
@@ -183,10 +389,10 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
         });
 
         setChkForm({
-          checker_disciplinary_verified:     d.checker_disciplinary_verified     ?? null,
+          checker_disciplinary_verified: d.checker_disciplinary_verified ?? null,
           checker_loan_application_verified: d.checker_loan_application_verified ?? null,
-          checker_loan_application_remarks:  d.checker_loan_application_remarks  ?? "",
-          checker_remarks:                   d.checker_remarks                   ?? "",
+          checker_loan_application_remarks: d.checker_loan_application_remarks ?? "",
+          checker_remarks: d.checker_remarks ?? "",
         });
       }
     } catch (err) {
@@ -229,7 +435,7 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
     );
   }
 
-  const userTitle   = user?.title || "";
+  const userTitle = user?.title || "";
   const isEmergency = request.loan_type === "Emergency Loan";
   const canManagerReview = (
     userTitle === "Enterprise System Operation and Application Developer" ||
@@ -242,9 +448,9 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
 
   // ── live deduction totals ──────────────────────────────────────────────────
   const calcBorrowerTotal = () => {
-    const tax    = parseFloat(mgrForm.deduction_income_tax) || 0;
-    const pen    = parseFloat(mgrForm.deduction_pension_7)  || 0;
-    const repay  = parseFloat(mgrForm.deduction_amount)     || 0;
+    const tax = parseFloat(mgrForm.deduction_income_tax) || 0;
+    const pen = parseFloat(mgrForm.deduction_pension_7) || 0;
+    const repay = parseFloat(mgrForm.deduction_amount) || 0;
     const others = mgrForm.deduction_other_items.reduce(
       (s, i) => s + (parseFloat(i.amount) || 0), 0
     );
@@ -252,38 +458,38 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
   };
 
   const calcGuarantorTotal = () => {
-    const tax    = parseFloat(mgrForm.guarantor_deduction_income_tax)  || 0;
-    const pen    = parseFloat(mgrForm.guarantor_deduction_pension_7)   || 0;
-    const repay  = parseFloat(mgrForm.guarantor_deduction_amount)      || 0;
+    const tax = parseFloat(mgrForm.guarantor_deduction_income_tax) || 0;
+    const pen = parseFloat(mgrForm.guarantor_deduction_pension_7) || 0;
+    const repay = parseFloat(mgrForm.guarantor_deduction_amount) || 0;
     const others = mgrForm.guarantor_deduction_other_items.reduce(
       (s, i) => s + (parseFloat(i.amount) || 0), 0
     );
     return tax + pen + repay + others;
   };
 
-  const totalBorrowerDeduction  = calcBorrowerTotal();
+  const totalBorrowerDeduction = calcBorrowerTotal();
   const totalGuarantorDeduction = calcGuarantorTotal();
-  const borrowerNetSalary  = (parseFloat(request.basic_salary) || 0) - totalBorrowerDeduction;
+  const borrowerNetSalary = (parseFloat(request.basic_salary) || 0) - totalBorrowerDeduction;
   const guarantorNetSalary = (parseFloat(request.guarantor_basic_salary) || 0) - totalGuarantorDeduction;
 
   // ── manager form helpers ───────────────────────────────────────────────────
   const setMgr = (field, val) => setMgrForm((p) => ({ ...p, [field]: val }));
 
   // Borrower dynamic rows
-  const addOtherItem     = () => setMgrForm((p) => ({ ...p, deduction_other_items: [...p.deduction_other_items, { label: "", amount: "" }] }));
-  const updateOtherItem  = (idx, field, val) => setMgrForm((p) => { const items = [...p.deduction_other_items]; items[idx] = { ...items[idx], [field]: val }; return { ...p, deduction_other_items: items }; });
-  const removeOtherItem  = (idx) => setMgrForm((p) => ({ ...p, deduction_other_items: p.deduction_other_items.filter((_, i) => i !== idx) }));
-  const addBalance       = () => setMgrForm((p) => ({ ...p, outstanding_balances: [...p.outstanding_balances, { label: "", amount: "" }] }));
-  const updateBalance    = (idx, field, val) => setMgrForm((p) => { const items = [...p.outstanding_balances]; items[idx] = { ...items[idx], [field]: val }; return { ...p, outstanding_balances: items }; });
-  const removeBalance    = (idx) => setMgrForm((p) => ({ ...p, outstanding_balances: p.outstanding_balances.filter((_, i) => i !== idx) }));
+  const addOtherItem = () => setMgrForm((p) => ({ ...p, deduction_other_items: [...p.deduction_other_items, { label: "", amount: "" }] }));
+  const updateOtherItem = (idx, field, val) => setMgrForm((p) => { const items = [...p.deduction_other_items]; items[idx] = { ...items[idx], [field]: val }; return { ...p, deduction_other_items: items }; });
+  const removeOtherItem = (idx) => setMgrForm((p) => ({ ...p, deduction_other_items: p.deduction_other_items.filter((_, i) => i !== idx) }));
+  const addBalance = () => setMgrForm((p) => ({ ...p, outstanding_balances: [...p.outstanding_balances, { label: "", amount: "" }] }));
+  const updateBalance = (idx, field, val) => setMgrForm((p) => { const items = [...p.outstanding_balances]; items[idx] = { ...items[idx], [field]: val }; return { ...p, outstanding_balances: items }; });
+  const removeBalance = (idx) => setMgrForm((p) => ({ ...p, outstanding_balances: p.outstanding_balances.filter((_, i) => i !== idx) }));
 
   // Guarantor dynamic rows
-  const addGOtherItem    = () => setMgrForm((p) => ({ ...p, guarantor_deduction_other_items: [...p.guarantor_deduction_other_items, { label: "", amount: "" }] }));
+  const addGOtherItem = () => setMgrForm((p) => ({ ...p, guarantor_deduction_other_items: [...p.guarantor_deduction_other_items, { label: "", amount: "" }] }));
   const updateGOtherItem = (idx, field, val) => setMgrForm((p) => { const items = [...p.guarantor_deduction_other_items]; items[idx] = { ...items[idx], [field]: val }; return { ...p, guarantor_deduction_other_items: items }; });
   const removeGOtherItem = (idx) => setMgrForm((p) => ({ ...p, guarantor_deduction_other_items: p.guarantor_deduction_other_items.filter((_, i) => i !== idx) }));
-  const addGBalance      = () => setMgrForm((p) => ({ ...p, guarantor_outstanding_balances: [...p.guarantor_outstanding_balances, { label: "", amount: "" }] }));
-  const updateGBalance   = (idx, field, val) => setMgrForm((p) => { const items = [...p.guarantor_outstanding_balances]; items[idx] = { ...items[idx], [field]: val }; return { ...p, guarantor_outstanding_balances: items }; });
-  const removeGBalance   = (idx) => setMgrForm((p) => ({ ...p, guarantor_outstanding_balances: p.guarantor_outstanding_balances.filter((_, i) => i !== idx) }));
+  const addGBalance = () => setMgrForm((p) => ({ ...p, guarantor_outstanding_balances: [...p.guarantor_outstanding_balances, { label: "", amount: "" }] }));
+  const updateGBalance = (idx, field, val) => setMgrForm((p) => { const items = [...p.guarantor_outstanding_balances]; items[idx] = { ...items[idx], [field]: val }; return { ...p, guarantor_outstanding_balances: items }; });
+  const removeGBalance = (idx) => setMgrForm((p) => ({ ...p, guarantor_outstanding_balances: p.guarantor_outstanding_balances.filter((_, i) => i !== idx) }));
 
   // ── manager submit ──────────────────────────────────────────────────────────
   const submitManager = async () => {
@@ -341,10 +547,10 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
 
   // ── threshold helpers ───────────────────────────────────────────────────────
   const THRESHOLDS = {
-    "Automobile":                100,
-    "Housing/Mortgage":          85,
+    "Automobile": 100,
+    "Housing/Mortgage": 85,
     "Personal Against Suretyship": 50,
-    "Emergency Loan":            0,
+    "Emergency Loan": 0,
   };
 
   const meetsThreshold = (loanType, score) => {
@@ -360,208 +566,6 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
       ? `Score ${s} / 100 meets the threshold of ${threshold} for ${loanType}. → Will be Recommended.`
       : `Score ${s} / 100 is below the threshold of ${threshold} for ${loanType}. → Will be Not Recommended.`;
   };
-
-  // ── shared sub-component: deduction block ─────────────────────────────────
-  // Used in manager review panel for both borrower and guarantor.
-  const DeductionInputBlock = ({
-    label,               // "Borrower" | "Guarantor"
-    basicSalaryDisplay,  // string shown as read-only
-    incomeTaxVal, onIncomeTaxChange,
-    pensionVal,          // auto-calculated, read-only
-    otherItems, onAddOther, onUpdateOther, onRemoveOther,
-    balances,  onAddBalance, onUpdateBalance, onRemoveBalance,
-    totalDeduction,
-    netSalary,
-  }) => (
-    <Box>
-      <Typography variant="subtitle1" fontWeight="bold" color={label === "Guarantor" ? "secondary.main" : "primary.main"} gutterBottom>
-        {label} Deduction Details
-      </Typography>
-
-      {/* Basic Salary */}
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth label={`${label} Basic Salary (Monthly)`}
-            disabled value={basicSalaryDisplay}
-            InputProps={{ readOnly: true }}
-            helperText="From employee record"
-          />
-        </Grid>
-      </Grid>
-
-      {/* Fixed deductions */}
-      <Grid container spacing={2} sx={{ mt: 0.5 }}>
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth label="Income Tax" type="number"
-            InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
-            value={incomeTaxVal}
-            onChange={(e) => onIncomeTaxChange(e.target.value)}
-          />
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth label="7% Pension (Auto-Calculated)" type="number"
-            InputProps={{
-              startAdornment: <InputAdornment position="start">ETB</InputAdornment>,
-              readOnly: true,
-            }}
-            value={pensionVal}
-            disabled
-            helperText="Automatically set to 7% of basic salary — not editable"
-          />
-        </Grid>
-      </Grid>
-
-      {/* Other deductions */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2, mb: 1 }}>
-        <Typography variant="body2" color="text.secondary">Other Deductions</Typography>
-        <Button size="small" startIcon={<AddIcon />} onClick={onAddOther}>Add Deduction</Button>
-      </Stack>
-      {otherItems.map((item, idx) => (
-        <Grid container spacing={1} key={idx} sx={{ mb: 1 }} alignItems="center">
-          <Grid item xs={6}>
-            <TextField fullWidth size="small" label="Deduction Label (e.g. ESL Repayment)"
-              value={item.label}
-              onChange={(e) => onUpdateOther(idx, "label", e.target.value)} />
-          </Grid>
-          <Grid item xs={5}>
-            <TextField fullWidth size="small" label="Amount" type="number"
-              InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
-              value={item.amount}
-              onChange={(e) => onUpdateOther(idx, "amount", e.target.value)} />
-          </Grid>
-          <Grid item xs={1}>
-            <IconButton color="error" size="small" onClick={() => onRemoveOther(idx)}>
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Grid>
-        </Grid>
-      ))}
-
-      {/* Outstanding balances */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2, mb: 1 }}>
-        <Typography variant="body2" color="text.secondary">Outstanding Loan Balances (if any)</Typography>
-        <Button size="small" startIcon={<AddIcon />} onClick={onAddBalance}>Add Balance</Button>
-      </Stack>
-      {balances.length === 0 && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>No outstanding balances added.</Typography>
-      )}
-      {balances.map((b, idx) => (
-        <Grid container spacing={1} key={idx} sx={{ mb: 1 }} alignItems="center">
-          <Grid item xs={6}>
-            <TextField fullWidth size="small" label="Balance Label (e.g. HL Outstanding)"
-              value={b.label}
-              onChange={(e) => onUpdateBalance(idx, "label", e.target.value)} />
-          </Grid>
-          <Grid item xs={5}>
-            <TextField fullWidth size="small" label="Amount" type="number"
-              InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
-              value={b.amount}
-              onChange={(e) => onUpdateBalance(idx, "amount", e.target.value)} />
-          </Grid>
-          <Grid item xs={1}>
-            <IconButton color="error" size="small" onClick={() => onRemoveBalance(idx)}>
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Grid>
-        </Grid>
-      ))}
-
-      {/* Live totals */}
-      <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
-        <Stack direction="row" justifyContent="space-between">
-          <Typography variant="body2">Total Deduction:</Typography>
-          <Typography variant="body2" fontWeight="bold" color="error.main">
-            ETB {totalDeduction.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </Typography>
-        </Stack>
-        <Stack direction="row" justifyContent="space-between" sx={{ mt: 0.5 }}>
-          <Typography variant="body2">Net Salary After Deduction:</Typography>
-          <Typography variant="body2" fontWeight="bold"
-            color={netSalary >= 0 ? "success.main" : "error.main"}>
-            ETB {netSalary.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </Typography>
-        </Stack>
-      </Paper>
-    </Box>
-  );
-
-  // ── shared sub-component: deduction summary (read-only) ───────────────────
-  const DeductionSummaryTable = ({ label, basicSalary, incomeTax, pension7, otherItems, deductionAmount, totalDeduction, netSalary, outstandingBalances, deductionMonths }) => (
-    <>
-      <Typography variant="subtitle2" gutterBottom sx={{ mt: 1 }}>
-        {label} Deduction Breakdown
-      </Typography>
-      <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-        <Table size="small">
-          <TableBody>
-            <TableRow>
-              <TableCell>Basic Salary</TableCell>
-              <TableCell align="right"><strong>{fmtMoney(basicSalary)}</strong></TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Income Tax</TableCell>
-              <TableCell align="right">{fmtMoney(incomeTax)}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>7% Pension</TableCell>
-              <TableCell align="right">{fmtMoney(pension7)}</TableCell>
-            </TableRow>
-            {(Array.isArray(otherItems) ? otherItems : (otherItems ? JSON.parse(otherItems) : [])).map((item, i) => (
-              <TableRow key={i}>
-                <TableCell>{item.label}</TableCell>
-                <TableCell align="right">{fmtMoney(item.amount)}</TableCell>
-              </TableRow>
-            ))}
-            <TableRow>
-              <TableCell>Loan Repayment (this loan)</TableCell>
-              <TableCell align="right">{fmtMoney(deductionAmount)}</TableCell>
-            </TableRow>
-            <TableRow sx={{ bgcolor: "error.light" }}>
-              <TableCell><strong>Total Deduction</strong></TableCell>
-              <TableCell align="right"><strong>{fmtMoney(totalDeduction)}</strong></TableCell>
-            </TableRow>
-            <TableRow sx={{ bgcolor: "success.light" }}>
-              <TableCell><strong>Net Salary After Deduction</strong></TableCell>
-              <TableCell align="right"><strong>{fmtMoney(netSalary)}</strong></TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* Outstanding balances */}
-      {(() => {
-        const balances = Array.isArray(outstandingBalances)
-          ? outstandingBalances
-          : (outstandingBalances ? JSON.parse(outstandingBalances) : []);
-        return balances.length > 0 ? (
-          <>
-            <Typography variant="caption" color="text.secondary">Outstanding Loan Balances</Typography>
-            <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-              <Table size="small">
-                <TableBody>
-                  {balances.map((b, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{b.label}</TableCell>
-                      <TableCell align="right">{fmtMoney(b.amount)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </>
-        ) : null;
-      })()}
-
-      {deductionMonths && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          Repayment Period: <strong>{deductionMonths} months</strong>
-        </Typography>
-      )}
-    </>
-  );
 
   // ── render ──────────────────────────────────────────────────────────────────
   return (
@@ -581,29 +585,45 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
       {/* Workflow progress */}
       <Paper elevation={1} sx={{ p: 2, mb: 2, bgcolor: "grey.50" }}>
         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
-          <StepBadge label="1. Submitted"     done at={fmtTs(request.created_at)}          by={request.created_by} />
+          <StepBadge
+            label={request.branch_name || request.employee_organization_unit || "Requester Team"}
+            done
+            fullName={request.full_name}
+            email={request.created_by}
+            at={fmtTs(request.created_at)}
+          />
           <Typography color="text.secondary">→</Typography>
-          <StepBadge label="2. Checker Review" done={!!request.checker_verified}
-            by={request.checker_verified_by}  at={fmtTs(request.checker_verified_at)} />
+          <StepBadge
+            label={request.checker_team || "Checker Team"}
+            done={!!request.checker_verified}
+            fullName={request.checker_full_name}
+            email={request.checker_verified_by}
+            at={fmtTs(request.checker_verified_at)}
+          />
           <Typography color="text.secondary">→</Typography>
-          <StepBadge label="3. Manager Review" done={!!request.manager_verified}
-            by={request.manager_verified_by}  at={fmtTs(request.manager_verified_at)} />
+          <StepBadge
+            label={request.manager_team || "Manager Team"}
+            done={!!request.manager_verified}
+            fullName={request.manager_full_name}
+            email={request.manager_verified_by}
+            at={fmtTs(request.manager_verified_at)}
+          />
         </Stack>
       </Paper>
 
       {/* Employee Information */}
       <Section title="Employee Information">
         <Grid container spacing={2}>
-          <InfoRow label="Full Name"         value={request.full_name} />
-          <InfoRow label="Employee ID"       value={request.employee_id} />
-          <InfoRow label="Date of Birth"     value={fmt(request.dob)} />
-          <InfoRow label="Branch"            value={request.branch_name} />
-          <InfoRow label="Position / Title"  value={request.position_title} />
-          <InfoRow label="Date of Hire"      value={fmt(request.date_of_hire)} />
+          <InfoRow label="Full Name" value={request.full_name} />
+          <InfoRow label="Employee ID" value={request.employee_id} />
+          <InfoRow label="Date of Birth" value={fmt(request.dob)} />
+          <InfoRow label="Branch" value={request.branch_name} />
+          <InfoRow label="Position / Title" value={request.position_title} />
+          <InfoRow label="Date of Hire" value={fmt(request.date_of_hire)} />
           <InfoRow label="Length of Service" value={request.length_of_service_years ? `${request.length_of_service_years} yrs` : null} />
           <InfoRow label="Phone / Extension" value={request.phone_extension} />
-          <InfoRow label="Date of Request"   value={fmt(request.date_of_request)} />
-          <InfoRow label="Retirement Date"   value={fmt(request.retirement_date)} />
+          <InfoRow label="Date of Request" value={fmt(request.date_of_request)} />
+          <InfoRow label="Retirement Date" value={fmt(request.retirement_date)} />
           {request.employee_organization_unit && (
             <InfoRow label="Organization Unit" value={request.employee_organization_unit} />
           )}
@@ -613,22 +633,22 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
       {/* Loan Details */}
       <Section title="Loan Request Details">
         <Grid container spacing={2}>
-          <InfoRow label="Loan Type"               value={request.loan_type} />
-          <InfoRow label="Loan Amount"             value={fmtMoney(request.loan_amount_requested)} />
-          <InfoRow label="Basic Salary"            value={fmtMoney(request.basic_salary)} />
-          <InfoRow label="Application Count"       value={request.loan_application_count} />
-          <InfoRow label="Loan Processing Branch"  value={request.loan_processing_branch} />
+          <InfoRow label="Loan Type" value={request.loan_type} />
+          <InfoRow label="Loan Amount" value={fmtMoney(request.loan_amount_requested)} />
+          <InfoRow label="Basic Salary" value={fmtMoney(request.basic_salary)} />
+          <InfoRow label="Application Count" value={request.loan_application_count} />
+          <InfoRow label="Loan Processing Branch" value={request.loan_processing_branch} />
           {request.guarantor_basic_salary && (
             <>
               <InfoRow label="Guarantor Basic Salary" value={fmtMoney(request.guarantor_basic_salary)} />
-              <InfoRow
+              {/* <InfoRow
                 label="Guarantor 7% Pension"
                 value={fmtMoney(parseFloat(request.guarantor_basic_salary) * 0.07)}
-              />
+              /> */}
             </>
           )}
           {request.loan_purpose && (
-            <InfoRow label="Purpose (legacy)"      value={request.loan_purpose} />
+            <InfoRow label="Purpose (legacy)" value={request.loan_purpose} />
           )}
         </Grid>
       </Section>
@@ -644,7 +664,7 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
                   <TableCell><strong>Band</strong></TableCell>
                   <TableCell align="center"><strong>Weight</strong></TableCell>
                   <TableCell align="center"><strong>Staff Score</strong></TableCell>
-                  <TableCell align="center"><strong>Manager Verified</strong></TableCell>
+                  <TableCell align="center"><strong>Verification</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -662,27 +682,27 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
                 {/* Criteria 2 & 3 — branch staff */}
                 {(!request.employee_organization_unit ||
                   request.employee_organization_unit.toLowerCase().includes("branch")) && (
-                  <>
-                    <TableRow>
-                      <TableCell>2. Individual Performance</TableCell>
-                      <TableCell>{request.individual_performance_band || "—"}</TableCell>
-                      <TableCell align="center">0–50</TableCell>
-                      <TableCell align="center"><Chip label={request.individual_performance_score ?? 0} color="primary" size="small" /></TableCell>
-                      <TableCell align="center">
-                        <Chip label="Verified ✓" color="success" size="small" />
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>3. Team Performance</TableCell>
-                      <TableCell>{request.team_performance_band || "—"}</TableCell>
-                      <TableCell align="center">0–20</TableCell>
-                      <TableCell align="center"><Chip label={request.team_performance_score ?? 0} color="primary" size="small" /></TableCell>
-                      <TableCell align="center">
-                        <Chip label="Verified ✓" color="success" size="small" />
-                      </TableCell>
-                    </TableRow>
-                  </>
-                )}
+                    <>
+                      <TableRow>
+                        <TableCell>2. Individual Performance</TableCell>
+                        <TableCell>{request.individual_performance_band || "—"}</TableCell>
+                        <TableCell align="center">0–50</TableCell>
+                        <TableCell align="center"><Chip label={request.individual_performance_score ?? 0} color="primary" size="small" /></TableCell>
+                        <TableCell align="center">
+                          <Chip label="Verified ✓" color="success" size="small" />
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>3. Team Performance</TableCell>
+                        <TableCell>{request.team_performance_band || "—"}</TableCell>
+                        <TableCell align="center">0–20</TableCell>
+                        <TableCell align="center"><Chip label={request.team_performance_score ?? 0} color="primary" size="small" /></TableCell>
+                        <TableCell align="center">
+                          <Chip label="Verified ✓" color="success" size="small" />
+                        </TableCell>
+                      </TableRow>
+                    </>
+                  )}
 
                 {/* Criterion 4 — DO only */}
                 {request.district_engagement_band && (
@@ -715,10 +735,10 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
                   <TableCell align="center">
                     {request.checker_verified
                       ? <Chip
-                          label={request.checker_disciplinary_verified ? "Verified ✓" : "Flagged ✗"}
-                          color={request.checker_disciplinary_verified ? "success" : "error"}
-                          size="small"
-                        />
+                        label={request.checker_disciplinary_verified ? "Verified ✓" : "Flagged ✗"}
+                        color={request.checker_disciplinary_verified ? "success" : "error"}
+                        size="small"
+                      />
                       : <Typography variant="caption" color="text.secondary">Pending</Typography>}
                   </TableCell>
                 </TableRow>
@@ -744,9 +764,9 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
 
       {/* ── Manager Review — read-only summary (shown after manager reviews) ── */}
       {request.manager_verified && (
-        <Section title="Manager Review — Salary & Deduction Summary">
+        <Section title="Payroll Administration Team Review — Salary & Deduction Summary">
           <Grid container spacing={2}>
-            <InfoRow label="Reviewed By" value={request.manager_verified_by} />
+            <InfoRow label="Reviewed By" value={request.manager_full_name || request.manager_verified_by} />
             <InfoRow label="Reviewed At" value={fmtTs(request.manager_verified_at)} />
           </Grid>
           <Divider sx={{ my: 2 }} />
@@ -792,10 +812,10 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
 
       {/* ── Checker summary ── */}
       {request.checker_verified && (
-        <Section title="Checker Review — Disciplinary & Loan Count Verification">
+        <Section title="Employee Services Management Team Review — Disciplinary & Loan Count Verification">
           <Grid container spacing={2}>
-            <InfoRow label="Verified By"   value={request.checker_verified_by} />
-            <InfoRow label="Reviewed At"   value={fmtTs(request.checker_verified_at)} />
+            <InfoRow label="Verified By" value={request.checker_full_name || request.checker_verified_by} />
+            <InfoRow label="Reviewed At" value={fmtTs(request.checker_verified_at)} />
             <Grid item xs={12} md={6}>
               <Typography variant="caption" color="text.secondary" display="block">Disciplinary Record</Typography>
               <Chip
@@ -925,19 +945,19 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
                     </TableRow>
                     {(!request.employee_organization_unit ||
                       request.employee_organization_unit.toLowerCase().includes("branch")) && (
-                      <>
-                        <TableRow>
-                          <TableCell>2. Individual Performance</TableCell>
-                          <TableCell align="center">0–50</TableCell>
-                          <TableCell align="center"><Chip label={request.individual_performance_score ?? 0} color="primary" size="small" /></TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>3. Team Performance</TableCell>
-                          <TableCell align="center">0–20</TableCell>
-                          <TableCell align="center"><Chip label={request.team_performance_score ?? 0} color="primary" size="small" /></TableCell>
-                        </TableRow>
-                      </>
-                    )}
+                        <>
+                          <TableRow>
+                            <TableCell>2. Individual Performance</TableCell>
+                            <TableCell align="center">0–50</TableCell>
+                            <TableCell align="center"><Chip label={request.individual_performance_score ?? 0} color="primary" size="small" /></TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>3. Team Performance</TableCell>
+                            <TableCell align="center">0–20</TableCell>
+                            <TableCell align="center"><Chip label={request.team_performance_score ?? 0} color="primary" size="small" /></TableCell>
+                          </TableRow>
+                        </>
+                      )}
                     {request.district_engagement_band && (
                       <TableRow>
                         <TableCell>4. District Office Engagement</TableCell>
@@ -1018,10 +1038,10 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
           <Typography variant="h6" color="secondary.main" gutterBottom>
             Guarantor — Deduction & Outstanding Balance Details
           </Typography>
-          <Alert severity="info" sx={{ mb: 2 }}>
+          {/* <Alert severity="info" sx={{ mb: 2 }}>
             The guarantor's basic salary is taken from the submitted request. The 7% pension is
             automatically calculated and is not editable.
-          </Alert>
+          </Alert> */}
 
           <DeductionInputBlock
             label="Guarantor"

@@ -307,7 +307,7 @@ const PerformanceMetricList = ({ member }) => {
 
       //nondeposit target
       const userNonDepositTargetRes = await axios.post(`${baseUrl}/non-deposit-target/summary/`, requestData);
-
+      // console.log("userNonDepositTargetRes", userNonDepositTargetRes.data);
       // actual from system
       const newAccountTarget = userNonDepositTargetRes.data.total_new_account || 0;
       const unauthorizeTransTarget = userNonDepositTargetRes.data.total_unauthorized || 0;
@@ -338,6 +338,8 @@ const PerformanceMetricList = ({ member }) => {
       // const employee_perf_thresholdTarget = userNonDepositTargetRes.data.employee_perf_threshold || 0;
       const customer_engagementTarget = userNonDepositTargetRes.data.customer_engagement || 0;
       const new_customer_onboardingTarget = userNonDepositTargetRes.data.new_customer_onboarding || 0;
+      const coopapp_business_onbaordingTarget = userNonDepositTargetRes.data.coopapp_business_onboarding || 0;
+      const new_bill_payers_onboardingTarget = userNonDepositTargetRes.data.new_bill_payers_onboarding || 0;
       const armingc_deposit_proportionTarget = userNonDepositTargetRes.data.armingc_deposit_proportion || 0;
 
       // get atm, eeu, digital target
@@ -597,8 +599,19 @@ const PerformanceMetricList = ({ member }) => {
       if (type === "Cash Book") {
         return { actual: 0, target: cash_balance_accuracy_rateTarget };
       }
-      if (type === "Customer Satisfaction") {
+      // if (type === "Customer Satisfaction") {
+      //   return { actual: 0, target: pos_deploymentTarget };
+      // }
+      if (type === "POS Deployment") {
         return { actual: 0, target: pos_deploymentTarget };
+      }
+
+      if (type === "Bill Payer") {
+        return { actual: 0, target: new_bill_payers_onboardingTarget };
+      }
+
+      if (type === "CoopApp Business") {
+        return { actual: 0, target: coopapp_business_onbaordingTarget };
       }
       // if (type === "Avg Txn Per CSO") {
       //   return { actual: 0, target: avg_txn_per_csoTarget };
@@ -664,7 +677,7 @@ const PerformanceMetricList = ({ member }) => {
     else if (lowerCalcFor === "branch compliance") type = "Branch Compliance";
     else if (lowerCalcFor === "compliance with the directives") type = "Compliance with the directives";
     else if (lowerCalcFor === "cash balance accuracy rate") type = "Cash Balance Accuracy Rate";
-    else if (lowerCalcFor === "Pos Deployment") type = "Pos Deployment";
+    else if (lowerCalcFor === "pos deployment") type = "POS Deployment";
     else if (lowerCalcFor === "avg txn per cso") type = "Avg Txn Per CSO";
     else if (lowerCalcFor === "compliance rate") type = "Compliance Rate";
     else if (lowerCalcFor === "audit report") type = "Audit Report";
@@ -677,6 +690,8 @@ const PerformanceMetricList = ({ member }) => {
     else if (lowerCalcFor === "branch vital") type = "Branch Vital";
     else if (lowerCalcFor === "district map") type = "District Map";
     else if (lowerCalcFor === "michu loan collection") type = "Michu Loan Collection";
+    else if (lowerCalcFor === "coopapp business") type = "CoopApp Business";
+    else if (lowerCalcFor === "bill payer") type = "Bill Payer";
     let evaluationValue = 0;
     let calculatedWeight = 0;
     if (metric.input_by === "System") {

@@ -232,7 +232,7 @@ const StaffLoanRequestList = () => {
                 <VisibilityIcon fontSize="small" />
               </IconButton>
             </Tooltip>
-            <Tooltip title={isPending ? "Edit Request" : "Only available for Pending"}>
+            {/* <Tooltip title={isPending ? "Edit Request" : "Only available for Pending"}>
               <span>
                 <IconButton
                   size="small"
@@ -243,7 +243,7 @@ const StaffLoanRequestList = () => {
                   <EditIcon fontSize="small" />
                 </IconButton>
               </span>
-            </Tooltip>
+            </Tooltip> */}
             <Tooltip title={isPending ? "Delete Request" : "Only available for Pending"}>
               <span>
                 <IconButton

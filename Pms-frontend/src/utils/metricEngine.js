@@ -94,6 +94,9 @@ export const TYPE_MAP = {
   "audit quality": "Audit Quality",
   "cash surprise cheque": "Cash Surprise Cheque",
   "armingc deposit proportion": "Armingc Deposit Proportion",
+  "pos deployment": "POS Deployment",
+  "bill payer": "Bill Payer",
+  "coopapp business": "CoopApp Business",
 };
 
 // Exact MyDashboard implementation (moved verbatim; axios/baseUrl passed in)
@@ -133,6 +136,8 @@ export const fetchSystemData = async (axios, baseUrl, type, requestData, targets
     const new_customer_onboardingTarget = userNonDepositTargetRes.data?.new_customer_onboarding || 0;
     const cash_balance_accuracy_rateTarget = userNonDepositTargetRes.data?.cash_balance_accuracy_rate || 0;
     const pos_deploymentTarget = userNonDepositTargetRes.data?.pos_deployment || 0;
+    const new_bill_payers_onboardingTarget = userNonDepositTargetRes.data?.new_bill_payers_onboarding || 0;
+    const coopapp_business_onboardingTarget = userNonDepositTargetRes.data?.coopapp_business_onboarding || 0;
     const compliance_rateTarget = userNonDepositTargetRes.data?.compliance_rate || 0;
     const reports_3days_rateTarget = userNonDepositTargetRes.data?.reports_3days_rate || 0;
     const audit_report_qualityTarget = userNonDepositTargetRes.data?.audit_report_quality || 0;
@@ -141,6 +146,8 @@ export const fetchSystemData = async (axios, baseUrl, type, requestData, targets
     const digital_transaction_volumeTarget = atmEeuDigitalTargetRes.data?.digital_transaction_volume || 0;
     const atm_crm_uptime_rateTarget = atmEeuDigitalTargetRes.data?.atm_crm_uptime_rate || 0;
     const employee_perf_thresholdTarget = atmEeuDigitalTargetRes.data?.employee_perf_threshold || 0;
+
+
 
     if (type === "deposit" && totalDeposit > 0) {
       let accountBalance = 0;
@@ -182,7 +189,7 @@ export const fetchSystemData = async (axios, baseUrl, type, requestData, targets
     }
 
     if (type === "loan" && totalLoanTarget > 0) {
-      console.log("totalLoanTarget", totalLoanTarget);
+      // console.log("totalLoanTarget", totalLoanTarget);
       let loanActual = 0;
       if (requestData.process === "Interest Free Banking" || requestData.process === "Agri and Cooperative Business" || (requestData.process === "Growth and Operations" && requestData.organization === "Ho")) {
         const r = await axios.post(`${baseUrl}/loan/loanBalanceDifferenceMapped`, requestData).catch(() => ({ data: {} }));
@@ -321,12 +328,15 @@ export const fetchSystemData = async (axios, baseUrl, type, requestData, targets
     if (type === "Coopay Ebirr Activation") return { actual: null, target: coopay_ebirr_activationTarget };
     if (type === "ATM CRM Uptime Rate") return { actual: null, target: atm_crm_uptime_rateTarget };
     if (type === "Cash Book") return { actual: null, target: cash_balance_accuracy_rateTarget };
-    if (type === "Customer Satisfaction") return { actual: null, target: pos_deploymentTarget };
+    if (type === "POS Deployment") return { actual: null, target: pos_deploymentTarget };
+
     if (type === "Branch Compliance") return { actual: null, target: compliance_rateTarget };
     if (type === "Audit Report") return { actual: null, target: reports_3days_rateTarget };
     if (type === "Audit Quality") return { actual: null, target: audit_report_qualityTarget };
     if (type === "Cash Surprise Cheque") return { actual: null, target: cash_surprise_checksTarget };
     if (type === "Employee Performance") return { actual: null, target: employee_perf_thresholdTarget };
+    if (type === "Bill Payer") return { actual: null, target: new_bill_payers_onboardingTarget };
+    if (type === "CoopApp Business") return { actual: null, target: coopapp_business_onboardingTarget };
 
     // if (type === "Michu Unique Recruitment") return { actual: null, target: michu_unique_recruitmentTarget };
 
