@@ -948,6 +948,7 @@ export const managerReview = async (req, res) => {
     guarantor_deduction_months,
     guarantor_outstanding_balances,
 
+    loan_processor_assigned,
     manager_remarks,
   } = req.body;
 
@@ -1008,16 +1009,24 @@ export const managerReview = async (req, res) => {
     const discScore = existing.rows[0].disciplinary_record_score || 0;
     const totalScore = isEmergency ? 0 : (svcScore + indScore + teamScore + deScore + okrScore + discScore);
 
-    // ── Determine Recommended / Not Recommended based on loan type threshold ──
     const THRESHOLDS = {
-      "Automobile": 100,
-      "Housing/Mortgage": 85,
+      "Automobile":                100,
+      "Housing/Mortgage":          85,
       "Personal Against Suretyship": 50,
-      "Emergency Loan": 0,
+      "Emergency Loan":            0,
     };
-    const loanType = existing.rows[0].loan_type;
+    const loanType  = existing.rows[0].loan_type;
     const threshold = THRESHOLDS[loanType] ?? 100;
-    const finalDecision = isEmergency || totalScore >= threshold
+
+    // Special review: fails threshold BUT the shortfall is entirely from tenure (C1).
+    // Score without tenure + max tenure (20) would meet the threshold.
+    const tenureScore        = existing.rows[0].service_tenure_score || 0;
+    const scoreWithoutTenure = isEmergency ? 0 : (totalScore - tenureScore);
+    const MAX_TENURE         = 20;
+    const wouldPassWithMaxTenure = (scoreWithoutTenure + MAX_TENURE) >= threshold;
+    const isSpecialReview    = !isEmergency && totalScore < threshold && wouldPassWithMaxTenure;
+
+    const finalDecision = isEmergency || totalScore >= threshold || isSpecialReview
       ? "Recommended"
       : "Not Recommended";
     const finalStatus = finalDecision;
@@ -1071,11 +1080,13 @@ export const managerReview = async (req, res) => {
         guarantor_total_deduction           = $20,
         guarantor_net_salary_after_deduction= $21,
         guarantor_outstanding_balances      = $22,
-        manager_remarks               = $23,
-        status                        = $24,
-        decision                      = $25,
+        loan_processor_assigned             = $23,
+        manager_remarks               = $24,
+        status                        = $25,
+        decision                      = $26,
+        special_review                = $27,
         updated_at                    = CURRENT_TIMESTAMP
-      WHERE id = $26
+      WHERE id = $28
       RETURNING *`,
       [
         reviewer_email,
@@ -1100,9 +1111,11 @@ export const managerReview = async (req, res) => {
         gTotalDeduction || null,
         gNetSalary      || null,
         JSON.stringify(Array.isArray(guarantor_outstanding_balances) ? guarantor_outstanding_balances : []),
+        loan_processor_assigned || null,
         manager_remarks || null,
         finalStatus,
         finalDecision,
+        isSpecialReview,
         id,
       ]
     );
@@ -1274,11 +1287,18 @@ export const approverApprove = async (req, res) => {
 };
 
 // Get all Recommended requests (for Approver page)
+// Optional query param: ?assignedTo=<name> — filters to requests where loan_processor_assigned starts with that name
 export const getRecommendedRequests = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM staff_loan_requests WHERE status = 'Recommended' ORDER BY created_at DESC`
-    );
+    const { assignedTo } = req.query;
+    let query = `SELECT * FROM staff_loan_requests WHERE status = 'Recommended'`;
+    const params = [];
+    if (assignedTo) {
+      params.push(`%${assignedTo}%`);
+      query += ` AND loan_processor_assigned ILIKE $1`;
+    }
+    query += ` ORDER BY created_at DESC`;
+    const result = await pool.query(query, params);
     res.json({ success: true, data: result.rows, count: result.rows.length });
   } catch (err) {
     console.error("Error fetching recommended requests:", err.message);

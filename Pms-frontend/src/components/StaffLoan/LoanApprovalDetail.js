@@ -214,9 +214,22 @@ const LoanApprovalDetail = ({ request: initialRequest, onClose, onApproved }) =>
             color={request.status === "Approved" ? "success" : request.status === "Recommended" ? "info" : "default"}
           />
           {isEmergency && <Chip label="Emergency Loan" color="error" variant="outlined" />}
+          {request.special_review && (
+            <Chip label="⚠️ Special Review" color="warning" variant="filled" />
+          )}
         </Box>
         <Button startIcon={<CloseIcon />} onClick={onClose}>Close</Button>
       </Box>
+
+      {/* Special review notice for approver */}
+      {request.special_review && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <strong>Special Review Case:</strong> This request did not meet the score threshold
+          but was forwarded because the shortfall is solely due to Length of Service (Criterion 1).
+          The employee's performance-based criteria are strong. Please review carefully before
+          making a final decision.
+        </Alert>
+      )}
 
       {/* ── Employee Information ── */}
       <Section title="Employee Information">
@@ -389,6 +402,9 @@ const LoanApprovalDetail = ({ request: initialRequest, onClose, onApproved }) =>
           <Grid container spacing={2}>
             <InfoRow label="Reviewed By (Payroll)" value={request.manager_verified_by} />
             <InfoRow label="Reviewed At"           value={fmtTs(request.manager_verified_at)} />
+            {request.loan_processor_assigned && (
+              <InfoRow label="Assigned Loan Processor" value={request.loan_processor_assigned} />
+            )}
             <InfoRow label="Manager Remarks"       value={request.manager_remarks} />
           </Grid>
         </Section>

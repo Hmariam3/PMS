@@ -194,6 +194,38 @@ export const calculateMetricScore = (metric, evaluationValue, targetTo) => {
         calculatedWeight = 0;
       }
     }
+
+    // Michu Loan Collection
+    else if (metric.calculated_for === "Michu Loan Collection") {
+      actualachive = (evaluationValue / targetTo) * 100;
+      if (actualachive >= 90) {
+        calculatedWeight = 4 * metricWeight;
+      } else if (actualachive >= 80 && actualachive < 90) {
+        calculatedWeight = 3 * metricWeight;
+      } else if (actualachive >= 70 && actualachive < 80) {
+        calculatedWeight = 2 * metricWeight;
+      } else if (actualachive >= 50 && actualachive < 70) {
+        calculatedWeight = 1 * metricWeight;
+      } else {
+        calculatedWeight = 0;
+      }
+    }
+
+    //Loan Collection
+    else if (metric.calculated_for === "Loan") {
+      actualachive = (evaluationValue / targetTo) * 100;
+      if (actualachive >= 90) {
+        calculatedWeight = 4 * metricWeight;
+      } else if (actualachive >= 80 && actualachive < 90) {
+        calculatedWeight = 3 * metricWeight;
+      } else if (actualachive >= 70 && actualachive < 80) {
+        calculatedWeight = 2 * metricWeight;
+      } else if (actualachive >= 50 && actualachive < 70) {
+        calculatedWeight = 1 * metricWeight;
+      } else {
+        calculatedWeight = 0;
+      }
+    }
     // branch Vital
     else if (metric.calculated_for === "Branch Vital") {
       calculatedWeight = (evaluationValue * metricWeight);

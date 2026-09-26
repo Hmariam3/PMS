@@ -5,13 +5,13 @@ import {
   Typography,
   Paper,
   Modal,
-  CircularProgress,
   Breadcrumbs,
   Link,
   Alert,
   IconButton,
   Tooltip,
   Stack,
+  Chip,
 } from "@mui/material";
 import {
   Visibility as VisibilityIcon,
@@ -52,7 +52,6 @@ const loanTypeLabel = (t) => {
   return t || "-";
 };
 
-// ─── Custom toolbar ───────────────────────────────────────────────────────────
 function CustomToolbar() {
   return (
     <GridToolbarContainer sx={{ px: 2, py: 1, gap: 1 }}>
@@ -66,38 +65,62 @@ function CustomToolbar() {
   );
 }
 
+// ─── Component ───────────────────────────────────────────────────────────────
+
 const LoanApprovalList = () => {
   const { user } = useContext(AuthContext);
 
-  const userTitle = user?.title || "";
-  const isApprover = (userTitle === "Employee Approver" || userTitle === "Enterprise System Operation and Application Developer");
+  const userTitle    = user?.title    || "";
+  const userFullName = user?.full_name || "";
 
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // Two roles that can see this page:
+  // 1. Employee Approver — sees ALL recommended requests, can give final approval
+  // 2. Assigned branch user — sees only requests where loan_processor_assigned matches their name
+  const isApprover = (
+    userTitle === "Employee Approver" ||
+    userTitle === "Enterprise System Operation and Application Developer"
+  );
+
+  // A user is an assigned processor if they have at least one request assigned to them.
+  // We determine access client-side after fetch; if they got results they have access.
+  // We pass their full name to the API to filter.
+  const isAssignedProcessor = !isApprover && !!userFullName;
+
+  const canAccess = isApprover || isAssignedProcessor;
+
+  const [requests, setRequests]   = useState([]);
+  const [loading, setLoading]     = useState(false);
   const [showDetail, setShowDetail] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected]   = useState(null);
+  const [accessChecked, setAccessChecked] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/staff-loan-requests/recommended`);
+      // Approver gets everything; assigned processor gets only their requests
+      const params = isApprover ? {} : { assignedTo: userFullName };
+      const res = await axios.get(`${API_URL}/staff-loan-requests/recommended`, { params });
       setRequests(res.data.data || []);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load recommended requests");
     } finally {
       setLoading(false);
+      setAccessChecked(true);
     }
   };
 
   useEffect(() => {
-    if (isApprover) {
+    if (canAccess) {
       fetchAll();
+    } else {
+      setAccessChecked(true);
     }
-  }, [isApprover]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const closeDetail = () => { setShowDetail(false); setSelected(null); };
-  const onApproved = () => { closeDetail(); fetchAll(); };
+  const onApproved  = () => { closeDetail(); fetchAll(); };
 
   // ── columns ────────────────────────────────────────────────────────────────
   const columns = [
@@ -110,12 +133,6 @@ const LoanApprovalList = () => {
       headerName: "Loan Type",
       width: 110,
       renderCell: ({ value }) => loanTypeLabel(value),
-    },
-    {
-      field: "loan_application_count",
-      headerName: "App Count",
-      width: 100,
-      renderCell: ({ value }) => value ?? "-",
     },
     {
       field: "loan_amount_requested",
@@ -131,6 +148,32 @@ const LoanApprovalList = () => {
       renderCell: ({ value }) => value ?? 0,
     },
     {
+      field: "loan_processing_branch",
+      headerName: "Processing Branch",
+      flex: 1,
+      minWidth: 140,
+      renderCell: ({ value }) => value || "-",
+    },
+    {
+      field: "loan_processor_assigned",
+      headerName: "Assigned Processor",
+      flex: 1,
+      minWidth: 170,
+      renderCell: ({ value }) =>
+        value
+          ? <Chip label={value} size="small" color="info" variant="outlined" sx={{ fontSize: "0.72rem" }} />
+          : <Typography variant="caption" color="text.secondary">Not assigned</Typography>,
+    },
+    {
+      field: "special_review",
+      headerName: "Special Review",
+      width: 130,
+      renderCell: ({ value }) =>
+        value
+          ? <Chip label="⚠️ Special Review" color="warning" size="small" />
+          : <Chip label="Standard" color="default" size="small" variant="outlined" />,
+    },
+    {
       field: "date_of_request",
       headerName: "Date",
       width: 110,
@@ -140,15 +183,14 @@ const LoanApprovalList = () => {
     {
       field: "actions",
       headerName: "Actions",
-      width: 130,
+      width: 110,
       sortable: false,
       filterable: false,
       renderCell: ({ row }) => (
         <Stack direction="row" spacing={1} alignItems="center" sx={{ height: "100%" }}>
           <Tooltip title="View Full Details">
             <IconButton
-              size="small"
-              color="info"
+              size="small" color="info"
               onClick={() => { setSelected(row); setShowDetail(true); }}
             >
               <VisibilityIcon fontSize="small" />
@@ -157,8 +199,7 @@ const LoanApprovalList = () => {
           {isApprover && (
             <Tooltip title="Give Final Approval">
               <IconButton
-                size="small"
-                color="success"
+                size="small" color="success"
                 onClick={() => { setSelected(row); setShowDetail(true); }}
               >
                 <CheckCircleIcon fontSize="small" />
@@ -170,14 +211,23 @@ const LoanApprovalList = () => {
     },
   ];
 
-  if (!isApprover) {
+  // ── access guard ──────────────────────────────────────────────────────────
+  if (!accessChecked) return null; // still loading
+
+  if (!canAccess) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Access denied. This page is only accessible to the <strong>Employee Approver</strong>.
+          Access denied. This page is only accessible to the{" "}
+          <strong>Employee Approver</strong> or an assigned loan processor.
         </Alert>
       </Box>
     );
+  }
+
+  // After fetch, if assigned processor has zero results they have no assigned requests
+  if (!isApprover && accessChecked && !loading && requests.length === 0) {
+    // Still show the page — they just have nothing assigned yet
   }
 
   return (
@@ -190,9 +240,35 @@ const LoanApprovalList = () => {
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight="bold">Loan Approvals</Typography>
         <Typography variant="body2" color="text.secondary">
-          Recommended requests awaiting your final approval
+          {isApprover
+            ? "All recommended requests awaiting final approval"
+            : `Recommended requests assigned to you — ${userFullName}`}
         </Typography>
       </Box>
+
+      {/* Summary chips */}
+      <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap">
+        <Paper sx={{ p: 2, minWidth: 130, borderRadius: 2 }}>
+          <Typography variant="h6" color="success.main" fontWeight="bold">
+            {requests.length}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {isApprover ? "Recommended" : "Assigned to Me"}
+          </Typography>
+        </Paper>
+        <Paper sx={{ p: 2, minWidth: 130, borderRadius: 2 }}>
+          <Typography variant="h6" color="warning.main" fontWeight="bold">
+            {requests.filter((r) => r.special_review).length}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">Special Review</Typography>
+        </Paper>
+        <Paper sx={{ p: 2, minWidth: 130, borderRadius: 2 }}>
+          <Typography variant="h6" color="text.secondary" fontWeight="bold">
+            {requests.filter((r) => !r.loan_processor_assigned).length}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">Not Yet Assigned</Typography>
+        </Paper>
+      </Stack>
 
       <Paper sx={{ borderRadius: 2, overflow: "hidden" }}>
         <DataGrid
@@ -215,16 +291,9 @@ const LoanApprovalList = () => {
               color: "#000",
               fontSize: "0.85rem",
             },
-            "& .MuiDataGrid-columnHeaderTitle": {
-              fontWeight: 700,
-              color: "#000",
-            },
-            "& .MuiDataGrid-columnHeader .MuiIconButton-root": {
-              color: "#000",
-            },
-            "& .MuiDataGrid-columnHeader .MuiSvgIcon-root": {
-              color: "#000",
-            },
+            "& .MuiDataGrid-columnHeaderTitle": { fontWeight: 700, color: "#000" },
+            "& .MuiDataGrid-columnHeader .MuiIconButton-root": { color: "#000" },
+            "& .MuiDataGrid-columnHeader .MuiSvgIcon-root": { color: "#000" },
             "& .MuiDataGrid-row:hover": { backgroundColor: "action.hover" },
             "& .MuiDataGrid-row": { borderLeft: "4px solid #2e7d32" },
             "& .MuiDataGrid-cell": { alignItems: "center" },
@@ -252,4 +321,3 @@ const LoanApprovalList = () => {
 };
 
 export default LoanApprovalList;
-

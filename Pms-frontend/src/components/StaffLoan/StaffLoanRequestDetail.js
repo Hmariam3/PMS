@@ -20,6 +20,10 @@ import {
   InputAdornment,
   CircularProgress,
   IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   CheckCircle as CheckCircleIcon,
@@ -111,7 +115,7 @@ const DeductionInputBlock = ({
     </Typography>
 
     {/* Basic Salary */}
-    <Grid container spacing={2}>
+    <Grid container spacing={2} sx={{ mt: 2 }} >
       <Grid item xs={12} md={6}>
         <TextField
           fullWidth label={`${label} Basic Salary (Monthly)`}
@@ -122,7 +126,7 @@ const DeductionInputBlock = ({
     </Grid>
 
     {/* Fixed deductions */}
-    <Grid container spacing={2} sx={{ mt: 0.5 }}>
+    <Grid container spacing={2} sx={{ mt: 3 }}>
       <Grid item xs={12} md={6}>
         <TextField
           fullWidth label="Income Tax" type="number"
@@ -145,12 +149,12 @@ const DeductionInputBlock = ({
     </Grid>
 
     {/* Other deductions */}
-    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2, mb: 1 }}>
-      <Typography variant="body2" color="text.secondary">Other Deductions</Typography>
+    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 3, mb: 1 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold' }}>Other Deductions</Typography>
       <Button size="small" startIcon={<AddIcon />} onClick={onAddOther}>Add Deduction</Button>
     </Stack>
     {otherItems.map((item, idx) => (
-      <Grid container spacing={1} key={idx} sx={{ mb: 1 }} alignItems="center">
+      <Grid container spacing={1} key={idx} sx={{ mt: 2, mb: 1 }} alignItems="center">
         <Grid item xs={6}>
           <TextField fullWidth size="small" label="Deduction Label (e.g. ESL Repayment)"
             value={item.label}
@@ -171,15 +175,15 @@ const DeductionInputBlock = ({
     ))}
 
     {/* Outstanding balances */}
-    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2, mb: 1 }}>
-      <Typography variant="body2" color="text.secondary">Outstanding Loan Balances (if any)</Typography>
+    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 3, mb: 1 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 'bold' }}>Outstanding Loan Balances (if any)</Typography>
       <Button size="small" startIcon={<AddIcon />} onClick={onAddBalance}>Add Balance</Button>
     </Stack>
     {balances.length === 0 && (
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>No outstanding balances added.</Typography>
     )}
     {balances.map((b, idx) => (
-      <Grid container spacing={1} key={idx} sx={{ mb: 1 }} alignItems="center">
+      <Grid container spacing={1} key={idx} sx={{ mt: 2, mb: 1 }} alignItems="center">
         <Grid item xs={6}>
           <TextField fullWidth size="small" label="Balance Label (e.g. HL Outstanding)"
             value={b.label}
@@ -317,6 +321,7 @@ const emptyMgrForm = () => ({
   guarantor_deduction_other_items: [],
   guarantor_outstanding_balances: [],
 
+  loan_processor_assigned: "",
   manager_remarks: "",
 });
 
@@ -337,6 +342,9 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
     checker_loan_application_remarks: "",
     checker_remarks: "",
   });
+
+  // employees from the loan processing branch — for the processor assignment dropdown
+  const [branchEmployees, setBranchEmployees] = useState([]);
 
   // ── fetch full record on mount ──────────────────────────────────────────────
   const refetch = useCallback(async () => {
@@ -386,6 +394,7 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
               : (d.guarantor_outstanding_balances ? JSON.parse(d.guarantor_outstanding_balances) : []),
 
           manager_remarks: d.manager_remarks ?? "",
+          loan_processor_assigned: d.loan_processor_assigned ?? "",
         });
 
         setChkForm({
@@ -403,6 +412,21 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
   }, [initialRequest.id]);
 
   useEffect(() => { refetch(); }, [refetch]);
+
+  // ── fetch employees from loan_processing_branch for the assignment dropdown ──
+  useEffect(() => {
+    if (!request.loan_processing_branch) return;
+    axios
+      .get(`${API_URL}/employees`)
+      .then((res) => {
+        const all = res.data?.employees || [];
+        const filtered = all.filter(
+          (e) => e.branch_name === request.loan_processing_branch
+        );
+        setBranchEmployees(filtered);
+      })
+      .catch((err) => console.error("Failed to load branch employees:", err));
+  }, [request.loan_processing_branch]);
 
   // ── auto-calculate pension when basic salary changes ──────────────────────
   useEffect(() => {
@@ -805,6 +829,9 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
           )}
 
           <Grid container spacing={2} sx={{ mt: 1 }}>
+            {request.loan_processor_assigned && (
+              <InfoRow label="Assigned Loan Processor" value={request.loan_processor_assigned} />
+            )}
             <InfoRow label="Manager Remarks" value={request.manager_remarks} />
           </Grid>
         </Section>
@@ -990,12 +1017,117 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
                   </TableBody>
                 </Table>
               </TableContainer>
-              <Alert
-                severity={meetsThreshold(request.loan_type, request.total_score_claimed) ? "success" : "warning"}
-                sx={{ mt: 1 }}
-              >
-                {thresholdMessage(request.loan_type, request.total_score_claimed)}
-              </Alert>
+
+              {/* ── Threshold verdict + special review logic ── */}
+              {(() => {
+                const total = request.total_score_claimed ?? 0;
+                const tenure = request.service_tenure_score ?? 0;
+                const threshold = THRESHOLDS[request.loan_type] ?? 100;
+                const passes = meetsThreshold(request.loan_type, total);
+
+                // Score WITHOUT criterion 1 — pure performance score
+                const scoreWithoutTenure = total - tenure;
+                // What the max score for criterion 1 is
+                const maxTenure = 20;
+                // If the employee could have the full tenure score, would they pass?
+                const wouldPassWithMaxTenure = (scoreWithoutTenure + maxTenure) >= threshold;
+                // Special review: fails threshold BUT would pass if tenure were max
+                const isSpecialReview = !passes && wouldPassWithMaxTenure;
+
+                return (
+                  <Box sx={{ mt: 1 }}>
+                    {/* Standard pass / fail alert */}
+                    <Alert severity={passes ? "success" : isSpecialReview ? "warning" : "error"}>
+                      <strong>
+                        {passes
+                          ? "✅ Meets Threshold"
+                          : isSpecialReview
+                            ? "⚠️ Below Threshold — Special Review Recommended"
+                            : "❌ Does Not Meet Threshold"}
+                      </strong>
+                      {"  "}
+                      {thresholdMessage(request.loan_type, total)}
+                    </Alert>
+
+                    {/* Special review breakdown — only shown when tenure is the deciding factor */}
+                    {isSpecialReview && (
+                      <Paper
+                        variant="outlined"
+                        sx={{
+                          mt: 1.5, p: 2,
+                          borderColor: "warning.main",
+                          bgcolor: "warning.light",
+                          borderWidth: 2,
+                        }}
+                      >
+                        <Typography variant="subtitle2" color="warning.dark" gutterBottom>
+                          📋 Special Review Notice — Length of Service Impact
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          This employee's total score of <strong>{total} pts</strong> falls{" "}
+                          <strong>{threshold - total} pts</strong> short of the{" "}
+                          <strong>{threshold} pt threshold</strong> for{" "}
+                          <strong>{request.loan_type}</strong>.
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          However, their <strong>performance-based score</strong> (excluding
+                          Length of Service) is <strong>{scoreWithoutTenure} pts</strong>.
+                          With full tenure points ({maxTenure} pts) they would reach{" "}
+                          <strong>{scoreWithoutTenure + maxTenure} pts</strong> — which
+                          {(scoreWithoutTenure + maxTenure) >= threshold
+                            ? " meets"
+                            : " still does not meet"}{" "}
+                          the threshold.
+                        </Typography>
+                        <Typography variant="body2" color="warning.dark" fontWeight="bold">
+                          The shortfall is solely due to Length of Service (Criterion 1 —
+                          scored {tenure} / {maxTenure} pts). This case is flagged for
+                          special consideration by the final approver.
+                        </Typography>
+
+                        {/* Score breakdown comparison */}
+                        <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow sx={{ bgcolor: "grey.100" }}>
+                                <TableCell><strong>Scenario</strong></TableCell>
+                                <TableCell align="center"><strong>Tenure (C1)</strong></TableCell>
+                                <TableCell align="center"><strong>Performance Score</strong></TableCell>
+                                <TableCell align="center"><strong>Total</strong></TableCell>
+                                <TableCell align="center"><strong>vs Threshold</strong></TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              <TableRow>
+                                <TableCell>Actual</TableCell>
+                                <TableCell align="center">{tenure}</TableCell>
+                                <TableCell align="center">{scoreWithoutTenure}</TableCell>
+                                <TableCell align="center"><strong>{total}</strong></TableCell>
+                                <TableCell align="center">
+                                  <Chip label={`${total} / ${threshold}`} color="error" size="small" />
+                                </TableCell>
+                              </TableRow>
+                              <TableRow sx={{ bgcolor: "grey.50" }}>
+                                <TableCell>If Max Tenure</TableCell>
+                                <TableCell align="center">{maxTenure}</TableCell>
+                                <TableCell align="center">{scoreWithoutTenure}</TableCell>
+                                <TableCell align="center"><strong>{scoreWithoutTenure + maxTenure}</strong></TableCell>
+                                <TableCell align="center">
+                                  <Chip
+                                    label={`${scoreWithoutTenure + maxTenure} / ${threshold}`}
+                                    color={(scoreWithoutTenure + maxTenure) >= threshold ? "success" : "warning"}
+                                    size="small"
+                                  />
+                                </TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Paper>
+                    )}
+                  </Box>
+                );
+              })()}
             </Box>
           )}
 
@@ -1066,6 +1198,38 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
           />
 
           <Divider sx={{ my: 2 }} />
+
+          <Divider sx={{ my: 2 }} />
+
+          {/* ── Loan Processor Assignment ── */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Assign Loan Processor from <strong>{request.loan_processing_branch}</strong>
+            </Typography>
+            {branchEmployees.length === 0 ? (
+              <Alert severity="info" sx={{ mb: 1 }}>
+                No employees found for branch "{request.loan_processing_branch}".
+              </Alert>
+            ) : (
+              <FormControl fullWidth required>
+                <InputLabel>Loan Processor</InputLabel>
+                <Select
+                  value={mgrForm.loan_processor_assigned}
+                  onChange={(e) => setMgr("loan_processor_assigned", e.target.value)}
+                  label="Loan Processor"
+                >
+                  {branchEmployees.map((emp) => {
+                    const val = `${emp.display_name} (${emp.title || "No Title"})`;
+                    return (
+                      <MenuItem key={emp.employee_id} value={val}>
+                        {val}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+            )}
+          </Box>
 
           <TextField
             fullWidth multiline rows={3} label="Manager Remarks"
