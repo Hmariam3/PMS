@@ -618,7 +618,7 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
           />
           <Typography color="text.secondary">→</Typography>
           <StepBadge
-            label={request.checker_team || "Checker Team"}
+            label={request.checker_team || "Employee Services Management Team"}
             done={!!request.checker_verified}
             fullName={request.checker_full_name}
             email={request.checker_verified_by}
@@ -626,7 +626,7 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
           />
           <Typography color="text.secondary">→</Typography>
           <StepBadge
-            label={request.manager_team || "Manager Team"}
+            label={request.manager_team || "Payroll Administration Team"}
             done={!!request.manager_verified}
             fullName={request.manager_full_name}
             email={request.manager_verified_by}

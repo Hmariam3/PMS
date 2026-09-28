@@ -44,10 +44,18 @@ const AccountVariationReport = () => {
   // Quarter progress — targets shown "as of today" are pro-rated by this
   const getQuarterRatio = () => {
     const start = new Date("2026-07-01");
+    const end = new Date("2026-09-30");
     const today = new Date();
-    const days = Math.floor((today - start) / 86_400_000) + 1;
-    return Math.max(0, Math.min(days, 90)) / 90;
+
+    const totalDays =
+      Math.floor((end - start) / 86_400_000) + 1;
+
+    const elapsedDays =
+      Math.floor((today - start) / 86_400_000) + 1;
+
+    return Math.max(0, Math.min(elapsedDays, totalDays)) / totalDays;
   };
+
   const quarterRatio = getQuarterRatio();
 
   // Data states
@@ -316,22 +324,22 @@ const AccountVariationReport = () => {
   const aggDef = AGG_CONFIG[currentConfig.type];
   const aggregates = aggDef
     ? (() => {
-        // Branch Managers / Eco-Micro MOMs and District Directors set the
-        // targets of their branches / districts, so their rows duplicate the
-        // targets (and mapped achievements) of the staff below them. For the
-        // aggregates only the accountable individual rows count — position
-        // CRM or Individual — the table itself stays unfiltered.
-        const aggRows = filteredRows.filter(
-          (r) => r.position === "CRM" || r.position === "Individual"
-        );
-        const target = aggRows.reduce((s, r) => s + (Number(r[aggDef.targetKey]) || 0), 0);
-        const targetToday = aggRows.reduce((s, r) => s + (Number(r[aggDef.todayKey]) || 0), 0);
-        const achievement = aggRows.reduce((s, r) => s + (Number(r[aggDef.achievementKey]) || 0), 0);
-        const percent = targetToday !== 0
-          ? (achievement / targetToday) * 100
-          : (achievement > 0 ? 100 : 0);
-        return { target, targetToday, achievement, percent };
-      })()
+      // Branch Managers / Eco-Micro MOMs and District Directors set the
+      // targets of their branches / districts, so their rows duplicate the
+      // targets (and mapped achievements) of the staff below them. For the
+      // aggregates only the accountable individual rows count — position
+      // CRM or Individual — the table itself stays unfiltered.
+      const aggRows = filteredRows.filter(
+        (r) => r.position === "CRM" || r.position === "Individual"
+      );
+      const target = aggRows.reduce((s, r) => s + (Number(r[aggDef.targetKey]) || 0), 0);
+      const targetToday = aggRows.reduce((s, r) => s + (Number(r[aggDef.todayKey]) || 0), 0);
+      const achievement = aggRows.reduce((s, r) => s + (Number(r[aggDef.achievementKey]) || 0), 0);
+      const percent = targetToday !== 0
+        ? (achievement / targetToday) * 100
+        : (achievement > 0 ? 100 : 0);
+      return { target, targetToday, achievement, percent };
+    })()
     : null;
   const fmtAgg = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const aggPercentColor = (p) =>

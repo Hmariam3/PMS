@@ -197,15 +197,22 @@ const Dashboard = () => {
 
       // Dates
       const startDate = new Date("2026-07-01");
+      const endDate = new Date("2026-09-30");
       const today = new Date();
-      //  Days passed  until current date
+
+      // Total days in the quarter
+      const totalQuarterDays =
+        Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+      // Days passed until current date
       let daysPassed =
         Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
-      daysPassed = Math.max(0, Math.min(daysPassed, 90));
 
+      daysPassed = Math.max(0, Math.min(daysPassed, totalQuarterDays));
 
       // Expected Deposit (by today)
-      const expectedDeposit = (daysPassed / 90) * totalDepositTarget;
+      const expectedDeposit =
+        (daysPassed / totalQuarterDays) * totalDepositTarget;
 
       //Achievement vs Expected
       const totalCurrentDepositBalace = Number(totalAccountBalace) || 0;
@@ -271,14 +278,14 @@ const Dashboard = () => {
       let totalfcy =
         // Number(fcyRes.data.total_difference || 0) +
         Number(fcyResMapped.data.total_difference || 0);
-      const expectedFcy = (daysPassed / 90) * totalFcyTarget;
+      const expectedFcy = (daysPassed / totalQuarterDays) * totalFcyTarget;
       const actualFcy = totalfcy;
       const achievementfcy =
         expectedFcy > 0 ? (actualFcy / expectedFcy) * 100 : 0;
       setAchievementRateFcy(achievementfcy);
       // for Loan
       const actualLoan = loanRes?.data?.total_difference || 0;
-      const expectedLoan = (daysPassed / 90) * totalLoanTarget;
+      const expectedLoan = (daysPassed / totalQuarterDays) * totalLoanTarget;
       const achievementLoanRate =
         expectedLoan > 0 ? (actualLoan / expectedLoan) * 100 : 0;
       setAchievementRateLoan(achievementLoanRate);
@@ -327,7 +334,7 @@ const Dashboard = () => {
         );
       }
       const actualNewAccount = newaccountRes?.data?.total_accounts || 0;
-      const expectedNewAccount = (daysPassed / 90) * newAccountTarget;
+      const expectedNewAccount = (daysPassed / totalQuarterDays) * newAccountTarget;
       const achievementNewAccountRate =
         expectedNewAccount > 0
           ? (actualNewAccount / expectedNewAccount) * 100
@@ -343,7 +350,7 @@ const Dashboard = () => {
       );
       const actualUnutorizedTran =
         unutorizedTranRes?.data?.total_unauthorized || 0;
-      const expectedUnutorized = (daysPassed / 90) * unauthorizeTransTarget;
+      const expectedUnutorized = (daysPassed / totalQuarterDays) * unauthorizeTransTarget;
       const achievementUnutorizedRate =
         expectedUnutorized > 0
           ? (actualUnutorizedTran / expectedUnutorized) * 100
@@ -361,7 +368,7 @@ const Dashboard = () => {
 
       const actualactiveCard =
         activecardRes?.data?.total_active_card_users || 0;
-      const expectedActiveCard = (daysPassed / 90) * activeCardTarget;
+      const expectedActiveCard = (daysPassed / totalQuarterDays) * activeCardTarget;
       const achievementActiveCard =
         expectedActiveCard > 0
           ? (actualactiveCard / expectedActiveCard) * 100
@@ -376,7 +383,7 @@ const Dashboard = () => {
       );
 
       const actualeEEU = eeuRes?.data?.total_txn_count || 0;
-      const expectedEEU = (daysPassed / 90) * eeuTransactionTarget;
+      const expectedEEU = (daysPassed / totalQuarterDays) * eeuTransactionTarget;
       const achievementEEU =
         expectedEEU > 0 ? (actualeEEU / expectedEEU) * 100 : 0;
       setachievementEeu(achievementEEU);
@@ -414,7 +421,7 @@ const Dashboard = () => {
       );
 
 
-      const expecteddistrictDeposit = (daysPassed / 90) * totals.totalDistrictDepositTarget;
+      const expecteddistrictDeposit = (daysPassed / totalQuarterDays) * totals.totalDistrictDepositTarget;
       const achievementdistrictDeposit =
         expecteddistrictDeposit > 0
           ? (totals.totalBalanceDiff / expecteddistrictDeposit) * 100

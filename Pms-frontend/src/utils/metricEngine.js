@@ -31,10 +31,21 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 // Quarter window used across the app
 export const quarterProgress = () => {
   const startDate = new Date("2026-07-01");
+  const endDate = new Date("2026-09-30");
   const today = new Date();
-  let daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
-  daysPassed = Math.max(0, Math.min(daysPassed, 90));
-  return { daysPassed, quarterRatio: daysPassed / 90 };
+
+  const totalDays =
+    Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+  let daysPassed =
+    Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+  daysPassed = Math.max(0, Math.min(daysPassed, totalDays));
+
+  return {
+    daysPassed,
+    quarterRatio: daysPassed / totalDays,
+  };
 };
 
 // Metric icons as MUI SVG elements — rendered directly wherever `{icon}` is used

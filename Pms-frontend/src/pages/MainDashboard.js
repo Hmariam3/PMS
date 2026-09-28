@@ -116,12 +116,34 @@ const resolveScope = (title = "", position = "", organization = "", team = "") =
 };
 
 // ─── Quarter Helpers ──────────────────────────────────────────────────────────
-const getDaysPassed = () => {
+// ─── Quarter Helpers ──────────────────────────────────────────────────────────
+
+// ─── Quarter Helpers ──────────────────────────────────────────────────────────
+
+const getQuarterProgress = () => {
   const start = new Date("2026-07-01");
+  const end = new Date("2026-09-30");
   const today = new Date();
-  const days = Math.floor((today - start) / 86_400_000) + 1;
-  return Math.max(0, Math.min(days, 90));
+
+  const totalDays =
+    Math.floor((end - start) / 86_400_000) + 1;
+
+  const daysPassed = Math.max(
+    0,
+    Math.min(
+      Math.floor((today - start) / 86_400_000) + 1,
+      totalDays
+    )
+  );
+
+  return {
+    daysPassed,
+    totalDays,
+    quarterRatio: daysPassed / totalDays,
+  };
 };
+
+
 
 const fmtNum = (val, decimals = 2) => {
   const n = Number(val) || 0;
@@ -497,10 +519,10 @@ const IconLoan = ({ size = 15, color = "currentColor" }) => (
 );
 
 const SORT_OPTIONS = [
-  { key: "overall",  label: "Overall",  Icon: IconOverall,  color: "#7c3aed", bg: "#ede9fe", activeBg: "#7c3aed" },
-  { key: "deposit",  label: "Deposit",  Icon: IconDeposit,  color: "#0369a1", bg: "#e0f2fe", activeBg: "#0369a1" },
-  { key: "fcy",      label: "FCY",      Icon: IconFCY,      color: "#0f766e", bg: "#ccfbf1", activeBg: "#0f766e" },
-  { key: "loan",     label: "Loan",     Icon: IconLoan,     color: "#b45309", bg: "#fef3c7", activeBg: "#b45309" },
+  { key: "overall", label: "Overall", Icon: IconOverall, color: "#7c3aed", bg: "#ede9fe", activeBg: "#7c3aed" },
+  { key: "deposit", label: "Deposit", Icon: IconDeposit, color: "#0369a1", bg: "#e0f2fe", activeBg: "#0369a1" },
+  { key: "fcy", label: "FCY", Icon: IconFCY, color: "#0f766e", bg: "#ccfbf1", activeBg: "#0f766e" },
+  { key: "loan", label: "Loan", Icon: IconLoan, color: "#b45309", bg: "#fef3c7", activeBg: "#b45309" },
 ];
 
 // ─── Breakdown Table Component ────────────────────────────────────────────────
@@ -1062,8 +1084,9 @@ const MainDashboard = () => {
   const [branchBreakdown, setBranchBreakdown] = useState([]);
 
   const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:4000/api";
-  const daysPassed = getDaysPassed();
-  const quarterRatio = daysPassed / 90;
+  // const daysPassed = getDaysPassed();
+  const { daysPassed, totalDays, quarterRatio } = getQuarterProgress();
+  // const quarterRatio = daysPassed / 90;
 
   const scope = resolveScope(
     user?.title || "",
@@ -1367,7 +1390,7 @@ const MainDashboard = () => {
             <Box sx={{ minWidth: { sm: 260 }, width: { xs: "100%", sm: "auto" } }}>
               <LinearProgress
                 variant="determinate"
-                value={(daysPassed / 90) * 100}
+                value={(daysPassed / totalDays) * 100}
                 sx={{
                   height: 5, borderRadius: 3,
                   bgcolor: "rgba(255,255,255,0.15)",
@@ -1377,7 +1400,7 @@ const MainDashboard = () => {
               <Typography
                 sx={{ color: "rgba(186,230,253,0.6)", fontSize: "0.62rem", mt: 0.5, textAlign: { sm: "right" } }}
               >
-                Day {daysPassed} of 90 — {((daysPassed / 90) * 100).toFixed(0)}% of quarter elapsed
+                Day {daysPassed} of {totalDays} — {((daysPassed / totalDays) * 100).toFixed(0)}% of quarter elapsed
               </Typography>
             </Box>
           </Stack>
