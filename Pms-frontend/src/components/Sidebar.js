@@ -96,6 +96,7 @@ const getNavLinks = (user) => {
         [
           "Chief Executive Officer",
           "Chief, Commercial Officer",
+          "Chief, People Officer",
           "Director, District Coordination and Support",
           "Manager, District Coordination",
           "Manager, District Execution Monitoring",
@@ -214,6 +215,7 @@ const getNavLinks = (user) => {
           show: [
             "Chief Executive Officer",
             "Chief, Commercial Officer",
+            "Chief, People Officer",
             "Director, District Coordination and Support",
             "Manager, District Coordination",
             "Manager, District Execution Monitoring",

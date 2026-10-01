@@ -1067,6 +1067,7 @@ export const getMainDashboardTargets = async (req, res) => {
   const enterpriseTitles = [
     "Chief Executive Officer",
     "Chief, Commercial Officer",
+    "Chief, People Officer",
     "Director, District Coordination and Support",
     "Manager, District Coordination",
     "Manager, District Execution Monitoring",

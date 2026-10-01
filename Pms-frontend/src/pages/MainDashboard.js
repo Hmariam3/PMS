@@ -79,7 +79,7 @@ const needsDarkText = (rate) => rate >= 75 && rate < 100;
 
 // ─── Role Scope Resolution (title-based per visibility matrix) ────────────────
 const resolveScope = (title = "", position = "", organization = "", team = "") => {
-  if (["Chief Executive Officer", "Chief, Commercial Officer", "Enterprise System Operation and Application Developer"].includes(title))
+  if (["Chief Executive Officer", "Chief, Commercial Officer", "Chief, People Officer", "Enterprise System Operation and Application Developer"].includes(title))
     return "enterprise";
   // C-Suite Executive Management: other Chiefs (position CEO/CHF at Head Office)
   if ((position === "CEO" || position === "CHF") && organization === "Ho")
