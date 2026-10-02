@@ -27,6 +27,7 @@ import {
   InputLabel,
   Select,
   TablePagination,
+  Autocomplete,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -475,20 +476,27 @@ const UserList = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Title</InputLabel>
-                    <Select
-                      name="title"
-                      value={formData.title}
-                      label="Title"
-                      onChange={handleChange}
-                    >
-                      <MenuItem value=""><em>Select Title</em></MenuItem>
-                      {titles.map((t) => (
-                        <MenuItem key={t.id} value={t.title_name}>{t.title_name}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    sx={{ width: 300 }}
+                    size="small"
+                    options={titles}
+                    getOptionLabel={(option) => option.title_name || ""}
+                    value={titles.find((t) => t.title_name === formData.title) || null}
+                    onChange={(event, newValue) => {
+                      handleChange({
+                        target: {
+                          name: "title",
+                          value: newValue ? newValue.title_name : "",
+                        },
+                      });
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Title"
+                      />
+                    )}
+                  />
                 </Grid>
                 {/* <Grid item xs={12} sm={6}>
                   <TextField

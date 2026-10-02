@@ -6,7 +6,9 @@ export const getObjectives = async (req, res) => {
     const result = await pool.query(
       `SELECT 
         o.objective_id,
+        o.pillar_id,
         p.pillar_name,
+        o.title_id,
         t.title_name,
         o.objective_name,
         o.objective_weight,

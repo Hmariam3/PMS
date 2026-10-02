@@ -213,10 +213,10 @@ const PerformanceMetricList = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Metric Name</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Objective</TableCell>
                 <TableCell sx={{ fontWeight: 400 }}>Title</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Formula</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Cap</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Weight</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Grade</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Frequency</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Calculated For</TableCell>
                 <TableCell sx={{ fontWeight: 600 }} align="center">
                   Actions
                 </TableCell>
@@ -231,10 +231,10 @@ const PerformanceMetricList = () => {
                     {objectives.find((o) => o.objective_id === m.objective_id)?.objective_name || "-"}
                   </TableCell>
                   <TableCell>{m.title_name}</TableCell>
-                  <TableCell>{m.measurement_formula}</TableCell>
+                  <TableCell>{m.cap}</TableCell>
                   <TableCell>{m.metric_weight}%</TableCell>
                   <TableCell>{objectives.find((o) => o.objective_id === m.objective_id)?.grade || "-"}</TableCell>
-                  <TableCell>{m.evaluation_frequency}</TableCell>
+                  <TableCell>{m.calculated_for}</TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={1} justifyContent="center">
                       <Tooltip title="Details">

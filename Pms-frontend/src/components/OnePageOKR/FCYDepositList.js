@@ -348,8 +348,8 @@ const FCYDepositList = () => {
 
                       {(user.position === "Manager" || user.position === "VP" || user.position === "CHF" ||
                         ((user.position === "Director" || user.position === "Senior Director") && user.process === "Interest Free Banking") ||
-                        ((user.position === "Director" || user.position === "Senior Director") && user.process === "Agri and Cooperative Business") ||
-                        ((user.position === "Director" || user.position === "Senior Director") && user.process === "Growth and Operations") ||
+                        ((user.position === "Director" || user.position === "Senior Director") && user.process === "Agri and Cooperative Banking") ||
+                        ((user.position === "Director" || user.position === "Senior Director") && user.process === "Wholesale Banking") ||
                         ((user.position === "Director" || user.position === "Senior Director") && user.subprocess === "NGO and Institutional Banking")) &&
                         d.createdby !== user.UserName &&
                         d.status !== "Approved" && (

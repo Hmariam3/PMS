@@ -269,7 +269,7 @@ const PerformanceMetricList = ({ member }) => {
 
           let loanRes = 0;
 
-          if (userinfo.process === "Interest Free Banking" || userinfo.process === "Agri and Cooperative Business" || (userinfo.process === "Growth and Operations" && userinfo.organization === "Ho")) {
+          if (userinfo.process === "Interest Free Banking" || userinfo.process === "Agri and Cooperative Banking" || userinfo.process === "Wholesale Banking") {
             loanRes = await axios.post(
               `${baseUrl}/loan/loanBalanceDifferenceMapped`,
               requestData

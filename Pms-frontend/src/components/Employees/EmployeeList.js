@@ -22,6 +22,7 @@ import {
   MenuItem,
   Divider,
   TableContainer,
+  Autocomplete,
 } from "@mui/material";
 
 import {
@@ -622,12 +623,31 @@ const EmployeeList = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required sx={{ width: "300px" }}>
-                    <InputLabel>Title</InputLabel>
-                    <Select name="title" value={employeeForm.title} onChange={handleFormChange} label="Title">
-                      {titles.map((t) => <MenuItem key={t.id} value={t.title_name}>{t.title_name}</MenuItem>)}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    fullWidth
+                    size="small"
+                    options={titles}
+                    getOptionLabel={(option) => option.title_name || ""}
+                    value={titles.find((t) => t.title_name === employeeForm.title) || null}
+                    onChange={(event, newValue) => {
+                      handleFormChange({
+                        target: {
+                          name: "title",
+                          value: newValue ? newValue.title_name : "",
+                        },
+                      });
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Title"
+                        required
+                        error={!!errors.title}
+                        helperText={errors.title}
+                        sx={{ width: { xs: '100%', sm: 300 } }}
+                      />
+                    )}
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth required sx={{ width: "300px" }}>

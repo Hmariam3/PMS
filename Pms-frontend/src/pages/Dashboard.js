@@ -243,7 +243,7 @@ const Dashboard = () => {
 
       // for Loan mapped  for ifb and for branch from  total loan collection 
       let loanRes = 0;
-      if (user.process === "Interest Free Banking" || user.process === "Agri and Cooperative Business" || (user.process === "Growth and Operations" && user.organization === "Ho")) {
+      if (user.process === "Interest Free Banking" || user.process === "Agri and Cooperative Banking" || user.process === "Wholesale Banking") {
         loanRes = await axios.post(
           `${baseUrl}/loan/loanBalanceDifferenceMapped`,
           requestData

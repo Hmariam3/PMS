@@ -27,6 +27,7 @@ import {
   Select,
   MenuItem,
   Divider,
+  Autocomplete,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -224,11 +225,10 @@ const ObjectiveList = () => {
   };
 
   const handleEdit = (obj) => {
-
     setObjectiveForm({
       ...obj,
-      pillar_id: obj.pillar_id?.toString() || "",
-      title_id: obj.title_id?.toString() || "",
+      pillar_id: obj.pillar_id || "",
+      title_id: obj.title_id || "",
     });
     setShowObjectiveForm(true);
   };
@@ -433,12 +433,29 @@ const ObjectiveList = () => {
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth required error={!!objectiveErrors.title_id} size="small" sx={{ width: 300 }}>
-                    <InputLabel>Title</InputLabel>
-                    <Select name="title_id" value={objectiveForm.title_id} onChange={handleObjectiveChange} label="Title">
-                      {titles.map((t) => <MenuItem key={t.id} value={t.id}>{t.title_name}</MenuItem>)}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    fullWidth
+                    size="small"
+                    options={titles}
+                    getOptionLabel={(option) => option.title_name || ""}
+                    value={titles.find((t) => String(t.id) === String(objectiveForm.title_id)) || null}
+                    onChange={(event, newValue) => {
+                      setObjectiveForm({
+                        ...objectiveForm,
+                        title_id: newValue ? newValue.id : "",
+                      });
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Title"
+                        required
+                        error={!!objectiveErrors.title_id}
+                        helperText={objectiveErrors.title_id}
+                        sx={{ width: { xs: '100%', sm: 300 } }}
+                      />
+                    )}
+                  />
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <FormControl fullWidth size="small" sx={{ width: 300 }}>

@@ -32,6 +32,7 @@ import {
 import { Print as PrintIcon } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../AuthContext";
+import { generateEvaluationPdf } from "./generateEvaluationPdf";
 
 const modalStyle = {
   position: "absolute",
@@ -556,8 +557,8 @@ const UserObjectiveEvaluations = () => {
             </Box>
 
             <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }} className="no-print">
-              <Button variant="outlined" color="primary" onClick={() => window.print()}>
-                Print
+              <Button variant="outlined" color="primary" onClick={() => generateEvaluationPdf(selectedUser, getInformativeToDo(selectedUser), user?.FullName || "____________________")}>
+                Download PDF
               </Button>
 
               {selectedUser?.evaluated?.status?.toLowerCase() !== 'agreed' && selectedUser?.evaluated?.evaluated === user.MailAdress && (

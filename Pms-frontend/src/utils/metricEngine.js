@@ -202,7 +202,7 @@ export const fetchSystemData = async (axios, baseUrl, type, requestData, targets
     if (type === "loan" && totalLoanTarget > 0) {
       // console.log("totalLoanTarget", totalLoanTarget);
       let loanActual = 0;
-      if (requestData.process === "Interest Free Banking" || requestData.process === "Agri and Cooperative Business" || (requestData.process === "Growth and Operations" && requestData.organization === "Ho")) {
+      if (requestData.process === "Interest Free Banking" || requestData.process === "Agri and Cooperative Banking" || requestData.process === "Wholesale Banking") {
         const r = await axios.post(`${baseUrl}/loan/loanBalanceDifferenceMapped`, requestData).catch(() => ({ data: {} }));
         loanActual = Number(r.data?.total_difference) || 0;
       } else if (requestData.title === 'Area Manager') {

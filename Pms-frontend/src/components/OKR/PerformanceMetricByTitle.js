@@ -123,10 +123,10 @@ const PerformanceMetricByTitle = () => {
                 <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Metric Name</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Objective</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Formula</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Cap</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Weight</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Unit</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Frequency</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Calculated For</TableCell>
                 {/* <TableCell sx={{ fontWeight: 600 }}>Target FY</TableCell> */}
                 <TableCell sx={{ fontWeight: 600 }} align="center">
                   Actions
@@ -139,10 +139,10 @@ const PerformanceMetricByTitle = () => {
                   <TableCell>{m.metric_id}</TableCell>
                   <TableCell>{m.metric_name}</TableCell>
                   <TableCell>{m.objective_name}</TableCell>
-                  <TableCell>{m.measurement_formula}</TableCell>
+                  <TableCell>{m.cap}</TableCell>
                   <TableCell>{m.metric_weight}%</TableCell>
                   <TableCell>{m.unit_of_measure}</TableCell>
-                  <TableCell>{m.evaluation_frequency}</TableCell>
+                  <TableCell>{m.calculated_for}</TableCell>
                   {/* <TableCell>{m.target_fy}</TableCell> */}
                   <TableCell align="center">
                     <Tooltip title="Details">
