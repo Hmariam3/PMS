@@ -338,8 +338,9 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
   const [mgrForm, setMgrForm] = useState(emptyMgrForm());
   const [chkForm, setChkForm] = useState({
     checker_disciplinary_verified: null,
+    checker_disciplinary_band: "",
     checker_loan_application_verified: null,
-    checker_loan_application_remarks: "",
+    checker_loan_application_count: "",
     checker_remarks: "",
   });
 
@@ -399,8 +400,9 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
 
         setChkForm({
           checker_disciplinary_verified: d.checker_disciplinary_verified ?? null,
+          checker_disciplinary_band: d.checker_disciplinary_band ?? "",
           checker_loan_application_verified: d.checker_loan_application_verified ?? null,
-          checker_loan_application_remarks: d.checker_loan_application_remarks ?? "",
+          checker_loan_application_count: d.checker_loan_application_count ?? "",
           checker_remarks: d.checker_remarks ?? "",
         });
       }
@@ -469,6 +471,25 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
     userTitle === "Enterprise System Operation and Application Developer" ||
     userTitle === "Manager, Employee Services Management"
   ) && !request.checker_verified;
+
+  const effectiveOrgUnit = request.previous_organization_unit || request.employee_organization_unit || "";
+  const orgLower = effectiveOrgUnit.toLowerCase();
+  const isBranchStaff = orgLower === "branch" || orgLower.includes("branch");
+  const isHOStaff = orgLower === "ho" || orgLower.includes("head");
+  const isDOStaff = orgLower === "do" || orgLower.includes("district");
+
+  const disciplinaryOptions = [
+    { label: "Clean Record — No Active Sanction", value: "Clean record", score: 10 },
+    { label: "Minor Sanction (Oral/Written Warning)", value: "Minor sanction", score: 5 },
+    { label: "Major Active Sanction other than Oral and First Letter Warning", value: "Major/active sanction", score: 0 },
+  ];
+
+  const loanCountOptions = (() => {
+    if (request.loan_type === "Personal Against Suretyship" || request.loan_type === "Emergency Loan") {
+      return ["New", "Renewal"];
+    }
+    return ["First Time", "Second Time"];
+  })();
 
   // ── live deduction totals ──────────────────────────────────────────────────
   const calcBorrowerTotal = () => {
@@ -642,14 +663,18 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
           <InfoRow label="Employee ID" value={request.employee_id} />
           <InfoRow label="Date of Birth" value={fmt(request.dob)} />
           <InfoRow label="Branch" value={request.branch_name} />
-          <InfoRow label="Position / Title" value={request.position_title} />
+          <InfoRow label="Current Position / Title" value={request.position_title} />
+          <InfoRow label="Previous Position / Title" value={request.previous_position_title} />
           <InfoRow label="Date of Hire" value={fmt(request.date_of_hire)} />
           <InfoRow label="Length of Service" value={request.length_of_service_years ? `${request.length_of_service_years} yrs` : null} />
           <InfoRow label="Phone / Extension" value={request.phone_extension} />
           <InfoRow label="Date of Request" value={fmt(request.date_of_request)} />
           <InfoRow label="Retirement Date" value={fmt(request.retirement_date)} />
           {request.employee_organization_unit && (
-            <InfoRow label="Organization Unit" value={request.employee_organization_unit} />
+            <InfoRow label="Current Organization Unit" value={request.employee_organization_unit} />
+          )}
+          {request.previous_organization_unit && (
+            <InfoRow label="Previous Organization Unit" value={request.previous_organization_unit} />
           )}
         </Grid>
       </Section>
@@ -703,48 +728,25 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
                   </TableCell>
                 </TableRow>
 
-                {/* Criteria 2 & 3 — branch staff */}
-                {(!request.employee_organization_unit ||
-                  request.employee_organization_unit.toLowerCase().includes("branch")) && (
-                    <>
-                      <TableRow>
-                        <TableCell>2. Individual Performance</TableCell>
-                        <TableCell>{request.individual_performance_band || "—"}</TableCell>
-                        <TableCell align="center">0–50</TableCell>
-                        <TableCell align="center"><Chip label={request.individual_performance_score ?? 0} color="primary" size="small" /></TableCell>
-                        <TableCell align="center">
-                          <Chip label="Verified ✓" color="success" size="small" />
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>3. Team Performance</TableCell>
-                        <TableCell>{request.team_performance_band || "—"}</TableCell>
-                        <TableCell align="center">0–20</TableCell>
-                        <TableCell align="center"><Chip label={request.team_performance_score ?? 0} color="primary" size="small" /></TableCell>
-                        <TableCell align="center">
-                          <Chip label="Verified ✓" color="success" size="small" />
-                        </TableCell>
-                      </TableRow>
-                    </>
-                  )}
-
-                {/* Criterion 4 — DO only */}
-                {request.district_engagement_band && (
+                {/* Criterion 2 — branch staff */}
+                {(isBranchStaff || (!isDOStaff && !isHOStaff)) && (
                   <TableRow>
-                    <TableCell>4. District Office Engagement</TableCell>
-                    <TableCell>{request.district_engagement_band}</TableCell>
-                    <TableCell align="center">0–50</TableCell>
-                    <TableCell align="center"><Chip label={request.district_engagement_score ?? 0} color="primary" size="small" /></TableCell>
-                    <TableCell align="center"><Chip label="Verified ✓" color="success" size="small" /></TableCell>
+                    <TableCell>2. Individual Performance</TableCell>
+                    <TableCell>{request.individual_performance_band || "—"}</TableCell>
+                    <TableCell align="center">0–70</TableCell>
+                    <TableCell align="center"><Chip label={request.individual_performance_score ?? 0} color="primary" size="small" /></TableCell>
+                    <TableCell align="center">
+                      <Chip label="Verified ✓" color="success" size="small" />
+                    </TableCell>
                   </TableRow>
                 )}
 
                 {/* Criterion 5 — DO or HO */}
-                {request.okr_kpi_band && (
+                {(isDOStaff || isHOStaff) && (
                   <TableRow>
                     <TableCell>5. OKR & KPIs Result</TableCell>
-                    <TableCell>{request.okr_kpi_band}</TableCell>
-                    <TableCell align="center">0–{request.employee_organization_unit?.toLowerCase().includes("head") || request.employee_organization_unit?.toLowerCase() === "ho" ? 70 : 20}</TableCell>
+                    <TableCell>{request.okr_kpi_band || "—"}</TableCell>
+                    <TableCell align="center">0–70</TableCell>
                     <TableCell align="center"><Chip label={request.okr_kpi_score ?? 0} color="primary" size="small" /></TableCell>
                     <TableCell align="center"><Chip label="Verified ✓" color="success" size="small" /></TableCell>
                   </TableRow>
@@ -970,32 +972,17 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
                       <TableCell align="center">0–20</TableCell>
                       <TableCell align="center"><Chip label={request.service_tenure_score ?? 0} color="primary" size="small" /></TableCell>
                     </TableRow>
-                    {(!request.employee_organization_unit ||
-                      request.employee_organization_unit.toLowerCase().includes("branch")) && (
-                        <>
-                          <TableRow>
-                            <TableCell>2. Individual Performance</TableCell>
-                            <TableCell align="center">0–50</TableCell>
-                            <TableCell align="center"><Chip label={request.individual_performance_score ?? 0} color="primary" size="small" /></TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>3. Team Performance</TableCell>
-                            <TableCell align="center">0–20</TableCell>
-                            <TableCell align="center"><Chip label={request.team_performance_score ?? 0} color="primary" size="small" /></TableCell>
-                          </TableRow>
-                        </>
-                      )}
-                    {request.district_engagement_band && (
+                    {(isBranchStaff || (!isDOStaff && !isHOStaff)) && (
                       <TableRow>
-                        <TableCell>4. District Office Engagement</TableCell>
-                        <TableCell align="center">0–50</TableCell>
-                        <TableCell align="center"><Chip label={request.district_engagement_score ?? 0} color="primary" size="small" /></TableCell>
+                        <TableCell>2. Individual Performance</TableCell>
+                        <TableCell align="center">0–70</TableCell>
+                        <TableCell align="center"><Chip label={request.individual_performance_score ?? 0} color="primary" size="small" /></TableCell>
                       </TableRow>
                     )}
-                    {request.okr_kpi_band && (
+                    {(isDOStaff || isHOStaff) && (
                       <TableRow>
                         <TableCell>5. OKR & KPIs Result</TableCell>
-                        <TableCell align="center">0–{request.employee_organization_unit?.toLowerCase().includes("head") || request.employee_organization_unit?.toLowerCase() === "ho" ? 70 : 20}</TableCell>
+                        <TableCell align="center">0–70</TableCell>
                         <TableCell align="center"><Chip label={request.okr_kpi_score ?? 0} color="primary" size="small" /></TableCell>
                       </TableRow>
                     )}
@@ -1264,75 +1251,93 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
 
           <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
             <Typography variant="subtitle2" gutterBottom>Staff Self-Declaration</Typography>
-            <Typography variant="body2">
+            <Typography variant="body2" sx={{ mb: 2 }}>
               Band: <strong>{request.disciplinary_record_band || "—"}</strong>
               &nbsp;|&nbsp;
               Score: <strong>{request.disciplinary_record_score ?? 0} pts</strong>
             </Typography>
+
+            <Typography variant="subtitle2" gutterBottom>Disciplinary Record Verification *</Typography>
+            <Stack direction="row" spacing={2}>
+              <Button
+                variant={chkForm.checker_disciplinary_verified === true ? "contained" : "outlined"}
+                color="success" startIcon={<CheckCircleIcon />}
+                onClick={() => setChkForm((p) => ({ ...p, checker_disciplinary_verified: true, checker_disciplinary_band: "" }))}>
+                Verified — Record is Clean
+              </Button>
+              <Button
+                variant={chkForm.checker_disciplinary_verified === false ? "contained" : "outlined"}
+                color="error" startIcon={<CancelIcon />}
+                onClick={() => setChkForm((p) => ({ ...p, checker_disciplinary_verified: false }))}>
+                Flag — Issue Found
+              </Button>
+            </Stack>
+            {chkForm.checker_disciplinary_verified === false && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: "grey.50", border: "1px dashed grey" }}>
+                <Typography variant="body2" color="warning.main" sx={{ mb: 2 }}>
+                  Please select the correct Disciplinary Record band:
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Correct Disciplinary Record Band</InputLabel>
+                  <Select
+                    label="Correct Disciplinary Record Band"
+                    value={chkForm.checker_disciplinary_band}
+                    onChange={(e) => setChkForm((p) => ({ ...p, checker_disciplinary_band: e.target.value }))}
+                  >
+                    <MenuItem value=""><em>-- Select --</em></MenuItem>
+                    {disciplinaryOptions.map((opt) => (
+                      <MenuItem key={opt.label} value={opt.label}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
+          </Paper>
+
+          <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+            <Typography variant="subtitle2" gutterBottom>Staff Declared</Typography>
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              Loan Application Count: <strong>{request.loan_application_count || "—"}</strong>
+            </Typography>
+
+            <Typography variant="subtitle2" gutterBottom>Loan Application Count Verification *</Typography>
+            <Stack direction="row" spacing={2}>
+              <Button
+                variant={chkForm.checker_loan_application_verified === true ? "contained" : "outlined"}
+                color="success" startIcon={<CheckCircleIcon />}
+                onClick={() => setChkForm((p) => ({ ...p, checker_loan_application_verified: true, checker_loan_application_count: "" }))}>
+                Confirmed — Count is Accurate
+              </Button>
+              <Button
+                variant={chkForm.checker_loan_application_verified === false ? "contained" : "outlined"}
+                color="error" startIcon={<CancelIcon />}
+                onClick={() => setChkForm((p) => ({ ...p, checker_loan_application_verified: false }))}>
+                Flag — Discrepancy Found
+              </Button>
+            </Stack>
+            {chkForm.checker_loan_application_verified === false && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: "grey.50", border: "1px dashed grey" }}>
+                <Typography variant="body2" color="warning.main" sx={{ mb: 2 }}>
+                  Please select the correct Loan Application Count:
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Correct Loan Application Count</InputLabel>
+                  <Select
+                    label="Correct Loan Application Count"
+                    value={chkForm.checker_loan_application_count}
+                    onChange={(e) => setChkForm((p) => ({ ...p, checker_loan_application_count: e.target.value }))}
+                  >
+                    <MenuItem value=""><em>-- Select --</em></MenuItem>
+                    {loanCountOptions.map((opt) => (
+                      <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            )}
           </Paper>
 
           <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" gutterBottom>Disciplinary Record Verification *</Typography>
-              <Stack direction="row" spacing={2}>
-                <Button
-                  variant={chkForm.checker_disciplinary_verified === true ? "contained" : "outlined"}
-                  color="success" startIcon={<CheckCircleIcon />}
-                  onClick={() => setChkForm((p) => ({ ...p, checker_disciplinary_verified: true }))}>
-                  Verified — Record is Clean
-                </Button>
-                <Button
-                  variant={chkForm.checker_disciplinary_verified === false ? "contained" : "outlined"}
-                  color="error" startIcon={<CancelIcon />}
-                  onClick={() => setChkForm((p) => ({ ...p, checker_disciplinary_verified: false }))}>
-                  Flag — Issue Found
-                </Button>
-              </Stack>
-              {chkForm.checker_disciplinary_verified === false && (
-                <Alert severity="warning" sx={{ mt: 1 }}>
-                  Flagging will set status to <strong>Not Recommended</strong>.
-                </Alert>
-              )}
-            </Grid>
-
-            <Grid item xs={12}>
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: "grey.50" }}>
-                <Typography variant="subtitle2" gutterBottom>Staff Declared</Typography>
-                <Typography variant="body2">
-                  Loan Application Count: <strong>{request.loan_application_count || "—"}</strong>
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" gutterBottom>Loan Application Count Verification *</Typography>
-              <Stack direction="row" spacing={2}>
-                <Button
-                  variant={chkForm.checker_loan_application_verified === true ? "contained" : "outlined"}
-                  color="success" startIcon={<CheckCircleIcon />}
-                  onClick={() => setChkForm((p) => ({ ...p, checker_loan_application_verified: true }))}>
-                  Confirmed — Count is Accurate
-                </Button>
-                <Button
-                  variant={chkForm.checker_loan_application_verified === false ? "contained" : "outlined"}
-                  color="error" startIcon={<CancelIcon />}
-                  onClick={() => setChkForm((p) => ({ ...p, checker_loan_application_verified: false }))}>
-                  Flag — Discrepancy Found
-                </Button>
-              </Stack>
-              {chkForm.checker_loan_application_verified === false && (
-                <Alert severity="warning" sx={{ mt: 1 }}>
-                  Flagging the loan count will also set status to <strong>Not Recommended</strong>.
-                </Alert>
-              )}
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth multiline rows={2}
-                label="Loan Application Count Remarks (optional)"
-                value={chkForm.checker_loan_application_remarks}
-                onChange={(e) => setChkForm((p) => ({ ...p, checker_loan_application_remarks: e.target.value }))}
-              />
-            </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth multiline rows={3} label="Overall Checker Remarks"

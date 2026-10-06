@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import axios from "axios";
 import {
   Box,
@@ -72,44 +72,16 @@ const SERVICE_BANDS = [
 ];
 
 const INDIVIDUAL_BANDS = [
-  { label: ">120% (Outstanding)", value: ">120%", score: 50 },
-  { label: "100 – 119.99% (Very Good / Meets Expectations)", value: "100-119.99%", score: 40 },
-  { label: "75 – 99.99% (Satisfactory)", value: "75-99.99%", score: 30 },
-  { label: "50 – 74.99% (Good)", value: "50-74.99%", score: 20 },
-  { label: "0 – 50% (Below Expectations)", value: "0-50%", score: 10 },
+  { label: ">120% (Outstanding)", value: ">120%", score: 70 },
+  { label: "100 – 119.99% (Very Good / Meets Expectations)", value: "100-119.99%", score: 56 },
+  { label: "75 – 99.99% (Satisfactory)", value: "75-99.99%", score: 42 },
+  { label: "50 – 74.99% (Good)", value: "50-74.99%", score: 28 },
+  { label: "0 – 50% (Below Expectations)", value: "0-50%", score: 14 },
   { label: "Under June (not yet rated)", value: "Not rated", score: 0 },
 ];
 
-const TEAM_BANDS = [
-  { label: ">120% (Outstanding)", value: ">120%", score: 20 },
-  { label: "100 – 119.99% (Very Good / Meets Expectations)", value: "100-119.99%", score: 16 },
-  { label: "75 – 99.99% (Satisfactory)", value: "75-99.99%", score: 12 },
-  { label: "50 – 74.99% (Good)", value: "50-74.99%", score: 8 },
-  { label: "0 – 50% (Below Expectations)", value: "0-50%", score: 4 },
-  { label: "Under June (not yet rated)", value: "Not rated", score: 0 },
-];
-
-// Criterion 4 — District Office Engagement Result (DO only) — 0-50 pts
-const DISTRICT_ENGAGEMENT_BANDS = [
-  { label: "≥60% of branches achieve ≥100% of the target (Outstanding)", value: "60+", score: 50 },
-  { label: "50 – 59.99% of branches achieve ≥100% of the target (Meets Expectations)", value: "50-59.99%", score: 40 },
-  { label: "40 – 49.99% of branches achieve ≥100% of the target (Satisfactory)", value: "40-49.99%", score: 30 },
-  { label: "20 – 39.99% of branches achieve ≥100% of the target (Needs Improvement)", value: "20-39.99%", score: 20 },
-  { label: "10 – 19.99% of branches achieve ≥100% of the target (Unsatisfactory)", value: "10-19.99%", score: 10 },
-  { label: "1 – 9.99% of branches achieve ≥100% of the target (Poor)", value: "1-9.99%", score: 5 },
-  { label: "0% of branches achieve ≥100% of the target (Poor)", value: "0", score: 0 },
-];
-
-// Criterion 5 — OKR and KPIs Result — District Office Staff — 0-20 pts
-const OKR_DO_BANDS = [
-  { label: "95 – 100% (Outstanding)", value: "95-100%", score: 20 },
-  { label: "70 – 94.99% (Meets Expectations)", value: "70-94.99%", score: 15 },
-  { label: "10 – 69.99% (Satisfactory)", value: "10-69.99%", score: 10 },
-  { label: "< 10% (Not Rated)", value: "<10%", score: 0 },
-];
-
-// Criterion 5 — OKR and KPIs Result — Head Office Staff — 0-70 pts
-const OKR_HO_BANDS = [
+// Criterion 5 — OKR and KPIs Result — DO and HO Staff — 0-70 pts
+const OKR_BANDS = [
   { label: "95 – 100% (Outstanding)", value: "95-100%", score: 70 },
   { label: "70 – 94.99% (Meets Expectations)", value: "70-94.99%", score: 50 },
   { label: "10 – 69.99% (Satisfactory)", value: "10-69.99%", score: 30 },
@@ -143,6 +115,7 @@ const EMPTY_FORM = {
   dob: "",
   branch_name: "",
   position_title: "",
+  previous_position_title: "",
   date_of_hire: "",
   length_of_service_years: "",
   phone_extension: "",
@@ -150,6 +123,7 @@ const EMPTY_FORM = {
   retirement_age: "",
   retirement_date: "",
   employee_organization_unit: "", // Branch | HO | DO
+  previous_organization_unit: "",
 
   // filled by user
   loan_type: "",
@@ -200,8 +174,8 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
 
   const isEmergencyLoan = formData.loan_type === "Emergency Loan";
 
-  // Derive org unit: from fetched employee data, or fall back to user context
-  const orgUnit = formData.employee_organization_unit || user?.organization || "";
+  // Derive org unit: from fetched employee data (previous), or fall back to user context
+  const orgUnit = formData.previous_organization_unit || user?.organization || "";
   // Normalise — DB stores values like "Branch", "Head Office", "District Office"
   // but also short codes "HO" / "DO" may appear.  We match case-insensitively.
   const orgLower = orgUnit.toLowerCase();
@@ -233,11 +207,13 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
         dob: formatDate(existingRequest.dob) || "",
         branch_name: existingRequest.branch_name || "",
         position_title: existingRequest.position_title || "",
+        previous_position_title: existingRequest.previous_position_title || "",
         date_of_hire: formatDate(existingRequest.date_of_hire) || "",
         length_of_service_years: existingRequest.length_of_service_years || "",
         phone_extension: existingRequest.phone_extension || "",
         date_of_request: formatDate(existingRequest.date_of_request) || EMPTY_FORM.date_of_request,
         employee_organization_unit: existingRequest.employee_organization_unit || "",
+        previous_organization_unit: existingRequest.previous_organization_unit || "",
         loan_type: existingRequest.loan_type || "",
         loan_amount_requested: existingRequest.loan_amount_requested || "",
         loan_processing_branch: existingRequest.loan_processing_branch || "",
@@ -304,10 +280,12 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
           dob: formatDate(d.employee_info.dob),
           branch_name: d.employee_info.branch_name || "",
           position_title: d.employee_info.position_title || "",
+          previous_position_title: d.employee_info.previous_position_title || "",
           date_of_hire: formatDate(d.employee_info.date_of_hire),
           length_of_service_years: d.employee_info.length_of_service_years || "",
           phone_extension: d.employee_info.phone_extension || "",
           employee_organization_unit: d.employee_info.organization_unit || "",
+          previous_organization_unit: d.employee_info.previous_organization_unit || "",
           retirement_age: ret.age,
           retirement_date: ret.date,
           service_tenure_band: d.scoring.service_tenure.band || "",
@@ -393,19 +371,8 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
     }));
   };
 
-  const handleDistrictEngagementChange = (e) => {
-    const selected = DISTRICT_ENGAGEMENT_BANDS.find((b) => b.value === e.target.value);
-    if (!selected) return;
-    setFormData((prev) => ({
-      ...prev,
-      district_engagement_band: selected.value,
-      district_engagement_score: selected.score,
-    }));
-  };
-
   const handleOkrKpiChange = (e) => {
-    const bands = isDOStaff ? OKR_DO_BANDS : OKR_HO_BANDS;
-    const selected = bands.find((b) => b.value === e.target.value);
+    const selected = OKR_BANDS.find((b) => b.value === e.target.value);
     if (!selected) return;
     setFormData((prev) => ({
       ...prev,
@@ -419,10 +386,6 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
   // hidden criteria scores.
   const effectiveIndividualScore = (isBranchStaff || (!isDOStaff && !isHOStaff))
     ? formData.individual_performance_score : 0;
-  const effectiveTeamScore = (isBranchStaff || (!isDOStaff && !isHOStaff))
-    ? formData.team_performance_score : 0;
-  const effectiveDistrictEngagementScore = isDOStaff
-    ? formData.district_engagement_score : 0;
   const effectiveOkrKpiScore = (isDOStaff || isHOStaff)
     ? formData.okr_kpi_score : 0;
 
@@ -430,16 +393,65 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
   const totalScore =
     formData.service_tenure_score +
     effectiveIndividualScore +
-    effectiveTeamScore +
-    effectiveDistrictEngagementScore +
     effectiveOkrKpiScore +
     formData.disciplinary_record_score;
 
+  // Dynamic Threshold Calculation
+  const requiredThreshold = useMemo(() => {
+    if (!formData.loan_type) return 0;
+    const titleLower = (formData.previous_position_title || formData.position_title || "").toLowerCase();
+    const isCashierOrController = titleLower.includes("cashier") || titleLower.includes("internal controller");
+    
+    let thresholds = {
+      "Automobile": 100,
+      "Housing/Mortgage": 100,
+      "Personal Against Suretyship": 100,
+      "Emergency Loan": 0,
+    };
+    
+    if (isBranchStaff) {
+      if (isCashierOrController) {
+        thresholds = {
+          "Automobile": 95,
+          "Housing/Mortgage": 95,
+          "Personal Against Suretyship": 85,
+          "Emergency Loan": 0,
+        };
+      } else {
+        thresholds = {
+          "Automobile": 70,
+          "Housing/Mortgage": 70,
+          "Personal Against Suretyship": 65,
+          "Emergency Loan": 0,
+        };
+      }
+    } else if (isDOStaff) {
+      thresholds = {
+        "Automobile": 85,
+        "Housing/Mortgage": 85,
+        "Personal Against Suretyship": 75,
+        "Emergency Loan": 0,
+      };
+    } else if (isHOStaff) {
+      thresholds = {
+        "Automobile": 80,
+        "Housing/Mortgage": 80,
+        "Personal Against Suretyship": 70,
+        "Emergency Loan": 0,
+      };
+    }
+    
+    return thresholds[formData.loan_type] ?? 100;
+  }, [formData.loan_type, isBranchStaff, isDOStaff, isHOStaff, formData.position_title, formData.previous_position_title]);
+
+  const scoreWithoutTenure = isEmergencyLoan ? 0 : (totalScore - formData.service_tenure_score);
+  const wouldPassWithMaxTenure = (scoreWithoutTenure + 20) >= requiredThreshold;
+  const failsThreshold = !isEmergencyLoan && totalScore < requiredThreshold && !wouldPassWithMaxTenure;
+
   // Max score label
   const maxScore = (() => {
-    if (isDOStaff) return 100; // 20 + 50 + 20 + 10 (criteria 1,4,5-DO,6)
-    if (isHOStaff) return 100; // 20 + 70 + 10 (criteria 1,5-HO,6)
-    return 100;                // 20 + 50 + 20 + 10 (criteria 1,2,3,6)
+    if (isDOStaff || isHOStaff) return 100; // 20 + 70 + 10 (criteria 1,5,6)
+    return 100;                // 20 + 70 + 10 (criteria 1,2,6)
   })();
 
   // ── validation ───────────────────────────────────────────────────────────
@@ -484,10 +496,6 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
       toast.error("Please select your disciplinary record status");
       return false;
     }
-    if (!isEmergencyLoan && isDOStaff && !formData.district_engagement_band) {
-      toast.error("Please select your District Office Engagement Result");
-      return false;
-    }
     if (!isEmergencyLoan && (isDOStaff || isHOStaff) && !formData.okr_kpi_band) {
       toast.error("Please select your OKR and KPIs Result");
       return false;
@@ -523,12 +531,10 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
         individual_performance_score: effectiveIndividualScore,
         individual_performance_band: effectiveIndividualScore === 0 && !isBranchStaff
           ? null : formData.individual_performance_band,
-        team_performance_score: effectiveTeamScore,
-        team_performance_band: effectiveTeamScore === 0 && !isBranchStaff
-          ? null : formData.team_performance_band,
-        district_engagement_score: effectiveDistrictEngagementScore,
-        district_engagement_band: effectiveDistrictEngagementScore === 0
-          ? null : formData.district_engagement_band,
+        team_performance_score: 0,
+        team_performance_band: null,
+        district_engagement_score: 0,
+        district_engagement_band: null,
         okr_kpi_score: effectiveOkrKpiScore,
         okr_kpi_band: effectiveOkrKpiScore === 0 ? null : formData.okr_kpi_band,
         created_by: user?.MailAdress || user?.email || "system",
@@ -600,7 +606,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
       if (onSuccess) onSuccess(response.data.data);
     } catch (err) {
       console.error("Error submitting loan request:", err);
-      toast.error(err.message || err.response?.data?.error || "Failed to submit loan request");
+      toast.error(err.response?.data?.error || err.message || "Failed to submit loan request");
     } finally {
       setLoading(false);
     }
@@ -715,8 +721,16 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
           </Grid>
           <Grid item xs={12} md={6}>
             <TextField
-              fullWidth required label="Position / Job Title" name="position_title"
+              fullWidth required label="Current Position / Job Title" name="position_title"
               value={formData.position_title} onChange={handleChange}
+              disabled={readOnly || loadingScoring}
+              InputProps={{ readOnly }}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth label="Previous Position / Job Title" name="previous_position_title"
+              value={formData.previous_position_title} onChange={handleChange}
               disabled={readOnly || loadingScoring}
               InputProps={{ readOnly }}
             />
@@ -755,14 +769,25 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               InputProps={{ readOnly: true }}
             />
           </Grid>
-          {orgUnit && (
+          {formData.employee_organization_unit && (
             <Grid item xs={12} md={6}>
               <TextField
-                fullWidth label="Organization Unit" name="employee_organization_unit"
+                fullWidth label="Current Organization Unit" name="employee_organization_unit"
                 value={formData.employee_organization_unit}
                 disabled
                 InputProps={{ readOnly: true }}
                 helperText="Auto-populated from employee profile"
+              />
+            </Grid>
+          )}
+          {formData.previous_organization_unit && (
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth label="Previous Organization Unit" name="previous_organization_unit"
+                value={formData.previous_organization_unit}
+                disabled
+                InputProps={{ readOnly: true }}
+                helperText="Auto-populated from previous quarter evaluation"
               />
             </Grid>
           )}
@@ -974,9 +999,8 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
             {orgUnit && (
               <Alert severity="info" sx={{ mb: 2 }}>
                 Showing criteria for <strong>{orgUnit}</strong> staff.
-                {isBranchStaff && " Criteria 1, 2, 3 and 6 apply."}
-                {isDOStaff && " Criteria 1, 4, 5 (District Office) and 6 apply."}
-                {isHOStaff && " Criteria 1, 5 (Head Office) and 6 apply."}
+                {isBranchStaff && " Criteria 1, 2 and 6 apply."}
+                {(isDOStaff || isHOStaff) && " Criteria 1, 5 and 6 apply."}
               </Alert>
             )}
 
@@ -1005,85 +1029,28 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               </CardContent>
             </Card>
 
-            {/* ── Criteria 2 & 3 — Branch staff only ── */}
+            {/* ── Criterion 2 — Branch staff only ── */}
             {(isBranchStaff || (!isDOStaff && !isHOStaff)) && (
-              <>
-                {/* Criterion 2 */}
-                <Card sx={{ mb: 3, bgcolor: "grey.50" }}>
-                  <CardContent>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      2. Individual Performance Result (Quarter) — Weight: 0-50 pts
-                      <Chip label="Auto-Calculated" color="success" size="small" sx={{ ml: 2 }} />
-                    </Typography>
-                    <FormControl component="fieldset" fullWidth disabled>
-                      <RadioGroup value={formData.individual_performance_band}>
-                        {INDIVIDUAL_BANDS.map((b) => (
-                          <FormControlLabel
-                            key={b.value} value={b.value}
-                            control={<Radio />}
-                            label={`${b.label} (${b.score} pts)`}
-                            disabled
-                          />
-                        ))}
-                      </RadioGroup>
-                    </FormControl>
-                    <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
-                      Score: <strong>{formData.individual_performance_score} / 50 pts</strong>
-                    </Typography>
-                  </CardContent>
-                </Card>
-
-                {/* Criterion 3 */}
-                <Card sx={{ mb: 3, bgcolor: "grey.50" }}>
-                  <CardContent>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      3. Team Performance Result (Quarter) — Weight: 0-20 pts
-                      <Chip label="Auto-Calculated" color="success" size="small" sx={{ ml: 2 }} />
-                    </Typography>
-                    <FormControl component="fieldset" fullWidth disabled>
-                      <RadioGroup value={formData.team_performance_band}>
-                        {TEAM_BANDS.map((b) => (
-                          <FormControlLabel
-                            key={b.value} value={b.value}
-                            control={<Radio />}
-                            label={`${b.label} (${b.score} pts)`}
-                            disabled
-                          />
-                        ))}
-                      </RadioGroup>
-                    </FormControl>
-                    <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
-                      Score: <strong>{formData.team_performance_score} / 20 pts</strong>
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </>
-            )}
-
-            {/* ── Criterion 4 — District Office Engagement (DO only) ── */}
-            {isDOStaff && (
-              <Card sx={{ mb: 3 }}>
+              <Card sx={{ mb: 3, bgcolor: "grey.50" }}>
                 <CardContent>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    4. District Office Engagement Result — Weight: 0-50 pts
-                    <Chip label="Your Input Required" color="warning" size="small" sx={{ ml: 2 }} />
+                    2. Individual Performance Result (Quarter) — Weight: 0-70 pts
+                    <Chip label="Auto-Calculated" color="success" size="small" sx={{ ml: 2 }} />
                   </Typography>
-                  <FormControl component="fieldset" required fullWidth>
-                    <RadioGroup
-                      value={formData.district_engagement_band}
-                      onChange={handleDistrictEngagementChange}
-                    >
-                      {DISTRICT_ENGAGEMENT_BANDS.map((b) => (
+                  <FormControl component="fieldset" fullWidth disabled>
+                    <RadioGroup value={formData.individual_performance_band}>
+                      {INDIVIDUAL_BANDS.map((b) => (
                         <FormControlLabel
                           key={b.value} value={b.value}
                           control={<Radio />}
                           label={`${b.label} (${b.score} pts)`}
+                          disabled
                         />
                       ))}
                     </RadioGroup>
                   </FormControl>
                   <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
-                    Score: <strong>{formData.district_engagement_score} / 50 pts</strong>
+                    Score: <strong>{formData.individual_performance_score} / 70 pts</strong>
                   </Typography>
                 </CardContent>
               </Card>
@@ -1094,9 +1061,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
               <Card sx={{ mb: 3 }}>
                 <CardContent>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    5. OKR and KPIs Result —{" "}
-                    {isDOStaff ? "District Office Staff" : "Head Office Staff"} —{" "}
-                    Weight: 0-{isDOStaff ? 20 : 70} pts
+                    5. OKR and KPIs Result — DO and HO Staff — Weight: 0-70 pts
                     <Chip label="Your Input Required" color="warning" size="small" sx={{ ml: 2 }} />
                   </Typography>
                   <FormControl component="fieldset" required fullWidth>
@@ -1104,7 +1069,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                       value={formData.okr_kpi_band}
                       onChange={handleOkrKpiChange}
                     >
-                      {(isDOStaff ? OKR_DO_BANDS : OKR_HO_BANDS).map((b) => (
+                      {OKR_BANDS.map((b) => (
                         <FormControlLabel
                           key={b.value} value={b.value}
                           control={<Radio />}
@@ -1114,7 +1079,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                     </RadioGroup>
                   </FormControl>
                   <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
-                    Score: <strong>{formData.okr_kpi_score} / {isDOStaff ? 20 : 70} pts</strong>
+                    Score: <strong>{formData.okr_kpi_score} / 70 pts</strong>
                   </Typography>
                 </CardContent>
               </Card>
@@ -1217,14 +1182,20 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
             variant="contained"
             color="primary"
             size="large"
-            disabled={loading || !formData.staff_declaration_confirmed}
-            sx={{ minWidth: 200, opacity: formData.staff_declaration_confirmed ? 1 : 0.5 }}
+            disabled={loading || !formData.staff_declaration_confirmed || failsThreshold}
+            sx={{ minWidth: 200, opacity: (formData.staff_declaration_confirmed && !failsThreshold) ? 1 : 0.5 }}
           >
             {loading ? "Submitting…" : isEditMode ? "Update Request" : "Submit Request"}
           </Button>
         </Stack>
 
-        {!formData.staff_declaration_confirmed && (
+        {failsThreshold && (
+          <Alert severity="error" sx={{ mt: 3 }}>
+            <strong>Threshold Not Met:</strong> Your total score ({totalScore}) does not meet the required threshold ({requiredThreshold}) for the selected loan type. Even with a maximum service tenure score (20), your score would be {scoreWithoutTenure + 20}, which is still below the threshold. You cannot submit this request.
+          </Alert>
+        )}
+
+        {!formData.staff_declaration_confirmed && !failsThreshold && (
           <Typography variant="body2" color="error" align="center" sx={{ mt: 2 }}>
             Please check the declaration box to enable the submit button
           </Typography>

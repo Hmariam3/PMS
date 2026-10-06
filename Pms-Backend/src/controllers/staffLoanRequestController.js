@@ -37,11 +37,11 @@ const calculateIndividualPerformanceScore = (performanceResult) => {
 
   const result = parseFloat(performanceResult);
 
-  if (result > 120) return { band: '>120%', score: 50 };
-  if (result >= 100) return { band: '100-119.99%', score: 40 };
-  if (result >= 75) return { band: '75-99.99%', score: 30 };
-  if (result >= 50) return { band: '50-74.99%', score: 20 };
-  if (result >= 0) return { band: '0-50%', score: 10 };
+  if (result > 120) return { band: '>120%', score: 70 };
+  if (result >= 100) return { band: '100-119.99%', score: 56 };
+  if (result >= 75) return { band: '75-99.99%', score: 42 };
+  if (result >= 50) return { band: '50-74.99%', score: 28 };
+  if (result >= 0) return { band: '0-50%', score: 14 };
   return { band: 'Not rated', score: 0 };
 };
 
@@ -59,6 +59,58 @@ const calculateTeamPerformanceScore = (teamResult) => {
   if (result >= 50) return { band: '50-74.99%', score: 8 };
   if (result >= 0) return { band: '0-50%', score: 4 };
   return { band: 'Not rated', score: 0 };
+};
+
+// Helper function to calculate required threshold
+const getRequiredThreshold = (loanType, orgUnit, positionTitle) => {
+  const orgLower = (orgUnit || "").toLowerCase();
+  const isBranch = orgLower === "branch" || orgLower.includes("branch");
+  const isHO = orgLower === "ho" || orgLower.includes("head");
+  const isDO = orgLower === "do" || orgLower.includes("district");
+  
+  const titleLower = (positionTitle || "").toLowerCase();
+  const isCashierOrController = titleLower.includes("cashier") || titleLower.includes("internal controller");
+  
+  let thresholds = {
+    "Automobile": 100,
+    "Housing/Mortgage": 100,
+    "Personal Against Suretyship": 100,
+    "Emergency Loan": 0,
+  };
+  
+  if (isBranch) {
+    if (isCashierOrController) {
+      thresholds = {
+        "Automobile": 95,
+        "Housing/Mortgage": 95,
+        "Personal Against Suretyship": 85,
+        "Emergency Loan": 0,
+      };
+    } else {
+      thresholds = {
+        "Automobile": 70,
+        "Housing/Mortgage": 70,
+        "Personal Against Suretyship": 65,
+        "Emergency Loan": 0,
+      };
+    }
+  } else if (isDO) {
+    thresholds = {
+      "Automobile": 85,
+      "Housing/Mortgage": 85,
+      "Personal Against Suretyship": 75,
+      "Emergency Loan": 0,
+    };
+  } else if (isHO) {
+    thresholds = {
+      "Automobile": 80,
+      "Housing/Mortgage": 80,
+      "Personal Against Suretyship": 70,
+      "Emergency Loan": 0,
+    };
+  }
+  
+  return thresholds[loanType] ?? 100;
 };
 
 // Get auto-calculated loan scoring data for an employee
@@ -112,7 +164,9 @@ export const getEmployeeLoanScoringData = async (req, res) => {
         employee_id,
         performance_result,
         performance_status,
-        created_date
+        created_date,
+        title,
+        organizational_unit
       FROM public.previous_quarter_employee_evaluation_result 
       WHERE employee_id = $1
       ORDER BY created_date DESC
@@ -130,42 +184,9 @@ export const getEmployeeLoanScoringData = async (req, res) => {
       );
     }
 
-    // 4. Get team/branch performance from branch_vital
-    // First get user's company_code from users table using employee's email
-    const userResult = await pool.query(
-      `SELECT company_code 
-       FROM public.users 
-       WHERE LOWER(mail_address) = LOWER($1)`,
-      [employee.outlook_address || employee.business_email_address]
-    );
-
+    // 4. Team performance is removed, default to 0
     let teamPerformance = { band: 'Not rated', score: 0 };
     let branchVitalData = null;
-
-    if (userResult.rows.length > 0 && userResult.rows[0].company_code) {
-      const companyCode = userResult.rows[0].company_code;
-
-      const branchVitalResult = await pool.query(
-        `SELECT 
-          "COMPANY_CODE",
-          "BRANCH_NAME",
-          "OUT_OF_100",
-          "TOTAL_RESULT",
-          "CREATED_AT"
-        FROM public.branch_vital 
-        WHERE "COMPANY_CODE" = $1
-        ORDER BY "CREATED_AT" DESC
-        LIMIT 1`,
-        [companyCode]
-      );
-
-      if (branchVitalResult.rows.length > 0) {
-        branchVitalData = branchVitalResult.rows[0];
-        teamPerformance = calculateTeamPerformanceScore(
-          branchVitalData.OUT_OF_100
-        );
-      }
-    }
 
     // 5. Calculate total score (excluding disciplinary which user fills)
     const calculatedTotalScore =
@@ -181,11 +202,13 @@ export const getEmployeeLoanScoringData = async (req, res) => {
         dob: employee.dob,
         branch_name: employee.branch_name,
         position_title: employee.title,
+        previous_position_title: performanceData?.title || null,
         date_of_hire: employee.company_entry_date,
         length_of_service_years: lengthOfServiceYears,
         phone_extension: employee.business_phone_number,
         email: employee.business_email_address || employee.outlook_address,
         organization_unit: employee.organization_unit || null,
+        previous_organization_unit: performanceData?.organizational_unit || null,
       },
       scoring: {
         service_tenure: {
@@ -386,6 +409,8 @@ export const createStaffLoanRequest = async (req, res) => {
     retirement_date,
     attachment_file_name,
     employee_organization_unit,
+    previous_position_title,
+    previous_organization_unit,
     service_tenure_band,
     service_tenure_score,
     individual_performance_band,
@@ -415,13 +440,27 @@ export const createStaffLoanRequest = async (req, res) => {
   const isEmergency = loan_type === "Emergency Loan";
 
   // For emergency loans scores are all 0
-  const svc  = isEmergency ? 0 : (parseInt(service_tenure_score)     || 0);
-  const ind  = isEmergency ? 0 : (parseInt(individual_performance_score) || 0);
-  const team = isEmergency ? 0 : (parseInt(team_performance_score)   || 0);
-  const de   = isEmergency ? 0 : (parseInt(district_engagement_score)|| 0);
-  const okr  = isEmergency ? 0 : (parseInt(okr_kpi_score)            || 0);
-  const disc = isEmergency ? 0 : (parseInt(disciplinary_record_score)|| 0);
+  const svc = isEmergency ? 0 : (parseInt(service_tenure_score) || 0);
+  const ind = isEmergency ? 0 : (parseInt(individual_performance_score) || 0);
+  const team = isEmergency ? 0 : (parseInt(team_performance_score) || 0);
+  const de = isEmergency ? 0 : (parseInt(district_engagement_score) || 0);
+  const okr = isEmergency ? 0 : (parseInt(okr_kpi_score) || 0);
+  const disc = isEmergency ? 0 : (parseInt(disciplinary_record_score) || 0);
   const total = svc + ind + team + de + okr + disc;
+
+  const effectiveOrgUnit = previous_organization_unit || employee_organization_unit || "";
+  const effectiveTitle = previous_position_title || position_title || "";
+  const requiredThreshold = getRequiredThreshold(loan_type, effectiveOrgUnit, effectiveTitle);
+  const scoreWithoutTenure = isEmergency ? 0 : (total - svc);
+  const MAX_TENURE = 20;
+  const wouldPassWithMaxTenure = (scoreWithoutTenure + MAX_TENURE) >= requiredThreshold;
+  
+  if (!isEmergency && total < requiredThreshold && !wouldPassWithMaxTenure) {
+    return res.status(400).json({
+      success: false,
+      error: `Your total score (${total}) does not meet the required threshold (${requiredThreshold}) for this loan type. Even with a maximum tenure score, your score would be ${scoreWithoutTenure + MAX_TENURE}, which is still below the threshold.`
+    });
+  }
 
   try {
     const result = await pool.query(
@@ -433,6 +472,8 @@ export const createStaffLoanRequest = async (req, res) => {
         basic_salary, loan_application_count, retirement_date,
         attachment_file_name,
         employee_organization_unit,
+        previous_position_title,
+        previous_organization_unit,
         service_tenure_band, service_tenure_score,
         individual_performance_band, individual_performance_score,
         team_performance_band, team_performance_score,
@@ -451,16 +492,18 @@ export const createStaffLoanRequest = async (req, res) => {
         $14,$15,$16,
         $17,
         $18,
-        $19,$20,
+        $19,
+        $20,
         $21,$22,
         $23,$24,
         $25,$26,
         $27,$28,
         $29,$30,
-        $31,
-        $32,$33,
-        $34,
-        $35,$36
+        $31,$32,
+        $33,
+        $34,$35,
+        $36,
+        $37,$38
       ) RETURNING *`,
       [
         employee_id, full_name, dob || null, branch_name, position_title,
@@ -471,6 +514,8 @@ export const createStaffLoanRequest = async (req, res) => {
         basic_salary || null, loan_application_count || null, retirement_date || null,
         attachment_file_name || null,
         employee_organization_unit || null,
+        previous_position_title || null,
+        previous_organization_unit || null,
         isEmergency ? null : (service_tenure_band || null), svc,
         isEmergency ? null : (individual_performance_band || null), ind,
         isEmergency ? null : (team_performance_band || null), team,
@@ -513,6 +558,8 @@ export const updateStaffLoanRequest = async (req, res) => {
     retirement_date,
     attachment_file_name,
     employee_organization_unit,
+    previous_position_title,
+    previous_organization_unit,
     service_tenure_band,
     service_tenure_score,
     individual_performance_band,
@@ -532,15 +579,42 @@ export const updateStaffLoanRequest = async (req, res) => {
 
   const isEmergency = loan_type === "Emergency Loan";
 
-  const svc  = isEmergency ? 0 : (parseInt(service_tenure_score)      || 0);
-  const ind  = isEmergency ? 0 : (parseInt(individual_performance_score) || 0);
-  const team = isEmergency ? 0 : (parseInt(team_performance_score)    || 0);
-  const de   = isEmergency ? 0 : (parseInt(district_engagement_score) || 0);
-  const okr  = isEmergency ? 0 : (parseInt(okr_kpi_score)             || 0);
+  const svc = isEmergency ? 0 : (parseInt(service_tenure_score) || 0);
+  const ind = isEmergency ? 0 : (parseInt(individual_performance_score) || 0);
+  const team = isEmergency ? 0 : (parseInt(team_performance_score) || 0);
+  const de = isEmergency ? 0 : (parseInt(district_engagement_score) || 0);
+  const okr = isEmergency ? 0 : (parseInt(okr_kpi_score) || 0);
   const disc = isEmergency ? 0 : (parseInt(disciplinary_record_score) || 0);
   const total_score_claimed = svc + ind + team + de + okr + disc;
 
   try {
+    const existing = await pool.query(
+      `SELECT employee_organization_unit, previous_organization_unit, position_title, previous_position_title 
+       FROM staff_loan_requests WHERE id = $1`, [id]
+    );
+
+    if (existing.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Loan request not found"
+      });
+    }
+
+    const reqData = existing.rows[0];
+    const effectiveOrgUnit = previous_organization_unit || employee_organization_unit || reqData.previous_organization_unit || reqData.employee_organization_unit || "";
+    const effectiveTitle = previous_position_title || reqData.previous_position_title || reqData.position_title || "";
+    const requiredThreshold = getRequiredThreshold(loan_type, effectiveOrgUnit, effectiveTitle);
+    const scoreWithoutTenure = isEmergency ? 0 : (total_score_claimed - svc);
+    const MAX_TENURE = 20;
+    const wouldPassWithMaxTenure = (scoreWithoutTenure + MAX_TENURE) >= requiredThreshold;
+    
+    if (!isEmergency && total_score_claimed < requiredThreshold && !wouldPassWithMaxTenure) {
+      return res.status(400).json({
+        success: false,
+        error: `Your total score (${total_score_claimed}) does not meet the required threshold (${requiredThreshold}) for this loan type. Even with a maximum tenure score, your score would be ${scoreWithoutTenure + MAX_TENURE}, which is still below the threshold.`
+      });
+    }
+
     const result = await pool.query(
       `UPDATE staff_loan_requests SET
         loan_type                        = COALESCE($1,  loan_type),
@@ -552,24 +626,26 @@ export const updateStaffLoanRequest = async (req, res) => {
         retirement_date                  = COALESCE($7,  retirement_date),
         attachment_file_name             = COALESCE($8,  attachment_file_name),
         employee_organization_unit       = COALESCE($9,  employee_organization_unit),
-        service_tenure_band              = $10,
-        service_tenure_score             = $11,
-        individual_performance_band      = $12,
-        individual_performance_score     = $13,
-        team_performance_band            = $14,
-        team_performance_score           = $15,
-        district_engagement_band         = $16,
-        district_engagement_score        = $17,
-        okr_kpi_band                     = $18,
-        okr_kpi_score                    = $19,
-        disciplinary_record_band         = $20,
-        disciplinary_record_score        = $21,
-        total_score_claimed              = $22,
-        staff_declaration_confirmed      = COALESCE($23, staff_declaration_confirmed),
-        staff_signature_date             = CASE WHEN $23 = true THEN CURRENT_DATE ELSE staff_signature_date END,
-        guarantor_basic_salary           = COALESCE($24, guarantor_basic_salary),
-        updated_by                       = $25
-      WHERE id = $26
+        previous_position_title          = COALESCE($10, previous_position_title),
+        previous_organization_unit       = COALESCE($11, previous_organization_unit),
+        service_tenure_band              = $12,
+        service_tenure_score             = $13,
+        individual_performance_band      = $14,
+        individual_performance_score     = $15,
+        team_performance_band            = $16,
+        team_performance_score           = $17,
+        district_engagement_band         = $18,
+        district_engagement_score        = $19,
+        okr_kpi_band                     = $20,
+        okr_kpi_score                    = $21,
+        disciplinary_record_band         = $22,
+        disciplinary_record_score        = $23,
+        total_score_claimed              = $24,
+        staff_declaration_confirmed      = COALESCE($25, staff_declaration_confirmed),
+        staff_signature_date             = CASE WHEN $25 = true THEN CURRENT_DATE ELSE staff_signature_date END,
+        guarantor_basic_salary           = COALESCE($26, guarantor_basic_salary),
+        updated_by                       = $27
+      WHERE id = $28
       RETURNING *`,
       [
         loan_type,
@@ -581,6 +657,8 @@ export const updateStaffLoanRequest = async (req, res) => {
         retirement_date || null,
         attachment_file_name || null,
         employee_organization_unit || null,
+        previous_position_title || null,
+        previous_organization_unit || null,
         isEmergency ? null : (service_tenure_band || null),
         svc,
         isEmergency ? null : (individual_performance_band || null),
@@ -971,7 +1049,9 @@ export const managerReview = async (req, res) => {
       `SELECT id, basic_salary, manager_verified, loan_type,
               service_tenure_score, individual_performance_score,
               team_performance_score, disciplinary_record_score,
-              district_engagement_score, okr_kpi_score
+              district_engagement_score, okr_kpi_score,
+              employee_organization_unit, previous_organization_unit,
+              position_title, previous_position_title
        FROM staff_loan_requests WHERE id = $1`,
       [id]
     );
@@ -1001,30 +1081,28 @@ export const managerReview = async (req, res) => {
     const isEmergency = existing.rows[0].loan_type === "Emergency Loan";
 
     // ── Use the system-calculated scores directly from DB (not editable by manager) ──
-    const svcScore  = existing.rows[0].service_tenure_score || 0;
-    const indScore  = existing.rows[0].individual_performance_score || 0;
+    const svcScore = existing.rows[0].service_tenure_score || 0;
+    const indScore = existing.rows[0].individual_performance_score || 0;
     const teamScore = existing.rows[0].team_performance_score || 0;
-    const deScore   = existing.rows[0].district_engagement_score || 0;
-    const okrScore  = existing.rows[0].okr_kpi_score || 0;
+    const deScore = existing.rows[0].district_engagement_score || 0;
+    const okrScore = existing.rows[0].okr_kpi_score || 0;
     const discScore = existing.rows[0].disciplinary_record_score || 0;
     const totalScore = isEmergency ? 0 : (svcScore + indScore + teamScore + deScore + okrScore + discScore);
 
-    const THRESHOLDS = {
-      "Automobile":                100,
-      "Housing/Mortgage":          85,
-      "Personal Against Suretyship": 50,
-      "Emergency Loan":            0,
-    };
-    const loanType  = existing.rows[0].loan_type;
-    const threshold = THRESHOLDS[loanType] ?? 100;
+    const reqData = existing.rows[0];
+    const orgUnit = reqData.previous_organization_unit || reqData.employee_organization_unit || "";
+    const title = (reqData.previous_position_title || reqData.position_title || "").toLowerCase();
+
+    const loanType = reqData.loan_type;
+    const threshold = getRequiredThreshold(loanType, orgUnit, title);
 
     // Special review: fails threshold BUT the shortfall is entirely from tenure (C1).
     // Score without tenure + max tenure (20) would meet the threshold.
-    const tenureScore        = existing.rows[0].service_tenure_score || 0;
+    const tenureScore = existing.rows[0].service_tenure_score || 0;
     const scoreWithoutTenure = isEmergency ? 0 : (totalScore - tenureScore);
-    const MAX_TENURE         = 20;
+    const MAX_TENURE = 20;
     const wouldPassWithMaxTenure = (scoreWithoutTenure + MAX_TENURE) >= threshold;
-    const isSpecialReview    = !isEmergency && totalScore < threshold && wouldPassWithMaxTenure;
+    const isSpecialReview = !isEmergency && totalScore < threshold && wouldPassWithMaxTenure;
 
     const finalDecision = isEmergency || totalScore >= threshold || isSpecialReview
       ? "Recommended"
@@ -1033,8 +1111,8 @@ export const managerReview = async (req, res) => {
 
     // ── Deduction calculations (borrower) ────────────────────────────────────
     const incomeTax = parseFloat(deduction_income_tax) || 0;
-    const pension7  = parseFloat(deduction_pension_7)  || 0;
-    const loanRepay = parseFloat(deduction_amount)     || 0;
+    const pension7 = parseFloat(deduction_pension_7) || 0;
+    const loanRepay = parseFloat(deduction_amount) || 0;
 
     const otherItems = Array.isArray(deduction_other_items) ? deduction_other_items : [];
     const otherTotal = otherItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
@@ -1044,9 +1122,9 @@ export const managerReview = async (req, res) => {
 
     // ── Guarantor deduction calculations ─────────────────────────────────────
     const gBasicSalary = parseFloat(guarantor_basic_salary) || 0;
-    const gIncomeTax   = parseFloat(guarantor_deduction_income_tax) || 0;
-    const gPension7    = parseFloat(guarantor_deduction_pension_7)  || 0;
-    const gLoanRepay   = parseFloat(guarantor_deduction_amount)     || 0;
+    const gIncomeTax = parseFloat(guarantor_deduction_income_tax) || 0;
+    const gPension7 = parseFloat(guarantor_deduction_pension_7) || 0;
+    const gLoanRepay = parseFloat(guarantor_deduction_amount) || 0;
 
     const gOtherItems = Array.isArray(guarantor_deduction_other_items) ? guarantor_deduction_other_items : [];
     const gOtherTotal = gOtherItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
@@ -1103,13 +1181,13 @@ export const managerReview = async (req, res) => {
         netSalary,
         JSON.stringify(Array.isArray(outstanding_balances) ? outstanding_balances : []),
         gBasicSalary || null,
-        gIncomeTax   || null,
-        gPension7    || null,
+        gIncomeTax || null,
+        gPension7 || null,
         JSON.stringify(gOtherItems),
-        gLoanRepay   || null,
+        gLoanRepay || null,
         parseInt(guarantor_deduction_months, 10) || null,
         gTotalDeduction || null,
-        gNetSalary      || null,
+        gNetSalary || null,
         JSON.stringify(Array.isArray(guarantor_outstanding_balances) ? guarantor_outstanding_balances : []),
         loan_processor_assigned || null,
         manager_remarks || null,
@@ -1142,6 +1220,8 @@ export const checkerReview = async (req, res) => {
     checker_loan_application_verified,    // boolean
     checker_loan_application_remarks,     // text
     checker_remarks,
+    checker_disciplinary_band,            // text (optional correction)
+    checker_loan_application_count,       // text (optional correction)
   } = req.body;
 
   // ── Role enforcement ──────────────────────────────────────────────────────
@@ -1173,7 +1253,7 @@ export const checkerReview = async (req, res) => {
 
   try {
     const existing = await pool.query(
-      `SELECT id, checker_verified FROM staff_loan_requests WHERE id = $1`,
+      `SELECT * FROM staff_loan_requests WHERE id = $1`,
       [id]
     );
 
@@ -1191,8 +1271,37 @@ export const checkerReview = async (req, res) => {
     const disciplinaryClean = checker_disciplinary_verified === true || checker_disciplinary_verified === "true";
     const loanCountVerified = checker_loan_application_verified === true || checker_loan_application_verified === "true";
 
-    // If either check fails → Not Recommended
-    const finalStatus = (disciplinaryClean && loanCountVerified) ? "Checker Review" : "Not Recommended";
+    let finalDiscBand = existing.rows[0].disciplinary_record_band;
+    let finalDiscScore = existing.rows[0].disciplinary_record_score;
+    let finalLoanCount = existing.rows[0].loan_application_count;
+
+    // Correct Disciplinary Record if flagged and a new band is provided
+    if (!disciplinaryClean && checker_disciplinary_band) {
+      finalDiscBand = checker_disciplinary_band;
+      if (finalDiscBand.includes("Clean Record")) finalDiscScore = 10;
+      else if (finalDiscBand.includes("Minor Sanction")) finalDiscScore = 5;
+      else if (finalDiscBand.includes("Major Active Sanction")) finalDiscScore = 0;
+    }
+
+    // Correct Loan Application Count if flagged and a new count is provided
+    if (!loanCountVerified && checker_loan_application_count) {
+      finalLoanCount = checker_loan_application_count;
+    }
+
+    // Calculate new total score claimed
+    const isEmergency = existing.rows[0].loan_type === "Emergency Loan";
+    const svcScore = existing.rows[0].service_tenure_score || 0;
+    const indScore = existing.rows[0].individual_performance_score || 0;
+    const teamScore = existing.rows[0].team_performance_score || 0;
+    const deScore = existing.rows[0].district_engagement_score || 0;
+    const okrScore = existing.rows[0].okr_kpi_score || 0;
+    const newTotalScore = isEmergency ? 0 : (svcScore + indScore + teamScore + deScore + okrScore + finalDiscScore);
+
+    // If it's flagged and NOT corrected, we fail it. If it's flagged BUT corrected, we pass it forward.
+    const isDiscResolved = disciplinaryClean || !!checker_disciplinary_band;
+    const isLoanResolved = loanCountVerified || !!checker_loan_application_count;
+
+    const finalStatus = (isDiscResolved && isLoanResolved) ? "Checker Review" : "Not Recommended";
 
     const result = await pool.query(
       `UPDATE staff_loan_requests SET
@@ -1204,8 +1313,12 @@ export const checkerReview = async (req, res) => {
         checker_loan_application_remarks     = $4,
         checker_remarks                      = $5,
         status                               = $6,
+        disciplinary_record_band             = $7,
+        disciplinary_record_score            = $8,
+        total_score_claimed                  = $9,
+        loan_application_count               = $10,
         updated_at                           = CURRENT_TIMESTAMP
-      WHERE id = $7
+      WHERE id = $11
       RETURNING *`,
       [
         reviewer_email,
@@ -1214,6 +1327,10 @@ export const checkerReview = async (req, res) => {
         checker_loan_application_remarks || null,
         checker_remarks || null,
         finalStatus,
+        finalDiscBand,
+        finalDiscScore,
+        newTotalScore,
+        finalLoanCount,
         id,
       ]
     );
@@ -1337,13 +1454,13 @@ export const uploadGuarantorDocument = async (req, res) => {
     const finalFilename = `GUARANTOR_${baseFilename}`;
 
     // Rename temp file
-    const tmpPath   = path.join(UPLOAD_DIR, req.file.filename);
+    const tmpPath = path.join(UPLOAD_DIR, req.file.filename);
     const finalPath = path.join(UPLOAD_DIR, finalFilename);
     try {
       fs.renameSync(tmpPath, finalPath);
     } catch (renameErr) {
       fs.copyFileSync(tmpPath, finalPath);
-      try { fs.unlinkSync(tmpPath); } catch (_) {}
+      try { fs.unlinkSync(tmpPath); } catch (_) { }
     }
 
     // Remove old guarantor attachment if different
@@ -1411,12 +1528,12 @@ export const downloadGuarantorDocument = async (req, res) => {
 
     const ext = path.extname(guarantor_attachment_file_name).toLowerCase();
     const mimeTypes = {
-      ".pdf":  "application/pdf",
-      ".doc":  "application/msword",
+      ".pdf": "application/pdf",
+      ".doc": "application/msword",
       ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ".jpg":  "image/jpeg",
+      ".jpg": "image/jpeg",
       ".jpeg": "image/jpeg",
-      ".png":  "image/png",
+      ".png": "image/png",
     };
     const contentType = mimeTypes[ext] || "application/octet-stream";
 
