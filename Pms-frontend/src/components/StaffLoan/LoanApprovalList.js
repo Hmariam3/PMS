@@ -70,7 +70,7 @@ function CustomToolbar() {
 const LoanApprovalList = () => {
   const { user } = useContext(AuthContext);
 
-  const userTitle    = user?.title    || "";
+  const userTitle = user?.title || "";
   const userFullName = user?.full_name || "";
 
   // Two roles that can see this page:
@@ -88,10 +88,10 @@ const LoanApprovalList = () => {
 
   const canAccess = isApprover || isAssignedProcessor;
 
-  const [requests, setRequests]   = useState([]);
-  const [loading, setLoading]     = useState(false);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
-  const [selected, setSelected]   = useState(null);
+  const [selected, setSelected] = useState(null);
   const [accessChecked, setAccessChecked] = useState(false);
 
   const fetchAll = async () => {
@@ -120,7 +120,7 @@ const LoanApprovalList = () => {
   }, []);
 
   const closeDetail = () => { setShowDetail(false); setSelected(null); };
-  const onApproved  = () => { closeDetail(); fetchAll(); };
+  const onApproved = () => { closeDetail(); fetchAll(); };
 
   // ── columns ────────────────────────────────────────────────────────────────
   const columns = [
@@ -148,22 +148,42 @@ const LoanApprovalList = () => {
       renderCell: ({ value }) => value ?? 0,
     },
     {
+      field: "loan_application_count",
+      headerName: "App Count",
+      width: 110,
+      renderCell: ({ value }) => value ?? "-",
+    },
+    // {
+    //   field: "guarantor_consent",
+    //   headerName: "Guarantor Consent",
+    //   width: 165,
+    //   renderCell: ({ row, value }) => {
+    //     if (!row.guarantor_user) return <Typography variant="caption" color="text.secondary">N/A</Typography>;
+    //     const cfg = {
+    //       Accepted: { color: "success", label: "Accepted \u2713" },
+    //       Declined:  { color: "error",   label: "Declined \u2717" },
+    //       Pending:   { color: "warning", label: "Awaiting Consent" },
+    //     }[value || "Pending"] || { color: "default", label: value || "Pending" };
+    //     return <Chip label={cfg.label} color={cfg.color} size="small" sx={{ fontWeight: 600, fontSize: "0.72rem" }} />;
+    //   },
+    // },
+    {
       field: "loan_processing_branch",
       headerName: "Processing Branch",
       flex: 1,
       minWidth: 140,
       renderCell: ({ value }) => value || "-",
     },
-    {
-      field: "loan_processor_assigned",
-      headerName: "Assigned Processor",
-      flex: 1,
-      minWidth: 170,
-      renderCell: ({ value }) =>
-        value
-          ? <Chip label={value} size="small" color="info" variant="outlined" sx={{ fontSize: "0.72rem" }} />
-          : <Typography variant="caption" color="text.secondary">Not assigned</Typography>,
-    },
+    // {
+    //   field: "loan_processor_assigned",
+    //   headerName: "Assigned Processor",
+    //   flex: 1,
+    //   minWidth: 170,
+    //   renderCell: ({ value }) =>
+    //     value
+    //       ? <Chip label={value} size="small" color="info" variant="outlined" sx={{ fontSize: "0.72rem" }} />
+    //       : <Typography variant="caption" color="text.secondary">Not assigned</Typography>,
+    // },
     {
       field: "special_review",
       headerName: "Special Review",

@@ -101,7 +101,7 @@ const StepBadge = ({ label, done, fullName, email, at }) => (
 // ─── DeductionInputBlock (must be defined outside the component to avoid remount on each render) ───
 const DeductionInputBlock = ({
   label,               // "Borrower" | "Guarantor"
-  basicSalaryDisplay,  // string shown as read-only
+  basicSalaryVal, onBasicSalaryChange,
   incomeTaxVal, onIncomeTaxChange,
   pensionVal,          // auto-calculated, read-only
   otherItems, onAddOther, onUpdateOther, onRemoveOther,
@@ -119,8 +119,10 @@ const DeductionInputBlock = ({
       <Grid item xs={12} md={6}>
         <TextField
           fullWidth label={`${label} Basic Salary (Monthly)`}
-          disabled value={basicSalaryDisplay}
-          InputProps={{ readOnly: true }}
+          type="number"
+          InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
+          value={basicSalaryVal}
+          onChange={(e) => onBasicSalaryChange(e.target.value)}
         />
       </Grid>
     </Grid>
@@ -366,6 +368,7 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
           mgr_verified_team_score: d.mgr_verified_team_score ?? d.team_performance_score ?? 0,
 
           // Borrower
+          basic_salary: d.basic_salary ?? "",
           deduction_income_tax: d.deduction_income_tax ?? "",
           deduction_pension_7: d.deduction_pension_7 ?? pension7,
           deduction_amount: d.deduction_amount ?? "",
@@ -472,6 +475,11 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
     userTitle === "Manager, Employee Services Management"
   ) && !request.checker_verified;
 
+  // Block reviews until the guarantor gives consent (only applies when a guarantor is assigned)
+  const hasGuarantor = !!request.guarantor_user;
+  const guarantorConsent = request.guarantor_consent || "Pending";
+  const guarantorConsentBlocked = hasGuarantor && guarantorConsent !== "Accepted";
+
   const effectiveOrgUnit = request.previous_organization_unit || request.employee_organization_unit || "";
   const orgLower = effectiveOrgUnit.toLowerCase();
   const isBranchStaff = orgLower === "branch" || orgLower.includes("branch");
@@ -488,7 +496,7 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
     if (request.loan_type === "Personal Against Suretyship" || request.loan_type === "Emergency Loan") {
       return ["New", "Renewal"];
     }
-    return ["First Time", "Second Time"];
+    return ["First Time", "Second Time", "Third Time", "Fourth Time"];
   })();
 
   // ── live deduction totals ──────────────────────────────────────────────────
@@ -514,8 +522,8 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
 
   const totalBorrowerDeduction = calcBorrowerTotal();
   const totalGuarantorDeduction = calcGuarantorTotal();
-  const borrowerNetSalary = (parseFloat(request.basic_salary) || 0) - totalBorrowerDeduction;
-  const guarantorNetSalary = (parseFloat(request.guarantor_basic_salary) || 0) - totalGuarantorDeduction;
+  const borrowerNetSalary = (parseFloat(mgrForm.basic_salary) || 0) - totalBorrowerDeduction;
+  const guarantorNetSalary = (parseFloat(mgrForm.guarantor_basic_salary) || 0) - totalGuarantorDeduction;
 
   // ── manager form helpers ───────────────────────────────────────────────────
   const setMgr = (field, val) => setMgrForm((p) => ({ ...p, [field]: val }));
@@ -591,12 +599,47 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
   };
 
   // ── threshold helpers ───────────────────────────────────────────────────────
-  const THRESHOLDS = {
+  const titleLower = (request.previous_position_title || request.position_title || "").toLowerCase();
+  const isCashierOrController = titleLower.includes("cashier") || titleLower.includes("internal controller");
+
+  let THRESHOLDS = {
     "Automobile": 100,
-    "Housing/Mortgage": 85,
-    "Personal Against Suretyship": 50,
+    "Housing/Mortgage": 100,
+    "Personal Against Suretyship": 100,
     "Emergency Loan": 0,
   };
+
+  if (isBranchStaff) {
+    if (isCashierOrController) {
+      THRESHOLDS = {
+        "Automobile": 95,
+        "Housing/Mortgage": 95,
+        "Personal Against Suretyship": 85,
+        "Emergency Loan": 0,
+      };
+    } else {
+      THRESHOLDS = {
+        "Automobile": 70,
+        "Housing/Mortgage": 70,
+        "Personal Against Suretyship": 65,
+        "Emergency Loan": 0,
+      };
+    }
+  } else if (isDOStaff) {
+    THRESHOLDS = {
+      "Automobile": 85,
+      "Housing/Mortgage": 85,
+      "Personal Against Suretyship": 75,
+      "Emergency Loan": 0,
+    };
+  } else if (isHOStaff) {
+    THRESHOLDS = {
+      "Automobile": 80,
+      "Housing/Mortgage": 80,
+      "Personal Against Suretyship": 70,
+      "Emergency Loan": 0,
+    };
+  }
 
   const meetsThreshold = (loanType, score) => {
     if (loanType === "Emergency Loan") return true;
@@ -689,6 +732,9 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
           <InfoRow label="Loan Processing Branch" value={request.loan_processing_branch} />
           {request.guarantor_basic_salary && (
             <>
+              {request.guarantor_user && (
+                <InfoRow label="Guarantor Full Name" value={request.guarantor_user} />
+              )}
               <InfoRow label="Guarantor Basic Salary" value={fmtMoney(request.guarantor_basic_salary)} />
               {/* <InfoRow
                 label="Guarantor 7% Pension"
@@ -924,19 +970,75 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
         )}
       </Section>
 
+      {/* ── Guarantor Consent Status ── */}
+      {hasGuarantor && (
+        <Section title="Guarantor Consent Status">
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Typography variant="caption" color="text.secondary" display="block">Guarantor</Typography>
+              <Typography variant="body1" fontWeight={500}>{request.guarantor_user}</Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="caption" color="text.secondary" display="block">Consent Decision</Typography>
+              <Chip
+                label={
+                  guarantorConsent === "Accepted" ? "Accepted ✓" :
+                  guarantorConsent === "Declined" ? "Declined ✗" : "Awaiting Consent"
+                }
+                color={
+                  guarantorConsent === "Accepted" ? "success" :
+                  guarantorConsent === "Declined" ? "error" : "warning"
+                }
+                sx={{ fontWeight: 700 }}
+              />
+            </Grid>
+            {request.guarantor_consent_at && (
+              <Grid item xs={12} md={6}>
+                <Typography variant="caption" color="text.secondary" display="block">Responded At</Typography>
+                <Typography variant="body2">{fmtTs(request.guarantor_consent_at)}</Typography>
+              </Grid>
+            )}
+            {request.guarantor_consent_remarks && (
+              <Grid item xs={12}>
+                <Typography variant="caption" color="text.secondary" display="block">Guarantor Remarks</Typography>
+                <Typography variant="body2">{request.guarantor_consent_remarks}</Typography>
+              </Grid>
+            )}
+          </Grid>
+          {guarantorConsentBlocked && (
+            <Alert severity={guarantorConsent === "Declined" ? "error" : "warning"} sx={{ mt: 2 }}>
+              {guarantorConsent === "Declined"
+                ? "The guarantor has declined this guarantorship. Review cannot proceed until a new guarantor accepts."
+                : "Waiting for the guarantor to accept. Checker and Manager reviews are locked until the guarantor gives their consent."
+              }
+            </Alert>
+          )}
+        </Section>
+      )}
+
       {/* ── Review action buttons ── */}
       {(canManagerReview || canCheckerReview) && panel === null && (
-        <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
+        <Box sx={{ mt: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
+          {guarantorConsentBlocked && (
+            <Alert severity={guarantorConsent === "Declined" ? "error" : "warning"} sx={{ width: "100%" }}>
+              {guarantorConsent === "Declined"
+                ? "Guarantor declined — review is blocked."
+                : "Guarantor consent is still pending — review buttons are locked."
+              }
+            </Alert>
+          )}
           {canManagerReview && (
             <Button variant="contained" color="primary" startIcon={<ManagerIcon />}
+              disabled={guarantorConsentBlocked}
               onClick={() => setPanel("manager")}>
-              Manager Review & Verify
+              Manager Review &amp; Verify
             </Button>
           )}
           {canCheckerReview && (
             <Button variant="contained" color="secondary" startIcon={<CheckerIcon />}
+              disabled={guarantorConsentBlocked}
               onClick={() => setPanel("checker")}>
-              Checker Review & Verify
+              Checker Review &amp; Verify
             </Button>
           )}
         </Box>
@@ -1129,11 +1231,12 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
 
           <DeductionInputBlock
             label="Borrower"
-            basicSalaryDisplay={
-              request.basic_salary
-                ? `ETB ${parseFloat(request.basic_salary).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                : ""
-            }
+            basicSalaryVal={mgrForm.basic_salary}
+            onBasicSalaryChange={(v) => {
+              setMgr("basic_salary", v);
+              const sal = parseFloat(v) || 0;
+              setMgr("deduction_pension_7", sal > 0 ? parseFloat((sal * 0.07).toFixed(2)) : "");
+            }}
             incomeTaxVal={mgrForm.deduction_income_tax}
             onIncomeTaxChange={(v) => setMgr("deduction_income_tax", v)}
             pensionVal={mgrForm.deduction_pension_7}
@@ -1164,11 +1267,12 @@ const StaffLoanRequestDetail = ({ request: initialRequest, onClose, onRefresh })
 
           <DeductionInputBlock
             label="Guarantor"
-            basicSalaryDisplay={
-              request.guarantor_basic_salary
-                ? `ETB ${parseFloat(request.guarantor_basic_salary).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                : "Not provided in request"
-            }
+            basicSalaryVal={mgrForm.guarantor_basic_salary}
+            onBasicSalaryChange={(v) => {
+              setMgr("guarantor_basic_salary", v);
+              const sal = parseFloat(v) || 0;
+              setMgr("guarantor_deduction_pension_7", sal > 0 ? parseFloat((sal * 0.07).toFixed(2)) : "");
+            }}
             incomeTaxVal={mgrForm.guarantor_deduction_income_tax}
             onIncomeTaxChange={(v) => setMgr("guarantor_deduction_income_tax", v)}
             pensionVal={mgrForm.guarantor_deduction_pension_7}

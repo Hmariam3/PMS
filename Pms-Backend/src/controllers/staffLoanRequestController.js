@@ -425,6 +425,7 @@ export const createStaffLoanRequest = async (req, res) => {
     disciplinary_record_score,
     staff_declaration_confirmed,
     guarantor_basic_salary,
+    guarantor_user,
     created_by
   } = req.body;
 
@@ -482,7 +483,7 @@ export const createStaffLoanRequest = async (req, res) => {
         disciplinary_record_band, disciplinary_record_score,
         total_score_claimed,
         staff_declaration_confirmed, staff_signature_date,
-        guarantor_basic_salary,
+        guarantor_basic_salary, guarantor_user,
         status, created_by
       ) VALUES (
         $1,$2,$3,$4,$5,
@@ -502,8 +503,8 @@ export const createStaffLoanRequest = async (req, res) => {
         $31,$32,
         $33,
         $34,$35,
-        $36,
-        $37,$38
+        $36, $37,
+        $38,$39
       ) RETURNING *`,
       [
         employee_id, full_name, dob || null, branch_name, position_title,
@@ -526,6 +527,7 @@ export const createStaffLoanRequest = async (req, res) => {
         staff_declaration_confirmed || false,
         staff_declaration_confirmed ? new Date().toISOString().split('T')[0] : null,
         guarantor_basic_salary || null,
+        guarantor_user || null,
         'Pending',
         created_by || null
       ]
@@ -574,6 +576,7 @@ export const updateStaffLoanRequest = async (req, res) => {
     disciplinary_record_score,
     staff_declaration_confirmed,
     guarantor_basic_salary,
+    guarantor_user,
     updated_by
   } = req.body;
 
@@ -644,8 +647,9 @@ export const updateStaffLoanRequest = async (req, res) => {
         staff_declaration_confirmed      = COALESCE($25, staff_declaration_confirmed),
         staff_signature_date             = CASE WHEN $25 = true THEN CURRENT_DATE ELSE staff_signature_date END,
         guarantor_basic_salary           = COALESCE($26, guarantor_basic_salary),
-        updated_by                       = $27
-      WHERE id = $28
+        guarantor_user                   = COALESCE($27, guarantor_user),
+        updated_by                       = $28
+      WHERE id = $29
       RETURNING *`,
       [
         loan_type,
@@ -674,6 +678,7 @@ export const updateStaffLoanRequest = async (req, res) => {
         total_score_claimed,
         staff_declaration_confirmed,
         guarantor_basic_salary || null,
+        guarantor_user || null,
         updated_by,
         id
       ]
@@ -997,6 +1002,9 @@ export const managerReview = async (req, res) => {
   const {
     reviewer_title,
     reviewer_email,
+    
+    // updated borrower info
+    basic_salary,
 
     // verified scores
     mgr_verified_service_score,
@@ -1077,7 +1085,8 @@ export const managerReview = async (req, res) => {
       });
     }
 
-    const basicSalary = parseFloat(existing.rows[0].basic_salary) || 0;
+    const existingBasicSalary = parseFloat(existing.rows[0].basic_salary) || 0;
+    const finalBasicSalary = basic_salary !== undefined && basic_salary !== "" ? parseFloat(basic_salary) : existingBasicSalary;
     const isEmergency = existing.rows[0].loan_type === "Emergency Loan";
 
     // ── Use the system-calculated scores directly from DB (not editable by manager) ──
@@ -1118,7 +1127,7 @@ export const managerReview = async (req, res) => {
     const otherTotal = otherItems.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
 
     const totalDeduction = incomeTax + pension7 + loanRepay + otherTotal;
-    const netSalary = basicSalary - totalDeduction;
+    const netSalary = finalBasicSalary - totalDeduction;
 
     // ── Guarantor deduction calculations ─────────────────────────────────────
     const gBasicSalary = parseFloat(guarantor_basic_salary) || 0;
@@ -1141,30 +1150,31 @@ export const managerReview = async (req, res) => {
         mgr_verified_individual_score = $3,
         mgr_verified_team_score       = $4,
         mgr_verified_total_score      = $5,
-        deduction_income_tax          = $6,
-        deduction_pension_7           = $7,
-        deduction_other_items         = $8,
-        deduction_amount              = $9,
-        deduction_months              = $10,
-        total_deduction               = $11,
-        net_salary_after_deduction    = $12,
-        outstanding_balances          = $13,
-        guarantor_basic_salary              = $14,
-        guarantor_deduction_income_tax      = $15,
-        guarantor_deduction_pension_7       = $16,
-        guarantor_deduction_other_items     = $17,
-        guarantor_deduction_amount          = $18,
-        guarantor_deduction_months          = $19,
-        guarantor_total_deduction           = $20,
-        guarantor_net_salary_after_deduction= $21,
-        guarantor_outstanding_balances      = $22,
-        loan_processor_assigned             = $23,
-        manager_remarks               = $24,
-        status                        = $25,
-        decision                      = $26,
-        special_review                = $27,
+        basic_salary                  = $6,
+        deduction_income_tax          = $7,
+        deduction_pension_7           = $8,
+        deduction_other_items         = $9,
+        deduction_amount              = $10,
+        deduction_months              = $11,
+        total_deduction               = $12,
+        net_salary_after_deduction    = $13,
+        outstanding_balances          = $14,
+        guarantor_basic_salary              = $15,
+        guarantor_deduction_income_tax      = $16,
+        guarantor_deduction_pension_7       = $17,
+        guarantor_deduction_other_items     = $18,
+        guarantor_deduction_amount          = $19,
+        guarantor_deduction_months          = $20,
+        guarantor_total_deduction           = $21,
+        guarantor_net_salary_after_deduction= $22,
+        guarantor_outstanding_balances      = $23,
+        loan_processor_assigned             = $24,
+        manager_remarks               = $25,
+        status                        = $26,
+        decision                      = $27,
+        special_review                = $28,
         updated_at                    = CURRENT_TIMESTAMP
-      WHERE id = $28
+      WHERE id = $29
       RETURNING *`,
       [
         reviewer_email,
@@ -1172,6 +1182,7 @@ export const managerReview = async (req, res) => {
         isEmergency ? null : indScore,
         isEmergency ? null : teamScore,
         isEmergency ? 0 : totalScore,
+        finalBasicSalary,
         incomeTax,
         pension7,
         JSON.stringify(otherItems),
@@ -1546,5 +1557,60 @@ export const downloadGuarantorDocument = async (req, res) => {
   } catch (err) {
     console.error("Error downloading guarantor document:", err.message);
     res.status(500).json({ success: false, error: "Server error during guarantor document download" });
+  }
+};
+
+// ── Get loan requests where the logged-in user is the guarantor ───────────────
+export const getRequestsByGuarantor = async (req, res) => {
+  const { username } = req.params;
+  try {
+    // guarantor_user is stored as "Full Name (username)" — match either format
+    const result = await pool.query(
+      `SELECT * FROM staff_loan_requests
+       WHERE guarantor_user ILIKE $1
+          OR guarantor_user ILIKE $2
+          OR guarantor_username ILIKE $3
+       ORDER BY created_at DESC`,
+      [`%(${username})`, `%${username}%`, username]
+    );
+    res.json({ success: true, data: result.rows, count: result.rows.length });
+  } catch (err) {
+    console.error("Error fetching guarantor requests:", err.message);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+};
+
+// ── Guarantor submits consent (accept / decline) ──────────────────────────────
+export const guarantorConsent = async (req, res) => {
+  const { id } = req.params;
+  const { decision, remarks, guarantor_email } = req.body;
+  // decision must be "Accepted" or "Declined"
+  if (!["Accepted", "Declined"].includes(decision)) {
+    return res.status(400).json({ success: false, error: "Decision must be 'Accepted' or 'Declined'" });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE staff_loan_requests
+       SET guarantor_consent         = $1,
+           guarantor_consent_at      = NOW(),
+           guarantor_consent_remarks = $2
+       WHERE id = $3
+       RETURNING *`,
+      [decision, remarks || null, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: "Loan request not found" });
+    }
+
+    res.json({
+      success: true,
+      message: `Guarantor consent recorded: ${decision}`,
+      data: result.rows[0],
+    });
+  } catch (err) {
+    console.error("Error recording guarantor consent:", err.message);
+    res.status(500).json({ success: false, error: "Server error" });
   }
 };

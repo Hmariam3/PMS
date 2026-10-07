@@ -103,7 +103,7 @@ const getLoanCountOptions = (loanType) => {
     return ["New", "Renewal"];
   }
   // Housing/Mortgage or Automobile
-  return ["First Time", "Second Time"];
+  return ["First Time", "Second Time", "Third Time", "Fourth Time"];
 };
 
 // ─── empty form state ────────────────────────────────────────────────────────
@@ -137,6 +137,7 @@ const EMPTY_FORM = {
   attachment_file_name: "",
 
   // guarantor
+  guarantor_user: null,
   guarantor_basic_salary: "",
   guarantor_pension_7: "",          // auto-calculated, shown read-only
   guarantor_attachment_file: null,
@@ -234,6 +235,12 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
         staff_declaration_confirmed: existingRequest.staff_declaration_confirmed || false,
         attachment_file: null,
         attachment_file_name: "",
+        guarantor_user: existingRequest.guarantor_user
+          ? {
+            full_name: existingRequest.guarantor_user.split(" (")[0],
+            user_name: (existingRequest.guarantor_user.split(" (")[1] || "").replace(")", ""),
+          }
+          : null,
         guarantor_basic_salary: existingRequest.guarantor_basic_salary || "",
         guarantor_pension_7: existingRequest.guarantor_basic_salary
           ? parseFloat((parseFloat(existingRequest.guarantor_basic_salary) * 0.07).toFixed(2))
@@ -324,6 +331,36 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
     }
   }, [formData.guarantor_basic_salary]);
 
+  // ── search guarantors ────────────────────────────────────────────────────
+  const [guarantorSearch, setGuarantorSearch] = useState("");
+  const [guarantorOptions, setGuarantorOptions] = useState([]);
+
+  useEffect(() => {
+    if (guarantorSearch.length < 3) {
+      setGuarantorOptions([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      axios
+        .get(`${API_URL}/users/search?q=${guarantorSearch}`)
+        .then((res) => {
+          const results = res.data || [];
+          const userEmail = user?.MailAdress || user?.email;
+          const userUsername = user?.username || user?.user_name;
+          
+          // Filter out the logged-in user
+          const filtered = results.filter(
+            (u) => 
+              u.mail_address !== userEmail && 
+              u.user_name !== userUsername
+          );
+          setGuarantorOptions(filtered);
+        })
+        .catch((err) => console.error("Error searching guarantors:", err));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [guarantorSearch]);
+
   // ── handlers ─────────────────────────────────────────────────────────────
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -401,14 +438,14 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
     if (!formData.loan_type) return 0;
     const titleLower = (formData.previous_position_title || formData.position_title || "").toLowerCase();
     const isCashierOrController = titleLower.includes("cashier") || titleLower.includes("internal controller");
-    
+
     let thresholds = {
       "Automobile": 100,
       "Housing/Mortgage": 100,
       "Personal Against Suretyship": 100,
       "Emergency Loan": 0,
     };
-    
+
     if (isBranchStaff) {
       if (isCashierOrController) {
         thresholds = {
@@ -440,13 +477,14 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
         "Emergency Loan": 0,
       };
     }
-    
+
     return thresholds[formData.loan_type] ?? 100;
   }, [formData.loan_type, isBranchStaff, isDOStaff, isHOStaff, formData.position_title, formData.previous_position_title]);
 
   const scoreWithoutTenure = isEmergencyLoan ? 0 : (totalScore - formData.service_tenure_score);
   const wouldPassWithMaxTenure = (scoreWithoutTenure + 20) >= requiredThreshold;
   const failsThreshold = !isEmergencyLoan && totalScore < requiredThreshold && !wouldPassWithMaxTenure;
+  const needsSpecialReview = !isEmergencyLoan && totalScore < requiredThreshold && wouldPassWithMaxTenure;
 
   // Max score label
   const maxScore = (() => {
@@ -480,16 +518,8 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
       toast.error("Please select the loan processing branch");
       return false;
     }
-    if (!formData.attachment_file && !existingRequest?.attachment_file_name) {
-      toast.error("Please attach the borrower's required documents");
-      return false;
-    }
     if (!formData.guarantor_basic_salary) {
       toast.error("Please enter the guarantor's basic salary");
-      return false;
-    }
-    if (!formData.guarantor_attachment_file && !existingRequest?.guarantor_attachment_file_name) {
-      toast.error("Please attach the guarantor's required documents");
       return false;
     }
     if (!isEmergencyLoan && !formData.disciplinary_record_band) {
@@ -527,6 +557,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
         guarantor_attachment_file_name: formData.guarantor_attachment_file
           ? formData.guarantor_attachment_file.name
           : formData.guarantor_attachment_file_name,
+        guarantor_user: formData.guarantor_user ? `${formData.guarantor_user.full_name} (${formData.guarantor_user.user_name})` : null,
         // Apply org-unit filtering to scores
         individual_performance_score: effectiveIndividualScore,
         individual_performance_band: effectiveIndividualScore === 0 && !isBranchStaff
@@ -776,7 +807,6 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                 value={formData.employee_organization_unit}
                 disabled
                 InputProps={{ readOnly: true }}
-                helperText="Auto-populated from employee profile"
               />
             </Grid>
           )}
@@ -787,7 +817,6 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                 value={formData.previous_organization_unit}
                 disabled
                 InputProps={{ readOnly: true }}
-                helperText="Auto-populated from previous quarter evaluation"
               />
             </Grid>
           )}
@@ -802,7 +831,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
             sx={{ display: "flex", alignItems: "center", gap: 1 }}
           >
             <Chip label="Required" color="error" size="small" />
-            Loan Request Details (To Be Filled By You)
+            Borrower Information
           </Typography>
 
           <Grid container spacing={2}>
@@ -840,11 +869,11 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                   ))}
                 </Select>
               </FormControl>
-              {!formData.loan_type && (
+              {/* {!formData.loan_type && (
                 <Typography variant="caption" color="text.secondary">
                   Select a loan type first to see available options.
                 </Typography>
-              )}
+              )} */}
             </Grid>
 
             {/* Loan Processing Branch */}
@@ -888,68 +917,99 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
             </Grid>
 
             {/* ── Borrower Document Attachment ── */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="subtitle1" fontWeight="bold" color="error" gutterBottom>
-                * Borrower Document Attachment (Required)
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Accepted documents: PDF, DOC, DOCX, JPG, PNG. Max 1 MB.
-              </Typography>
-              <Button
-                variant="outlined"
-                component="label"
-                startIcon={<CloudUploadIcon />}
-                fullWidth
-                sx={{ mb: 1 }}
-              >
-                Upload Borrower Documents
-                <input
-                  type="file"
-                  hidden
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  onChange={handleFileChange}
-                />
-              </Button>
-              {formData.attachment_file_name ? (
-                <Alert severity="success" icon={<CheckCircleIcon />}>
-                  <strong>Borrower file attached:</strong> {formData.attachment_file_name}
-                </Alert>
-              ) : existingRequest?.attachment_file_name ? (
-                <Alert severity="info" icon={<CheckCircleIcon />}>
-                  <strong>Existing borrower file:</strong> {existingRequest.attachment_file_name}
-                  &nbsp;(upload a new file to replace)
-                </Alert>
-              ) : (
-                <Alert severity="warning">
-                  No borrower file attached yet. Please upload required documents.
-                </Alert>
-              )}
-            </Grid>
-
-            {/* ── Guarantor Document Attachment ── */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="subtitle1" fontWeight="bold" color="primary" gutterBottom>
-                Guarantor Information &amp; Document Attachment (Required)
-              </Typography>
-
-              {/* Guarantor salary fields */}
-              <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    required
-                    label="Guarantor Basic Salary (Monthly)"
-                    name="guarantor_basic_salary"
-                    value={formData.guarantor_basic_salary}
-                    onChange={handleChange}
-                    type="number"
-                    InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
+            {(formData.loan_type === "Automobile" || formData.loan_type === "Housing/Mortgage") && (
+              <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle1" fontWeight="bold" color="primary" gutterBottom>
+                  Borrower Document Attachment (Optional)
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Accepted documents: PDF, DOC, DOCX, JPG, PNG. Max 1 MB.
+                </Typography>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  startIcon={<CloudUploadIcon />}
+                  fullWidth
+                  sx={{ mb: 1 }}
+                >
+                  Upload Borrower Documents
+                  <input
+                    type="file"
+                    hidden
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    onChange={handleFileChange}
                   />
-                </Grid>
+                </Button>
+                {formData.attachment_file_name ? (
+                  <Alert severity="success" icon={<CheckCircleIcon />}>
+                    <strong>Borrower file attached:</strong> {formData.attachment_file_name}
+                  </Alert>
+                ) : existingRequest?.attachment_file_name ? (
+                  <Alert severity="info" icon={<CheckCircleIcon />}>
+                    <strong>Existing borrower file:</strong> {existingRequest.attachment_file_name}
+                    &nbsp;(upload a new file to replace)
+                  </Alert>
+                ) : (
+                  <Alert severity="info">
+                    No borrower file attached yet.
+                  </Alert>
+                )}
               </Grid>
+            )}
+          </Grid>
+        </Box>
 
+        <Divider sx={{ my: 3 }} />
+
+        {/* ── Guarantor Information ── */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom color="primary">
+            Guarantor Information
+          </Typography>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            <Grid item xs={12} md={6}>
+              <Autocomplete
+                sx={{ width: 300 }}
+                options={guarantorOptions}
+                getOptionLabel={(option) => `${option.full_name} (${option.user_name})`}
+                value={formData.guarantor_user}
+                isOptionEqualToValue={(option, value) => option.user_name === value.user_name}
+                onChange={(event, newValue) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    guarantor_user: newValue,
+                  }));
+                }}
+                onInputChange={(event, newInputValue) => {
+                  setGuarantorSearch(newInputValue);
+                }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Select Guarantor User" />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                required
+                label="Guarantor Basic Salary (Monthly)"
+                name="guarantor_basic_salary"
+                value={formData.guarantor_basic_salary}
+                onChange={handleChange}
+                type="number"
+                InputProps={{ startAdornment: <InputAdornment position="start">ETB</InputAdornment> }}
+              />
+            </Grid>
+          </Grid>
+
+          {/* ── Guarantor Document Attachment ── */}
+          {(formData.loan_type === "Automobile" || formData.loan_type === "Housing/Mortgage") && (
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" fontWeight="bold" color="primary" gutterBottom>
+                Guarantor Document Attachment (Optional)
+              </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 Accepted: PDF, DOC, DOCX, JPG, PNG. Max 1 MB.
               </Typography>
@@ -984,7 +1044,7 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
                 </Alert>
               )}
             </Grid>
-          </Grid>
+          )}
         </Box>
 
         {/* ── Scoring Criteria (hidden for Emergency Loan) ── */}
@@ -1192,6 +1252,12 @@ const StaffLoanRequestForm = ({ onSuccess, onCancel, existingRequest }) => {
         {failsThreshold && (
           <Alert severity="error" sx={{ mt: 3 }}>
             <strong>Threshold Not Met:</strong> Your total score ({totalScore}) does not meet the required threshold ({requiredThreshold}) for the selected loan type. Even with a maximum service tenure score (20), your score would be {scoreWithoutTenure + 20}, which is still below the threshold. You cannot submit this request.
+          </Alert>
+        )}
+
+        {needsSpecialReview && (
+          <Alert severity="warning" sx={{ mt: 3 }}>
+            <strong>Special Review Required:</strong> Your total score ({totalScore}) is currently below the required threshold ({requiredThreshold}) for the selected loan type. However, because you could potentially meet the threshold with a maximum service tenure score, you are allowed to submit this request. It will be subject to a special review by HR/Management.
           </Alert>
         )}
 

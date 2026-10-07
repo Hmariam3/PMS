@@ -54,6 +54,28 @@ const Section = ({ title, children }) => (
   </Paper>
 );
 
+// Workflow step badge — mirrors StaffLoanRequestDetail
+const StepBadge = ({ label, done, fullName, email, at }) => (
+  <Box sx={{ textAlign: "center", minWidth: 150 }}>
+    <Chip
+      label={label}
+      color={done ? "success" : "default"}
+      icon={done ? <CheckCircleIcon /> : undefined}
+      size="small"
+      sx={{ mb: 0.5 }}
+    />
+    {done && fullName && (
+      <Typography variant="caption" display="block" color="text.primary" fontWeight={500}>{fullName}</Typography>
+    )}
+    {done && email && (
+      <Typography variant="caption" display="block" color="text.secondary">{email}</Typography>
+    )}
+    {done && at && (
+      <Typography variant="caption" display="block" color="text.secondary">{at}</Typography>
+    )}
+  </Box>
+);
+
 // ─── Reusable deduction table (borrower or guarantor) ─────────────────────────
 const DeductionTable = ({ basicSalary, incomeTax, pension7, otherItems, deductionAmount, totalDeduction, netSalary, outstandingBalances, deductionMonths }) => {
   const others = Array.isArray(otherItems)
@@ -138,9 +160,9 @@ const DeductionTable = ({ basicSalary, incomeTax, pension7, otherItems, deductio
 const LoanApprovalDetail = ({ request: initialRequest, onClose, onApproved }) => {
   const { user } = useContext(AuthContext);
 
-  const [request, setRequest]           = useState(initialRequest);
-  const [fetching, setFetching]         = useState(true);
-  const [submitting, setSubmitting]     = useState(false);
+  const [request, setRequest]                   = useState(initialRequest);
+  const [fetching, setFetching]                 = useState(true);
+  const [submitting, setSubmitting]             = useState(false);
   const [showApprovePanel, setShowApprovePanel] = useState(false);
   const [approverRemarks, setApproverRemarks]   = useState("");
 
@@ -172,11 +194,30 @@ const LoanApprovalDetail = ({ request: initialRequest, onClose, onApproved }) =>
 
   const isEmergency = request.loan_type === "Emergency Loan";
 
-  // Org-unit flags for scoring display
-  const orgLower = (request.employee_organization_unit || "").toLowerCase();
+  // Org-unit flags — use previous_organization_unit to match StaffLoanRequestDetail
+  const effectiveOrgUnit = request.previous_organization_unit || request.employee_organization_unit || "";
+  const orgLower = effectiveOrgUnit.toLowerCase();
   const isBranch = orgLower.includes("branch") || (!orgLower.includes("district") && !orgLower.includes("head") && orgLower !== "ho" && orgLower !== "do");
   const isDO     = orgLower.includes("district") || orgLower === "do";
   const isHO     = orgLower.includes("head")     || orgLower === "ho";
+
+  // Guarantor consent
+  const hasGuarantor     = !!request.guarantor_user;
+  const guarantorConsent = request.guarantor_consent || "Pending";
+
+  // Threshold logic (mirrors StaffLoanRequestDetail)
+  const titleLower = (request.previous_position_title || request.position_title || "").toLowerCase();
+  const isCashierOrController = titleLower.includes("cashier") || titleLower.includes("internal controller");
+  let THRESHOLDS = { "Automobile": 100, "Housing/Mortgage": 100, "Personal Against Suretyship": 100, "Emergency Loan": 0 };
+  if (isBranch) {
+    THRESHOLDS = isCashierOrController
+      ? { "Automobile": 95, "Housing/Mortgage": 95, "Personal Against Suretyship": 85, "Emergency Loan": 0 }
+      : { "Automobile": 70, "Housing/Mortgage": 70, "Personal Against Suretyship": 65, "Emergency Loan": 0 };
+  } else if (isDO) {
+    THRESHOLDS = { "Automobile": 85, "Housing/Mortgage": 85, "Personal Against Suretyship": 75, "Emergency Loan": 0 };
+  } else if (isHO) {
+    THRESHOLDS = { "Automobile": 80, "Housing/Mortgage": 80, "Personal Against Suretyship": 70, "Emergency Loan": 0 };
+  }
 
   // ── Approve ───────────────────────────────────────────────────────────────
   const handleApprove = async () => {
@@ -185,8 +226,8 @@ const LoanApprovalDetail = ({ request: initialRequest, onClose, onApproved }) =>
       const res = await axios.post(
         `${API_URL}/staff-loan-requests/${request.id}/approve`,
         {
-          reviewer_title:  user?.title,
-          reviewer_email:  user?.MailAdress || user?.email,
+          reviewer_title:   user?.title,
+          reviewer_email:   user?.MailAdress || user?.email,
           approver_remarks: approverRemarks,
         }
       );
@@ -221,7 +262,7 @@ const LoanApprovalDetail = ({ request: initialRequest, onClose, onApproved }) =>
         <Button startIcon={<CloseIcon />} onClick={onClose}>Close</Button>
       </Box>
 
-      {/* Special review notice for approver */}
+      {/* Special review notice */}
       {request.special_review && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           <strong>Special Review Case:</strong> This request did not meet the score threshold
@@ -231,142 +272,202 @@ const LoanApprovalDetail = ({ request: initialRequest, onClose, onApproved }) =>
         </Alert>
       )}
 
+      {/* ── Workflow progress ── */}
+      <Paper elevation={1} sx={{ p: 2, mb: 2, bgcolor: "grey.50" }}>
+        <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
+          <StepBadge
+            label={request.branch_name || request.employee_organization_unit || "Requester Team"}
+            done
+            fullName={request.full_name}
+            email={request.created_by}
+            at={fmtTs(request.created_at)}
+          />
+          <Typography color="text.secondary">→</Typography>
+          <StepBadge
+            label={request.checker_team || "Employee Services Management Team"}
+            done={!!request.checker_verified}
+            fullName={request.checker_full_name}
+            email={request.checker_verified_by}
+            at={fmtTs(request.checker_verified_at)}
+          />
+          <Typography color="text.secondary">→</Typography>
+          <StepBadge
+            label={request.manager_team || "Payroll Administration Team"}
+            done={!!request.manager_verified}
+            fullName={request.manager_full_name}
+            email={request.manager_verified_by}
+            at={fmtTs(request.manager_verified_at)}
+          />
+          <Typography color="text.secondary">→</Typography>
+          <StepBadge
+            label="Final Approval"
+            done={request.status === "Approved"}
+            fullName={request.approved_by}
+            at={fmtTs(request.approved_at)}
+          />
+        </Stack>
+      </Paper>
+
       {/* ── Employee Information ── */}
       <Section title="Employee Information">
         <Grid container spacing={2}>
-          <InfoRow label="Full Name"         value={request.full_name} />
-          <InfoRow label="Employee ID"       value={request.employee_id} />
-          <InfoRow label="Date of Birth"     value={fmt(request.dob)} />
-          <InfoRow label="Branch"            value={request.branch_name} />
-          <InfoRow label="Position / Title"  value={request.position_title} />
-          <InfoRow label="Date of Hire"      value={fmt(request.date_of_hire)} />
-          <InfoRow label="Length of Service" value={request.length_of_service_years ? `${request.length_of_service_years} yrs` : null} />
-          <InfoRow label="Retirement Date"   value={fmt(request.retirement_date)} />
+          <InfoRow label="Full Name"                  value={request.full_name} />
+          <InfoRow label="Employee ID"                value={request.employee_id} />
+          <InfoRow label="Date of Birth"              value={fmt(request.dob)} />
+          <InfoRow label="Branch"                     value={request.branch_name} />
+          <InfoRow label="Current Position / Title"   value={request.position_title} />
+          <InfoRow label="Previous Position / Title"  value={request.previous_position_title} />
+          <InfoRow label="Date of Hire"               value={fmt(request.date_of_hire)} />
+          <InfoRow label="Length of Service"          value={request.length_of_service_years ? `${request.length_of_service_years} yrs` : null} />
+          <InfoRow label="Retirement Date"            value={fmt(request.retirement_date)} />
           {request.employee_organization_unit && (
-            <InfoRow label="Organization Unit" value={request.employee_organization_unit} />
+            <InfoRow label="Current Organization Unit" value={request.employee_organization_unit} />
+          )}
+          {request.previous_organization_unit && (
+            <InfoRow label="Previous Organization Unit" value={request.previous_organization_unit} />
           )}
         </Grid>
       </Section>
 
-      {/* ── Loan Details ── */}
-      <Section title="Loan Details">
+      {/* ── Loan Request Details ── */}
+      <Section title="Loan Request Details">
         <Grid container spacing={2}>
           <InfoRow label="Loan Type"              value={request.loan_type} />
           <InfoRow label="Amount Requested"       value={fmtMoney(request.loan_amount_requested)} />
           <InfoRow label="Basic Salary"           value={fmtMoney(request.basic_salary)} />
           <InfoRow label="Application Count"      value={request.loan_application_count} />
           <InfoRow label="Loan Processing Branch" value={request.loan_processing_branch} />
+          {request.guarantor_user && (
+            <InfoRow label="Guarantor Full Name" value={request.guarantor_user} />
+          )}
           {request.guarantor_basic_salary && (
-            <>
-              <InfoRow label="Guarantor Basic Salary" value={fmtMoney(request.guarantor_basic_salary)} />
-              <InfoRow
-                label="Guarantor 7% Pension"
-                value={fmtMoney(parseFloat(request.guarantor_basic_salary) * 0.07)}
-              />
-            </>
+            <InfoRow label="Guarantor Basic Salary" value={fmtMoney(request.guarantor_basic_salary)} />
           )}
         </Grid>
       </Section>
 
       {/* ── Scoring Criteria ── */}
-      {!isEmergency && (
-        <Section title="Scoring Criteria">
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow sx={{ bgcolor: "grey.100" }}>
-                  <TableCell><strong>Criterion</strong></TableCell>
-                  <TableCell><strong>Band</strong></TableCell>
-                  <TableCell align="center"><strong>Weight</strong></TableCell>
-                  <TableCell align="center"><strong>Score</strong></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {/* Criterion 1 — all staff */}
-                <TableRow>
-                  <TableCell>1. Length of Service</TableCell>
-                  <TableCell>{request.service_tenure_band || "—"}</TableCell>
-                  <TableCell align="center">0–20</TableCell>
-                  <TableCell align="center">
-                    <Chip label={request.service_tenure_score ?? 0} color="primary" size="small" />
-                  </TableCell>
-                </TableRow>
+      {!isEmergency && (() => {
+        const total     = request.total_score_claimed ?? 0;
+        const tenure    = request.service_tenure_score ?? 0;
+        const threshold = THRESHOLDS[request.loan_type] ?? 100;
+        const passes    = total >= threshold;
+        const scoreWithoutTenure     = total - tenure;
+        const wouldPassWithMaxTenure = (scoreWithoutTenure + 20) >= threshold;
+        const isSpecialReview = !passes && wouldPassWithMaxTenure;
 
-                {/* Criteria 2 & 3 — Branch staff */}
-                {(isBranch) && (
-                  <>
+        return (
+          <Section title="Self-Assessment Scoring Criteria">
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: "grey.100" }}>
+                    <TableCell><strong>Criterion</strong></TableCell>
+                    <TableCell><strong>Band</strong></TableCell>
+                    <TableCell align="center"><strong>Weight</strong></TableCell>
+                    <TableCell align="center"><strong>Score</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {/* Criterion 1 — all staff */}
+                  <TableRow>
+                    <TableCell>1. Length of Service</TableCell>
+                    <TableCell>{request.service_tenure_band || "—"}</TableCell>
+                    <TableCell align="center">0–20</TableCell>
+                    <TableCell align="center">
+                      <Chip label={request.service_tenure_score ?? 0} color="primary" size="small" />
+                    </TableCell>
+                  </TableRow>
+
+                  {/* Criterion 2 — Branch staff */}
+                  {isBranch && (
                     <TableRow>
                       <TableCell>2. Individual Performance</TableCell>
                       <TableCell>{request.individual_performance_band || "—"}</TableCell>
-                      <TableCell align="center">0–50</TableCell>
+                      <TableCell align="center">0–70</TableCell>
                       <TableCell align="center">
                         <Chip label={request.individual_performance_score ?? 0} color="primary" size="small" />
                       </TableCell>
                     </TableRow>
+                  )}
+
+                  {/* Criterion 5 — DO or HO */}
+                  {(isDO || isHO) && (
                     <TableRow>
-                      <TableCell>3. Team Performance</TableCell>
-                      <TableCell>{request.team_performance_band || "—"}</TableCell>
-                      <TableCell align="center">0–20</TableCell>
+                      <TableCell>5. OKR &amp; KPIs Result</TableCell>
+                      <TableCell>{request.okr_kpi_band || "—"}</TableCell>
+                      <TableCell align="center">0–70</TableCell>
                       <TableCell align="center">
-                        <Chip label={request.team_performance_score ?? 0} color="primary" size="small" />
+                        <Chip label={request.okr_kpi_score ?? 0} color="primary" size="small" />
                       </TableCell>
                     </TableRow>
-                  </>
-                )}
+                  )}
 
-                {/* Criterion 4 — DO only */}
-                {isDO && request.district_engagement_band && (
+                  {/* Criterion 6 — all staff */}
                   <TableRow>
-                    <TableCell>4. District Office Engagement</TableCell>
-                    <TableCell>{request.district_engagement_band}</TableCell>
-                    <TableCell align="center">0–50</TableCell>
+                    <TableCell>6. Disciplinary Record</TableCell>
+                    <TableCell>{request.disciplinary_record_band || "—"}</TableCell>
+                    <TableCell align="center">0–10</TableCell>
                     <TableCell align="center">
-                      <Chip label={request.district_engagement_score ?? 0} color="primary" size="small" />
+                      <Chip label={request.disciplinary_record_score ?? 0} color="primary" size="small" />
                     </TableCell>
                   </TableRow>
-                )}
 
-                {/* Criterion 5 — DO or HO */}
-                {(isDO || isHO) && request.okr_kpi_band && (
-                  <TableRow>
-                    <TableCell>5. OKR & KPIs Result</TableCell>
-                    <TableCell>{request.okr_kpi_band}</TableCell>
-                    <TableCell align="center">0–{isHO ? 70 : 20}</TableCell>
+                  {/* Total */}
+                  <TableRow sx={{ bgcolor: "grey.50" }}>
+                    <TableCell colSpan={2}><strong>Total Score</strong></TableCell>
+                    <TableCell align="center"><strong>0–100</strong></TableCell>
                     <TableCell align="center">
-                      <Chip label={request.okr_kpi_score ?? 0} color="primary" size="small" />
+                      <Chip label={`${total} pts`} color="primary" />
                     </TableCell>
                   </TableRow>
-                )}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
-                {/* Criterion 6 — all staff */}
-                <TableRow>
-                  <TableCell>6. Disciplinary Record</TableCell>
-                  <TableCell>{request.disciplinary_record_band || "—"}</TableCell>
-                  <TableCell align="center">0–10</TableCell>
-                  <TableCell align="center">
-                    <Chip label={request.disciplinary_record_score ?? 0} color="primary" size="small" />
-                  </TableCell>
-                </TableRow>
+            {/* Threshold pass/fail alert */}
+            <Box sx={{ mt: 1.5 }}>
+              <Alert severity={passes ? "success" : isSpecialReview ? "warning" : "error"}>
+                <strong>
+                  {passes ? "✅ Meets Threshold"
+                    : isSpecialReview ? "⚠️ Below Threshold — Special Review"
+                    : "❌ Does Not Meet Threshold"}
+                </strong>
+                {"  "}
+                {total >= threshold
+                  ? `Score ${total} / 100 meets the threshold of ${threshold} for ${request.loan_type}.`
+                  : `Score ${total} / 100 is below the threshold of ${threshold} for ${request.loan_type}.`
+                }
+              </Alert>
 
-                {/* Total */}
-                <TableRow sx={{ bgcolor: "grey.50" }}>
-                  <TableCell colSpan={2}><strong>Total Score</strong></TableCell>
-                  <TableCell align="center"><strong>0–100</strong></TableCell>
-                  <TableCell align="center">
-                    <Chip label={`${request.total_score_claimed ?? 0} pts`} color="primary" />
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Section>
-      )}
+              {isSpecialReview && (
+                <Paper variant="outlined" sx={{ mt: 1.5, p: 2, borderColor: "warning.main", bgcolor: "warning.light", borderWidth: 2 }}>
+                  <Typography variant="subtitle2" color="warning.dark" gutterBottom>
+                    📋 Special Review Notice — Length of Service Impact
+                  </Typography>
+                  <Typography variant="body2">
+                    Shortfall of <strong>{threshold - total} pts</strong> vs threshold of <strong>{threshold} pts</strong>.
+                    Performance score (excl. tenure): <strong>{scoreWithoutTenure} pts</strong>.
+                    With max tenure (<strong>20 pts</strong>) the total would be <strong>{scoreWithoutTenure + 20} pts</strong>.
+                  </Typography>
+                </Paper>
+              )}
+            </Box>
+          </Section>
+        );
+      })()}
 
-      {/* ── Salary & Deduction Summary ── */}
+      {/* ── Payroll Administration Team Review ── */}
       {request.manager_verified && (
-        <Section title="Salary & Deduction Summary">
+        <Section title="Payroll Administration Team Review — Salary & Deduction Summary">
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            <InfoRow label="Reviewed By" value={request.manager_full_name || request.manager_verified_by} />
+            <InfoRow label="Reviewed At" value={fmtTs(request.manager_verified_at)} />
+          </Grid>
+          <Divider sx={{ my: 2 }} />
+
           {/* Borrower */}
-          <Typography variant="subtitle2" color="primary" gutterBottom>Borrower</Typography>
+          <Typography variant="subtitle2" color="primary" gutterBottom>Borrower Deduction Breakdown</Typography>
           <DeductionTable
             basicSalary={request.basic_salary}
             incomeTax={request.deduction_income_tax}
@@ -379,11 +480,11 @@ const LoanApprovalDetail = ({ request: initialRequest, onClose, onApproved }) =>
             deductionMonths={request.deduction_months}
           />
 
-          {/* Guarantor — shown only when data exists */}
+          {/* Guarantor */}
           {(request.guarantor_basic_salary || request.guarantor_total_deduction) && (
             <>
               <Divider sx={{ my: 2 }} />
-              <Typography variant="subtitle2" color="secondary.main" gutterBottom>Guarantor</Typography>
+              <Typography variant="subtitle2" color="secondary.main" gutterBottom>Guarantor Deduction Breakdown</Typography>
               <DeductionTable
                 basicSalary={request.guarantor_basic_salary}
                 incomeTax={request.guarantor_deduction_income_tax}
@@ -400,40 +501,32 @@ const LoanApprovalDetail = ({ request: initialRequest, onClose, onApproved }) =>
 
           <Divider sx={{ my: 2 }} />
           <Grid container spacing={2}>
-            <InfoRow label="Reviewed By (Payroll)" value={request.manager_verified_by} />
-            <InfoRow label="Reviewed At"           value={fmtTs(request.manager_verified_at)} />
             {request.loan_processor_assigned && (
               <InfoRow label="Assigned Loan Processor" value={request.loan_processor_assigned} />
             )}
-            <InfoRow label="Manager Remarks"       value={request.manager_remarks} />
+            <InfoRow label="Manager Remarks" value={request.manager_remarks} />
           </Grid>
         </Section>
       )}
 
-      {/* ── Checker Review Summary ── */}
+      {/* ── Employee Services Management Team Review ── */}
       {request.checker_verified && (
-        <Section title="Checker Review Summary">
+        <Section title="Employee Services Management Team Review — Disciplinary & Loan Count Verification">
           <Grid container spacing={2}>
-            <InfoRow label="Reviewed By" value={request.checker_verified_by} />
+            <InfoRow label="Verified By" value={request.checker_full_name || request.checker_verified_by} />
             <InfoRow label="Reviewed At" value={fmtTs(request.checker_verified_at)} />
             <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" display="block">
-                Disciplinary Record
-              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">Disciplinary Record</Typography>
               <Chip
-                label={request.checker_disciplinary_verified ? "Clean ✓" : "Flagged ✗"}
+                label={request.checker_disciplinary_verified ? "Clean — Verified ✓" : "Issue Flagged ✗"}
                 color={request.checker_disciplinary_verified ? "success" : "error"}
-                size="small"
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <Typography variant="caption" color="text.secondary" display="block">
-                Loan Application Count
-              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">Loan Application Count</Typography>
               <Chip
-                label={request.checker_loan_application_verified ? "Confirmed ✓" : "Discrepancy ✗"}
+                label={request.checker_loan_application_verified ? "Confirmed ✓" : "Discrepancy Flagged ✗"}
                 color={request.checker_loan_application_verified ? "success" : "error"}
-                size="small"
               />
               {request.checker_loan_application_remarks && (
                 <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -442,6 +535,44 @@ const LoanApprovalDetail = ({ request: initialRequest, onClose, onApproved }) =>
               )}
             </Grid>
             <InfoRow label="Checker Remarks" value={request.checker_remarks} />
+          </Grid>
+        </Section>
+      )}
+
+      {/* ── Guarantor Consent Status ── */}
+      {hasGuarantor && (
+        <Section title="Guarantor Consent Status">
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <Typography variant="caption" color="text.secondary" display="block">Guarantor</Typography>
+              <Typography variant="body1" fontWeight={500}>{request.guarantor_user}</Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="caption" color="text.secondary" display="block">Consent Decision</Typography>
+              <Chip
+                label={
+                  guarantorConsent === "Accepted" ? "Accepted ✓" :
+                  guarantorConsent === "Declined" ? "Declined ✗" : "Awaiting Consent"
+                }
+                color={
+                  guarantorConsent === "Accepted" ? "success" :
+                  guarantorConsent === "Declined" ? "error" : "warning"
+                }
+                sx={{ fontWeight: 700 }}
+              />
+            </Grid>
+            {request.guarantor_consent_at && (
+              <Grid item xs={12} md={6}>
+                <Typography variant="caption" color="text.secondary" display="block">Responded At</Typography>
+                <Typography variant="body2">{fmtTs(request.guarantor_consent_at)}</Typography>
+              </Grid>
+            )}
+            {request.guarantor_consent_remarks && (
+              <Grid item xs={12}>
+                <Typography variant="caption" color="text.secondary" display="block">Guarantor Remarks</Typography>
+                <Typography variant="body2">{request.guarantor_consent_remarks}</Typography>
+              </Grid>
+            )}
           </Grid>
         </Section>
       )}

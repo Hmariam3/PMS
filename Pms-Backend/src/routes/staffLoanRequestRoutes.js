@@ -23,6 +23,8 @@ import {
   checkerReview,
   approverApprove,
   getRecommendedRequests,
+  getRequestsByGuarantor,
+  guarantorConsent,
 } from "../controllers/staffLoanRequestController.js";
 import { loanDocUpload } from "../middleware/loanDocumentUpload.js";
 
@@ -45,6 +47,8 @@ router.get("/employee/:employeeId", getStaffLoanRequestsByEmployee);
 router.get("/creator/:email",       getStaffLoanRequestsByCreator);
 router.get("/branch/:branchName",   getStaffLoanRequestsByBranch);
 router.get("/status/:status",       getStaffLoanRequestsByStatus);
+// Guarantor — requests where the logged-in user is the guarantor (MUST be before /:id)
+router.get("/guarantor/:username",  getRequestsByGuarantor);
 
 // Get single loan request by ID  ← must come after all static GET routes
 router.get("/:id", getStaffLoanRequestById);
@@ -79,5 +83,8 @@ router.post("/:id/checker-review", checkerReview);
 
 // Final approver
 router.post("/:id/approve", approverApprove);
+
+// Guarantor consent — record guarantor accept / decline
+router.post("/:id/guarantor-consent", guarantorConsent);
 
 export default router;
