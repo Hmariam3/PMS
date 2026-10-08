@@ -333,11 +333,16 @@ export const fetchSystemData = async (axios, baseUrl, type, requestData, targets
       return { actual: Number(r.data?.total_michu_recruitment) || 0, target: michu_unique_recruitmentTarget };
     }
 
+    if (type === "ATM CRM Uptime Rate") {
+      const atmCrmUptimeRateRes = await axios.get(`${baseUrl}/nondeposit/atm-crm-uptime/${requestData.company_code}`).catch(() => ({ data: {} }));
+      return { actual: Number(atmCrmUptimeRateRes.data?.AVERAGE_ATM_UPTIME) || 0, target: atm_crm_uptime_rateTarget };
+    }
+
     // User-input metrics (no system actual)
     if (type === "Merchant Recruitment") return { actual: null, target: merchant_recruitmentTarget };
     if (type === "Agent Recruitment") return { actual: null, target: agent_recruitmentTarget };
     if (type === "Coopay Ebirr Activation") return { actual: null, target: coopay_ebirr_activationTarget };
-    if (type === "ATM CRM Uptime Rate") return { actual: null, target: atm_crm_uptime_rateTarget };
+    // if (type === "ATM CRM Uptime Rate") return { actual: null, target: atm_crm_uptime_rateTarget };
     if (type === "Cash Book") return { actual: null, target: cash_balance_accuracy_rateTarget };
     if (type === "POS Deployment") return { actual: null, target: pos_deploymentTarget };
 
