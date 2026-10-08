@@ -334,8 +334,8 @@ export const fetchSystemData = async (axios, baseUrl, type, requestData, targets
     }
 
     if (type === "ATM CRM Uptime Rate") {
-      const atmCrmUptimeRateRes = await axios.get(`${baseUrl}/nondeposit/atm-crm-uptime/${requestData.company_code}`).catch(() => ({ data: {} }));
-      return { actual: Number(atmCrmUptimeRateRes.data?.AVERAGE_ATM_UPTIME) || 0, target: atm_crm_uptime_rateTarget };
+      const r = await axios.get(`${baseUrl}/nondeposit/atm-crm-uptime/${requestData.company_code}`).catch(() => ({ data: {} }));
+      return { actual: Number(r.data?.AVERAGE_ATM_UPTIME) || 0, target: atm_crm_uptime_rateTarget };
     }
 
     // User-input metrics (no system actual)
