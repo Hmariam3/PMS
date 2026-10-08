@@ -12,7 +12,9 @@ import {
   getCashDepositbyBranchSummaryByUser,
   getCsoTransactionPerformance,
   getBranchInternalAccountsSummary,
-  getMichuRecruitmentByUser
+  getMichuRecruitmentByUser,
+  getAtmCrmUptimeRateByBranchCode
+
 } from "../controllers/NonDepositActualController.js";
 
 const router = express.Router();
@@ -30,4 +32,5 @@ router.post("/getCsoTransactionPerformance", getCsoTransactionPerformance);
 router.post("/getBranchInternalAccountsSummary", getBranchInternalAccountsSummary);
 router.post("/getMichuRecruitmentByUser", getMichuRecruitmentByUser);
 
+router.get("/atm-crm-uptime/:branch_code", getAtmCrmUptimeRateByBranchCode);
 export default router;

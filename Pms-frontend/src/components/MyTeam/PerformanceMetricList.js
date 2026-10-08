@@ -491,6 +491,15 @@ const PerformanceMetricList = ({ member }) => {
           return { actual: michuUniqueRecruitmentRes.data.total_michu_recruitment || 0, target: michu_unique_recruitmentTarget };
         }
       }
+
+      // new added atmuptime from system
+      if (atm_crm_uptime_rateTarget > 0) {
+        if (type === "ATM CRM Uptime Rate") {
+          const atmCrmUptimeRateRes = await axios.get(`${baseUrl}/nondeposit/atm-crm-uptime/${requestData.company_code}`).catch(() => ({ data: {} }));
+          return { actual: Number(atmCrmUptimeRateRes.data?.AVERAGE_ATM_UPTIME) || 0, target: atm_crm_uptime_rateTarget };
+        }
+      }
+
       // for SPM
       if (type === "SPM") {
 
@@ -593,9 +602,9 @@ const PerformanceMetricList = ({ member }) => {
         return { actual: 0, target: coopay_ebirr_activationTarget };
       }
 
-      if (type === "ATM CRM Uptime Rate") {
-        return { actual: 0, target: atm_crm_uptime_rateTarget };
-      }
+      // if (type === "ATM CRM Uptime Rate") {
+      //   return { actual: 0, target: atm_crm_uptime_rateTarget };
+      // }
       if (type === "Cash Book") {
         return { actual: 0, target: cash_balance_accuracy_rateTarget };
       }

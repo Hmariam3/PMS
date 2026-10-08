@@ -1127,3 +1127,39 @@ export const getMichuRecruitmentByUser = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// =====================================================
+// Get ATM CRM Uptime Rate By Branch Code
+// =====================================================
+export const getAtmCrmUptimeRateByBranchCode = async (req, res) => {
+  const { branch_code } = req.params;
+
+  if (!branch_code) {
+    return res.status(400).json({ error: "branch_code is required" });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT
+         "ID",
+         "DISTRICT",
+         "BRANCH",
+         "BRANCH_CODE",
+         "AVERAGE_ATM_UPTIME"
+       FROM public."AverageATMUpTime"
+       WHERE "BRANCH_CODE" = $1`,
+      [branch_code]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "No ATM uptime record found for the given branch code"
+      });
+    }
+
+    res.status(200).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error fetching ATM CRM uptime rate:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
