@@ -73,9 +73,9 @@ export const fetchAccountBalanceFromSoap = async (accountNumber) => {
     throw new Error("Account opening date is missing. Cannot validate account mapping eligibility.");
   }
 
-  // Ensure account was opened between April 1, 2026 and June 30, 2026
-  if (openingDate < "20260701" || openingDate > "20260930") {
-    throw new Error("Account mapping is only allowed for accounts opened between July 1, 2026 and September 30, 2026.");
+  // Ensure account was opened between October 1, 2026 and December 31, 2026
+  if (openingDate < "20261001" || openingDate > "20261231") {
+    throw new Error("Account mapping is only allowed for accounts opened between October 1, 2026 and December 31, 2026.");
   }
 
   return {

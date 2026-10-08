@@ -43,8 +43,8 @@ const AccountVariationReport = () => {
 
   // Quarter progress — targets shown "as of today" are pro-rated by this
   const getQuarterRatio = () => {
-    const start = new Date("2026-07-01");
-    const end = new Date("2026-09-30");
+    const start = new Date("2026-10-01");
+    const end = new Date("2026-12-31");
     const today = new Date();
 
     const totalDays =

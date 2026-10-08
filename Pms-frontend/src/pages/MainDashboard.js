@@ -121,8 +121,8 @@ const resolveScope = (title = "", position = "", organization = "", team = "") =
 // ─── Quarter Helpers ──────────────────────────────────────────────────────────
 
 const getQuarterProgress = () => {
-  const start = new Date("2026-07-01");
-  const end = new Date("2026-09-30");
+  const start = new Date("2026-10-01");
+  const end = new Date("2026-12-31");
   const today = new Date();
 
   const totalDays =
@@ -1373,10 +1373,10 @@ const MainDashboard = () => {
               </Typography>
               <Stack direction="row" alignItems="baseline" spacing={1.5} sx={{ mt: 0.2, flexWrap: "wrap", gap: 0.5 }}>
                 <Typography sx={{ color: "#fff", fontWeight: 900, fontSize: "1.05rem" }}>
-                  Q1 FY 2026/27
+                  Q2 FY 2026/27
                 </Typography>
                 <Typography sx={{ color: "rgba(186,230,253,0.75)", fontSize: "0.8rem" }}>
-                  July 1 – September 30, 2026
+                  October 1 – December 31, 2026
                 </Typography>
               </Stack>
               <Typography

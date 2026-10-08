@@ -362,7 +362,7 @@ const MyDashboard = () => {
                     {user?.FullName || user?.UserName || "Welcome back"}
                   </Typography>
                   <Typography sx={{ color: "rgba(186,230,253,0.75)", mt: 0.2, fontWeight: 500, fontSize: { xs: "0.65rem", md: "0.75rem" } }}>
-                    {userInfo?.title || user?.position || "Employee"} · Q1 2026
+                    {userInfo?.title || user?.position || "Employee"} · Q2 2026
                   </Typography>
                 </Box>
               </Stack>

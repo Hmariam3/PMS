@@ -196,8 +196,8 @@ const Dashboard = () => {
       // totalLoanTarget = userTargetRes.data.total_loan;
 
       // Dates
-      const startDate = new Date("2026-07-01");
-      const endDate = new Date("2026-09-30");
+      const startDate = new Date("2026-10-01");
+      const endDate = new Date("2026-12-31");
       const today = new Date();
 
       // Total days in the quarter
